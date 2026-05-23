@@ -4,30 +4,92 @@ import { useState, useRef, useEffect } from 'react'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Stepper } from '@/components/ui/Stepper'
-import { ScoreGlyph } from '@/components/ui/ScoreGlyph'
 import { Icon } from '@/components/ui/Icon'
-import { MY_TEAM, PLAYER_HOLES, PLAYER_SPONSORS } from '@/lib/mockData'
+import { createClient } from '@/lib/supabase/client'
+import { getTeamId } from '@/lib/getTeamId'
+import { EVENT_ID } from '@/lib/eventId'
 
-// Build a hole→sponsor lookup
-const sponsorByHole: Record<number, { name: string; amount: number }> = {}
-;['eagle', 'birdie', 'par'].forEach(tier => {
-  (PLAYER_SPONSORS[tier as keyof typeof PLAYER_SPONSORS] || []).forEach((s: { name: string; amount: number; hole: number }) => {
-    if (s.hole) sponsorByHole[s.hole] = s
-  })
-})
+type HoleInfo = { n: number; par: number; contest: 'ctp' | 'ld' | null }
+type SponsorMap = Record<number, { name: string; amount: number }>
 
 export default function ScorecardPage() {
-  const [scores, setScores] = useState<Record<number, number>>({ ...MY_TEAM.scores })
-  const [mulligans, setMulligans] = useState<Record<number, number>>({ ...MY_TEAM.mulligans })
-
-  const firstUnscored = PLAYER_HOLES.find(h => scores[h.n] == null)?.n ?? PLAYER_HOLES[PLAYER_HOLES.length - 1].n
-  const [activeHole, setActiveHole] = useState(firstUnscored)
-  const [draftScore, setDraftScore] = useState(scores[activeHole] ?? PLAYER_HOLES[activeHole - 1].par)
-
+  const [holes, setHoles] = useState<HoleInfo[]>([])
+  const [scores, setScores] = useState<Record<number, number>>({})
+  const [mulligans, setMulligans] = useState<Record<number, number>>({})
+  const [sponsorByHole, setSponsorByHole] = useState<SponsorMap>({})
+  const [activeHole, setActiveHole] = useState(1)
+  const [draftScore, setDraftScore] = useState(4)
+  const [loaded, setLoaded] = useState(false)
   const miniRef = useRef<HTMLDivElement>(null)
 
+  const teamId = getTeamId()
+  const supabase = createClient()
+
+  // Load all initial data on mount
   useEffect(() => {
-    setDraftScore(scores[activeHole] ?? PLAYER_HOLES[activeHole - 1].par)
+    async function load() {
+      const [holeRes, scoreRes, mullRes, sponsorRes] = await Promise.all([
+        supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
+        supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
+        supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
+        supabase.from('sponsor').select('name, amount, hole_id').eq('event_id', EVENT_ID).not('hole_id', 'is', null),
+      ])
+
+      const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
+      const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
+      const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
+      const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_id: string | null }[] | null
+
+      const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
+        n: h.number,
+        par: h.par,
+        contest: h.contest_type === 'closest_to_pin' ? 'ctp'
+               : h.contest_type === 'long_drive' ? 'ld'
+               : null,
+      }))
+
+      const scoreMap: Record<number, number> = {}
+      scoreRows?.forEach(s => { scoreMap[s.hole_number] = s.strokes })
+
+      const mullMap: Record<number, number> = {}
+      mullRows?.forEach(m => { mullMap[m.hole_number] = m.count })
+
+      // Build hole_id → hole_number map to join sponsors
+      const holeIdToNum: Record<string, number> = {}
+      holeRows?.forEach(h => { if ((h as any).id) holeIdToNum[(h as any).id] = h.number })
+
+      // Re-fetch holes with id for sponsor join
+      const holesWithIdRes = await supabase
+        .from('hole')
+        .select('id, number')
+        .eq('event_id', EVENT_ID)
+      const holesWithId = holesWithIdRes.data as { id: string; number: number }[] | null
+      holesWithId?.forEach(h => { holeIdToNum[h.id] = h.number })
+
+      const sponsMap: SponsorMap = {}
+      sponsorRows?.forEach(s => {
+        const num = holeIdToNum[s.hole_id!]
+        if (num) sponsMap[num] = { name: s.name, amount: s.amount }
+      })
+
+      setHoles(mappedHoles)
+      setScores(scoreMap)
+      setMulligans(mullMap)
+      setSponsorByHole(sponsMap)
+
+      // Set active hole to first unscored
+      const firstUnscored = mappedHoles.find(h => scoreMap[h.n] == null)?.n
+        ?? mappedHoles[mappedHoles.length - 1]?.n ?? 1
+      setActiveHole(firstUnscored)
+      setDraftScore(scoreMap[firstUnscored] ?? (mappedHoles.find(h => h.n === firstUnscored)?.par ?? 4))
+      setLoaded(true)
+    }
+    load()
+  }, [])
+
+  useEffect(() => {
+    if (!loaded) return
+    setDraftScore(scores[activeHole] ?? (holes.find(h => h.n === activeHole)?.par ?? 4))
   }, [activeHole])
 
   useEffect(() => {
@@ -40,25 +102,52 @@ export default function ScorecardPage() {
   const through = scoredEntries.length
   const totalScore = scoredEntries.reduce((a, [, v]) => a + v, 0)
   const totalToPar = scoredEntries.reduce((acc, [hole, score]) => {
-    const par = PLAYER_HOLES[Number(hole) - 1].par
+    const par = holes.find(h => h.n === Number(hole))?.par ?? 4
     return acc + (score - par)
   }, 0)
   const toParDisplay = through === 0 ? '—' : totalToPar === 0 ? 'E' : (totalToPar > 0 ? `+${totalToPar}` : `${totalToPar}`)
 
-  const completeHole = () => {
-    setScores(prev => ({ ...prev, [activeHole]: draftScore }))
-    // Advance to next unscored
-    const updatedScores = { ...scores, [activeHole]: draftScore }
-    const startIdx = PLAYER_HOLES.findIndex(h => h.n === activeHole)
-    const order = [
-      ...PLAYER_HOLES.slice(startIdx + 1),
-      ...PLAYER_HOLES.slice(0, startIdx),
-    ]
-    const next = order.find(h => updatedScores[h.n] == null)
+  const completeHole = async () => {
+    const newScores = { ...scores, [activeHole]: draftScore }
+    setScores(newScores)
+
+    // Persist to Supabase (as any: Supabase recursive Insert types confuse TS inference)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('score') as any).upsert(
+      { team_id: teamId, hole_number: activeHole, strokes: draftScore },
+      { onConflict: 'team_id,hole_number' }
+    )
+
+    // Also persist current mulligan count for this hole
+    const mullCount = mulligans[activeHole] ?? 0
+    if (mullCount > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('mulligan') as any).upsert(
+        { team_id: teamId, hole_number: activeHole, count: mullCount },
+        { onConflict: 'team_id,hole_number' }
+      )
+    }
+
+    // Advance to next unscored hole
+    const startIdx = holes.findIndex(h => h.n === activeHole)
+    const order = [...holes.slice(startIdx + 1), ...holes.slice(0, startIdx)]
+    const next = order.find(h => newScores[h.n] == null)
     if (next) setActiveHole(next.n)
   }
 
-  const holeObj = PLAYER_HOLES[activeHole - 1]
+  const setMulligan = async (count: number) => {
+    const clamped = Math.max(0, Math.min(2, count))
+    setMulligans(m => ({ ...m, [activeHole]: clamped }))
+    if (clamped > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('mulligan') as any).upsert(
+        { team_id: teamId, hole_number: activeHole, count: clamped },
+        { onConflict: 'team_id,hole_number' }
+      )
+    }
+  }
+
+  const holeObj = holes.find(h => h.n === activeHole) ?? { n: activeHole, par: 4, contest: null }
   const sponsor = sponsorByHole[activeHole]
   const holeContest = holeObj.contest
   const contestName = holeContest === 'ctp' ? 'Closest to pin' : holeContest === 'ld' ? 'Long drive' : null
@@ -69,9 +158,16 @@ export default function ScorecardPage() {
     diff === 0  ? '#fff'                :
     diff === 1  ? 'var(--score-bogey)'  :
     'var(--score-double)'
-
-  const holeMultigans = mulligans[activeHole] ?? 0
+  const holeMulligans = mulligans[activeHole] ?? 0
   const isScored = scores[activeHole] != null
+
+  if (!loaded) {
+    return (
+      <PlayerShell title="Scorecard" subtitle="Loading…" syncStatus="synced" liftBar>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--fg-subtle)' }}>Loading your card…</div>
+      </PlayerShell>
+    )
+  }
 
   return (
     <PlayerShell
@@ -80,27 +176,27 @@ export default function ScorecardPage() {
       syncStatus="synced"
       liftBar
     >
-      {/* Floating stat strip */}
+      {/* Stat strip */}
       <div className={styles.statStrip}>
         <StatCell label="Total" value={totalScore || '—'} testId="stat-total" />
         <StatCell label="To par" value={toParDisplay} accent testId="stat-topar" />
         <StatCell label="Thru" value={through} testId="stat-thru" />
       </div>
 
-      {/* Mini scorecard — horizontal scroll */}
+      {/* Mini scorecard */}
       <div className={styles.miniCardSection}>
         <div className={styles.miniCardHeader}>
           <span>Card</span>
           <span className={styles.miniCardHint}>Tap any hole to enter</span>
         </div>
         <div className={styles.miniCardScroll} ref={miniRef}>
-          {PLAYER_HOLES.map(h => {
+          {holes.map(h => {
             const s = scores[h.n]
             const isActive = h.n === activeHole
-            const isScored = s != null
-            const d = isScored ? s - h.par : null
-            const scoreColor =
-              !isScored ? 'var(--fg-subtle)' :
+            const isHoleScored = s != null
+            const d = isHoleScored ? s - h.par : null
+            const tileColor =
+              !isHoleScored ? 'var(--fg-subtle)' :
               d! < 0 ? 'var(--score-birdie)' :
               d === 0 ? 'var(--fg)' :
               d === 1 ? 'var(--score-bogey)' :
@@ -116,9 +212,9 @@ export default function ScorecardPage() {
                 <div className={`${styles.miniPar} ${isActive ? styles.miniParActive : ''}`}>par {h.par}</div>
                 <div
                   className={`${styles.miniScore} num`}
-                  style={{ color: isActive ? '#fff' : scoreColor }}
+                  style={{ color: isActive ? '#fff' : tileColor }}
                 >
-                  {isScored ? s : '—'}
+                  {isHoleScored ? s : '—'}
                 </div>
               </button>
             )
@@ -170,10 +266,7 @@ export default function ScorecardPage() {
           <div className={styles.scoreRow}>
             <div>
               <div className={styles.scoreLabel}>Team score</div>
-              <div
-                className={`${styles.bigScore} num`}
-                style={{ color: scoreColor }}
-              >
+              <div className={`${styles.bigScore} num`} style={{ color: scoreColor }}>
                 {draftScore}
               </div>
               <div className={styles.relScore}>
@@ -190,11 +283,11 @@ export default function ScorecardPage() {
             </div>
             <div className={styles.mulliganSlots}>
               {[1, 2].map(slot => {
-                const filled = holeMultigans >= slot
+                const filled = holeMulligans >= slot
                 return (
                   <button
                     key={slot}
-                    onClick={() => setMulligans(m => ({ ...m, [activeHole]: filled ? slot - 1 : slot }))}
+                    onClick={() => setMulligan(filled ? slot - 1 : slot)}
                     aria-label={filled ? `Remove mulligan ${slot}` : `Add mulligan ${slot}`}
                     className={`${styles.mulliganSlot} ${filled ? styles.mulliganSlotFilled : ''}`}
                   >

@@ -1,18 +1,71 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Icon } from '@/components/ui/Icon'
-import { MY_TEAM, PLAYER_HOLES } from '@/lib/mockData'
+import { createClient } from '@/lib/supabase/client'
+import { getTeamId } from '@/lib/getTeamId'
+import { EVENT_ID } from '@/lib/eventId'
+
+type HoleInfo = { n: number; par: number }
 
 export default function MulligansPage() {
-  const [mulligans, setMulligans] = useState<Record<number, number>>({ ...MY_TEAM.mulligans })
+  const [holes, setHoles] = useState<HoleInfo[]>([])
+  const [mulligans, setMulligans] = useState<Record<number, number>>({})
+  const [loaded, setLoaded] = useState(false)
+
+  const teamId = getTeamId()
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function load() {
+      const [holeRes, mullRes] = await Promise.all([
+        supabase.from('hole').select('number, par').eq('event_id', EVENT_ID).order('number'),
+        supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
+      ])
+
+      const holeRows = holeRes.data as { number: number; par: number }[] | null
+      const mullRows = mullRes.data as { hole_number: number; count: number }[] | null
+
+      const mullMap: Record<number, number> = {}
+      mullRows?.forEach(m => { mullMap[m.hole_number] = m.count })
+
+      setHoles((holeRows ?? []).map(h => ({ n: h.number, par: h.par })))
+      setMulligans(mullMap)
+      setLoaded(true)
+    }
+    load()
+  }, [])
 
   const total = Object.values(mulligans).reduce((a, b) => a + b, 0)
 
-  const setMull = (hole: number, count: number) => {
-    setMulligans(m => ({ ...m, [hole]: Math.max(0, Math.min(2, count)) }))
+  const setMull = async (hole: number, count: number) => {
+    const clamped = Math.max(0, Math.min(2, count))
+    setMulligans(m => ({ ...m, [hole]: clamped }))
+
+    // Persist to Supabase
+    if (clamped > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('mulligan') as any).upsert(
+        { team_id: teamId, hole_number: hole, count: clamped },
+        { onConflict: 'team_id,hole_number' }
+      )
+    } else {
+      await supabase
+        .from('mulligan')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('hole_number', hole)
+    }
+  }
+
+  if (!loaded) {
+    return (
+      <PlayerShell title="Mulligans" subtitle="Max 2 per hole · $2 each" syncStatus="synced" liftBar>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--fg-subtle)' }}>Loading…</div>
+      </PlayerShell>
+    )
   }
 
   return (
@@ -36,7 +89,7 @@ export default function MulligansPage() {
 
       {/* Per-hole list */}
       <div className={styles.holeList}>
-        {PLAYER_HOLES.map(h => {
+        {holes.map(h => {
           const m = mulligans[h.n] ?? 0
           const atMax = m >= 2
           return (

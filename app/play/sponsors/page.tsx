@@ -1,10 +1,25 @@
+import { createClient } from '@/lib/supabase/server'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
-import { PLAYER_SPONSORS } from '@/lib/mockData'
+import { EVENT_ID } from '@/lib/eventId'
 
-type SponsorEntry = { name: string; amount: number; hole: number }
+type SponsorRow = { name: string; amount: number; hole_id: string | null }
 
-export default function SponsorsPage() {
+export default async function SponsorsPage() {
+  const supabase = await createClient()
+
+  const { data: rawSponsors } = await supabase
+    .from('sponsor')
+    .select('name, tier, amount, hole_id')
+    .eq('event_id', EVENT_ID)
+    .order('amount', { ascending: false })
+
+  const sponsors = rawSponsors as { name: string; tier: string; amount: number; hole_id: string | null }[] | null
+
+  const eagle  = (sponsors ?? []).filter(s => s.tier === 'eagle')
+  const birdie = (sponsors ?? []).filter(s => s.tier === 'birdie')
+  const par    = (sponsors ?? []).filter(s => s.tier === 'par')
+
   return (
     <PlayerShell
       title="Our sponsors"
@@ -17,9 +32,9 @@ export default function SponsorsPage() {
           Stop by their hole signs and say hi.
         </p>
 
-        <TierGroup label="Eagle" sub="$2,500" sponsors={PLAYER_SPONSORS.eagle} large />
-        <TierGroup label="Birdie" sub="$1,000" sponsors={PLAYER_SPONSORS.birdie} large={false} />
-        <TierGroup label="Par" sub="$500" sponsors={PLAYER_SPONSORS.par} large={false} />
+        <TierGroup label="Eagle" sub="$2,500" sponsors={eagle} large />
+        <TierGroup label="Birdie" sub="$1,000" sponsors={birdie} large={false} />
+        <TierGroup label="Par" sub="$500" sponsors={par} large={false} />
       </div>
     </PlayerShell>
   )
@@ -33,7 +48,7 @@ function TierGroup({
 }: {
   label: string
   sub: string
-  sponsors: SponsorEntry[]
+  sponsors: SponsorRow[]
   large: boolean
 }) {
   return (
@@ -52,8 +67,6 @@ function TierGroup({
             <div className={styles.sponsorInfo}>
               <div className={styles.sponsorName}>{s.name}</div>
               <div className={styles.sponsorMeta}>
-                {s.hole ? `Hole ${s.hole}` : ''}
-                {s.hole && s.amount ? ' · ' : ''}
                 {s.amount ? `$${s.amount.toLocaleString()}` : ''}
               </div>
             </div>

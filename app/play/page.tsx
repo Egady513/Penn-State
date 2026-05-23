@@ -1,30 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { LogoRibbon } from '@/components/ui/LogoRibbon'
-import { PLAYER_TEAMS } from '@/lib/mockData'
+import { createClient } from '@/lib/supabase/client'
+import { loginWithPin } from './actions'
+import { EVENT_ID } from '@/lib/eventId'
+
+type Team = { id: string; name: string }
 
 export default function PlayerEntryPage() {
   const router = useRouter()
-  const [team, setTeam] = useState('t07')
+  const [teams, setTeams] = useState<Team[]>([])
+  const [team, setTeam] = useState('')
   const [pin, setPin] = useState(['', '', '', ''])
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('team')
+      .select('id, name')
+      .eq('event_id', EVENT_ID)
+      .order('name')
+      .then(({ data }) => {
+        const rows = data as Team[] | null
+        if (rows && rows.length > 0) {
+          setTeams(rows)
+          setTeam(rows[0].id)
+        }
+      })
+  }, [])
 
   const setDigit = (i: number, v: string) => {
     const d = v.replace(/\D/g, '').slice(-1)
     setPin(p => p.map((x, idx) => (idx === i ? d : x)))
-    // Auto-advance focus
     if (d && i < 3) {
-      const next = document.getElementById(`pin-${i + 1}`)
-      next?.focus()
+      document.getElementById(`pin-${i + 1}`)?.focus()
     }
   }
 
   const allFilled = pin.every(d => d.length === 1)
 
-  const handleEnter = () => {
-    if (allFilled) router.push('/play/home')
+  const handleEnter = async () => {
+    if (!allFilled || !team) return
+    setError('')
+    setLoading(true)
+    const pinStr = pin.join('')
+    const result = await loginWithPin(team, pinStr)
+    setLoading(false)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      router.push('/play/home')
+    }
   }
 
   return (
@@ -43,7 +74,7 @@ export default function PlayerEntryPage() {
         onChange={e => setTeam(e.target.value)}
         className={styles.teamSelect}
       >
-        {PLAYER_TEAMS.map(t => (
+        {teams.map(t => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
       </select>
@@ -68,18 +99,23 @@ export default function PlayerEntryPage() {
           />
         ))}
       </div>
-      <div className={styles.pinHint}>
-        From your registration confirmation. Try <span className={styles.pinSample}>4821</span>.
-      </div>
+
+      {error ? (
+        <div className={styles.pinHint} style={{ color: 'var(--score-bogey)' }}>{error}</div>
+      ) : (
+        <div className={styles.pinHint}>
+          From your registration confirmation. Try <span className={styles.pinSample}>4821</span>.
+        </div>
+      )}
 
       <div className={styles.spacer} />
 
       <button
         onClick={handleEnter}
-        disabled={!allFilled}
+        disabled={!allFilled || loading}
         className={`${styles.enterBtn} ${allFilled ? styles.enterBtnActive : ''}`}
       >
-        Enter the app
+        {loading ? 'Checking…' : 'Enter the app'}
       </button>
 
       <div className={styles.pwaHint}>
