@@ -6,11 +6,11 @@ import styles from './PlayerShell.module.css'
 import { Icon } from '@/components/ui/Icon'
 
 const TABS = [
-  { id: 'home',      href: '/home',        label: 'Home',     icon: 'home'       },
-  { id: 'scorecard', href: '/scorecard',   label: 'Scorecard',icon: 'scorecard'  },
-  { id: 'board',     href: '/leaderboard', label: 'Board',    icon: 'leaderboard'},
-  { id: 'mulligans', href: '/mulligans',   label: 'Mulls',    icon: 'target'     },
-  { id: 'owe',       href: '/owe',         label: 'Owe',      icon: 'owe'        },
+  { id: 'home',      href: '/play/home',        label: 'Home',     icon: 'home'       },
+  { id: 'scorecard', href: '/play/scorecard',   label: 'Scorecard',icon: 'scorecard'  },
+  { id: 'board',     href: '/play/leaderboard', label: 'Board',    icon: 'leaderboard'},
+  { id: 'mulligans', href: '/play/mulligans',   label: 'Mulls',    icon: 'target'     },
+  { id: 'owe',       href: '/play/owe',         label: 'Owe',      icon: 'owe'        },
 ]
 
 interface PlayerShellProps {

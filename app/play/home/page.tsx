@@ -89,13 +89,13 @@ export default function HomePage() {
         <div className={styles.sectionLabel}>More</div>
         <div className={styles.subTileRow}>
           <SubTile
-            href="/mulligans"
+            href="/play/mulligans"
             icon="target"
             label="Mulligan tracker"
             sub={`${mulliganTotal} used · $${mulliganTotal * 2}`}
           />
           <SubTile
-            href="/sponsors"
+            href="/play/sponsors"
             icon="users"
             label="Sponsors"
             sub="Thank you to ours"

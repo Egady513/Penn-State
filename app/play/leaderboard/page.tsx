@@ -26,6 +26,7 @@ export default function LeaderboardPage() {
             return (
               <div
                 key={t.rank}
+                data-testid="lb-row"
                 className={`
                   ${styles.row}
                   ${isLeader ? styles.rowLeader : ''}
@@ -36,7 +37,7 @@ export default function LeaderboardPage() {
                 <div className={`${styles.rank} num`}>{t.rank}</div>
                 <div className={styles.teamInfo}>
                   <div className={styles.teamNameRow}>
-                    {isLeader && <Icon name="trophy" size={14} color="var(--psu-pugh)" />}
+                    {isLeader && <span data-testid="trophy-icon"><Icon name="trophy" size={14} color="var(--psu-pugh)" /></span>}
                     <span className={styles.teamName}>{t.name}</span>
                     {isYou && <Badge tone="pugh" size="sm">YOU</Badge>}
                   </div>

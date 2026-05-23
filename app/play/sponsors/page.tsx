@@ -37,14 +37,14 @@ function TierGroup({
   large: boolean
 }) {
   return (
-    <div className={styles.tier}>
+    <div className={styles.tier} data-testid={`tier-${label.toLowerCase()}`}>
       <div className={styles.tierHeader}>
         <span className={styles.tierLabel}>{label}</span>
         <span className={styles.tierSub}>{sub}</span>
       </div>
       <div className={`${styles.tierGrid} ${large ? styles.tierGridLarge : ''}`}>
         {sponsors.map((s, i) => (
-          <div key={i} className={styles.sponsorCard}>
+          <div key={i} className={styles.sponsorCard} data-testid="sponsor-card">
             <div
               className={styles.sponsorThumb}
               style={{ width: large ? 60 : 44, height: large ? 60 : 44 }}

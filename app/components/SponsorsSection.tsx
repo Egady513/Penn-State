@@ -73,13 +73,17 @@ function SponsorTier({
   size: 'lg' | 'md' | 'sm'
 }) {
   return (
-    <div className={styles.tier}>
+    <div className={styles.tier} data-testid={`tier-${label.toLowerCase()}`}>
       <div className={styles.tierHeader}>
         <span className={styles.tierLabel}>{label}</span>
         <span className={styles.tierSub}>{sub}</span>
       </div>
       <div className={styles.tierGrid} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {sponsors.map(s => <SponsorLogo key={s.id} name={s.name} size={size} />)}
+        {sponsors.map(s => (
+          <div key={s.id} data-testid="sponsor-card">
+            <SponsorLogo name={s.name} size={size} />
+          </div>
+        ))}
       </div>
     </div>
   )

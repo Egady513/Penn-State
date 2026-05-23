@@ -40,6 +40,10 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const baseFee = single ? 100 : 200
   const total = baseFee + addonTotal + (Number(donation) || 0)
 
+  const canContinue =
+    teamName.trim() !== '' &&
+    golfers.slice(0, numGolfers).every(g => g.name.trim() !== '' && g.email.trim() !== '')
+
   return (
     <section id="register" ref={ref} className={styles.section}>
       <div className={styles.inner}>
@@ -107,7 +111,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               ))}
 
               <div className={styles.stepFooter}>
-                <Button size="lg" onClick={() => setStep(2)}>
+                <Button size="lg" onClick={() => setStep(2)} disabled={!canContinue}>
                   Continue to add-ons <ArrowRight size={18} />
                 </Button>
               </div>

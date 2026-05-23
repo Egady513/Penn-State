@@ -82,9 +82,9 @@ export default function ScorecardPage() {
     >
       {/* Floating stat strip */}
       <div className={styles.statStrip}>
-        <StatCell label="Total" value={totalScore || '—'} />
-        <StatCell label="To par" value={toParDisplay} accent />
-        <StatCell label="Thru" value={through} />
+        <StatCell label="Total" value={totalScore || '—'} testId="stat-total" />
+        <StatCell label="To par" value={toParDisplay} accent testId="stat-topar" />
+        <StatCell label="Thru" value={through} testId="stat-thru" />
       </div>
 
       {/* Mini scorecard — horizontal scroll */}
@@ -217,9 +217,9 @@ export default function ScorecardPage() {
   )
 }
 
-function StatCell({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+function StatCell({ label, value, accent, testId }: { label: string; value: string | number; accent?: boolean; testId?: string }) {
   return (
-    <div className={styles.statCell}>
+    <div className={styles.statCell} data-testid={testId}>
       <div className={styles.statLabel}>{label}</div>
       <div className={`${styles.statValue} num`} style={{ color: accent ? 'var(--psu-beaver)' : 'var(--fg)' }}>
         {value}

@@ -36,7 +36,7 @@ function ConfirmationContent() {
         </div>
 
         <div className={styles.actions}>
-          <Link href="/home" className={styles.btnPrimary}>
+          <Link href="/play/home" className={styles.btnPrimary}>
             Open the day-of app
           </Link>
           <Link href="/" className={styles.btnSecondary}>

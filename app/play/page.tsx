@@ -24,7 +24,7 @@ export default function PlayerEntryPage() {
   const allFilled = pin.every(d => d.length === 1)
 
   const handleEnter = () => {
-    if (allFilled) router.push('/home')
+    if (allFilled) router.push('/play/home')
   }
 
   return (
