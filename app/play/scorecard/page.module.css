@@ -1,0 +1,362 @@
+/* Floating stat strip (overlaps appBar via negative margin) */
+.statStrip {
+  margin: -32px 16px 0;
+  position: relative;
+  z-index: 2;
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.statCell { text-align: center; }
+
+.statLabel {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--space-1);
+}
+
+/* Mini card */
+.miniCardSection { margin-top: var(--space-4); }
+
+.miniCardHeader {
+  padding: 0 16px;
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.miniCardHint {
+  font-size: var(--fs-overline);
+  font-weight: 600;
+  color: var(--fg-subtle);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.miniCardScroll {
+  display: flex;
+  gap: 6px;
+  padding: 4px 16px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.miniCardScroll::-webkit-scrollbar { display: none; }
+
+.miniTile {
+  flex: none;
+  scroll-snap-align: center;
+  width: 48px;
+  padding: 6px 0 8px;
+  background: var(--psu-white);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-sans);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--dur-base);
+}
+
+.miniTile:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.miniTileActive {
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  border-color: var(--psu-navy);
+  box-shadow: 0 6px 14px rgba(0,30,68,0.20);
+}
+
+.miniHoleLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.miniHoleLabelActive { color: var(--psu-pugh); }
+
+.miniPar {
+  font-size: 9px;
+  color: var(--fg-subtle);
+  font-family: var(--font-mono);
+}
+
+.miniParActive { color: rgba(255,255,255,0.55); }
+
+.miniScore {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Active hole editor */
+.editorWrap { padding: 4px 16px 16px; }
+
+.holeEditor {
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 18px 32px rgba(0,30,68,0.22);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Sponsor banner */
+.sponsorBanner {
+  padding: var(--space-3) var(--space-4);
+  background: rgba(150,190,230,0.14);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sponsorThumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  flex: none;
+  background: rgba(255,255,255,0.12);
+  border: 1px dashed rgba(255,255,255,0.25);
+}
+
+.sponsorInfo { flex: 1; min-width: 0; line-height: 1.25; }
+
+.sponsorLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+}
+
+.sponsorName {
+  font-size: var(--fs-body-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Contest banner */
+.contestBanner {
+  padding: var(--space-3) var(--space-4);
+  background: rgba(199,122,10,0.20);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.contestIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  flex: none;
+  background: var(--score-bogey);
+  color: var(--psu-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contestInfo { flex: 1; min-width: 0; line-height: 1.25; }
+
+.contestLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #F7CD86;
+  text-transform: uppercase;
+}
+
+.contestDesc { font-size: var(--fs-body-sm); font-weight: 700; }
+
+/* Hole header */
+.holeHeader {
+  padding: 18px 20px 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.holeOverline {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+}
+
+.holeNumber {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1;
+  margin-top: var(--space-1);
+  letter-spacing: var(--tracking-tight);
+}
+
+.holePar {
+  font-size: var(--fs-body-sm);
+  color: rgba(255,255,255,0.65);
+  margin-top: var(--space-1);
+}
+
+.savedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,0.12);
+  color: var(--psu-white);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Score row */
+.scoreRow {
+  padding: 12px 20px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.scoreLabel {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+}
+
+.bigScore {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 80px;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  margin-top: var(--space-1);
+}
+
+.relScore {
+  font-size: var(--fs-body-sm);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  margin-top: var(--space-1);
+}
+
+/* Mulligans */
+.mulliganRow {
+  padding: 14px 20px;
+  margin: 14px 20px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mulliganLabel {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase;
+}
+
+.mulliganSub {
+  font-size: var(--fs-caption);
+  color: rgba(255,255,255,0.65);
+  margin-top: var(--space-1);
+}
+
+.mulliganSlots { display: flex; gap: var(--space-2); }
+
+.mulliganSlot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px dashed rgba(255,255,255,0.25);
+  color: var(--psu-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-body);
+  transition: all 140ms;
+}
+
+.mulliganSlot:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.mulliganSlotFilled {
+  background: var(--score-bogey);
+  border: 1px solid var(--score-bogey);
+}
+
+/* Complete button */
+.editorFooter { padding: 4px 20px 20px; }
+
+.completeBtn {
+  width: 100%;
+  height: var(--hit-tall);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--psu-pugh);
+  color: var(--psu-navy);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: var(--fs-body);
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: background var(--dur-fast);
+}
+
+.completeBtn:hover { background: #7BAFE0; }
+.completeBtn:focus-visible { outline: none; box-shadow: var(--ring-focus); }

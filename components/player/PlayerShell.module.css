@@ -1,0 +1,117 @@
+.shell {
+  position: absolute;
+  inset: 0;
+  background: var(--psu-cream);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* AppBar */
+.appBar {
+  padding: 16px 20px 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: linear-gradient(180deg, var(--psu-navy) 0%, var(--bg-deep) 100%);
+  color: var(--psu-white);
+  flex: none;
+}
+
+.appBarLifted {
+  padding-bottom: 46px;
+}
+
+.appBarSub {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--psu-pugh);
+  margin-bottom: var(--space-1);
+}
+
+.appBarTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.syncBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-overline);
+  font-weight: 600;
+}
+
+/* Scrollable content */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--psu-cream);
+}
+
+.bottomPad { height: 100px; }
+
+/* Bottom nav pill */
+.bottomNav {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  background: rgba(0, 19, 43, 0.92);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 22px;
+  padding: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-1);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.65);
+  padding: var(--space-2) 2px var(--space-1);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  min-height: var(--hit-min);
+  text-decoration: none;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+
+.tab.tabActive {
+  background: rgba(255,255,255,0.10);
+  color: var(--psu-white);
+}
+
+.tab:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.tabDot {
+  width: 22px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--psu-pugh);
+  opacity: 0;
+  transition: opacity var(--dur-base);
+}
+
+.tabDot.tabDotVisible { opacity: 1; }

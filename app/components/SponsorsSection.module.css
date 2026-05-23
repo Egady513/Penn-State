@@ -1,0 +1,123 @@
+.section {
+  background: var(--bg-soft);
+  padding: var(--space-20) 0;
+}
+
+.inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-beaver);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
+  margin: 0 0 var(--space-8);
+  letter-spacing: -0.01em;
+}
+
+.tier { margin-bottom: var(--space-8); }
+
+.tierHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.tierLabel {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.tierSub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.tierGrid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.donors { margin-top: var(--space-12); }
+
+.donorsHead {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  margin: 0 0 var(--space-4);
+}
+
+.donorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.donorItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  color: var(--fg);
+  padding: 6px 0;
+}
+
+.donorDot {
+  width: 8px; height: 8px;
+  background: var(--psu-bronze);
+  border-radius: 2px;
+  flex: none;
+}
+
+.becomeSponsor {
+  margin-top: var(--space-16);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: var(--space-8);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.bronzeEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-bronze);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.becomeHead {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+.becomeSub {
+  color: var(--fg-muted);
+  font-size: 15px;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .becomeSponsor { grid-template-columns: 1fr; }
+  .tierGrid { grid-template-columns: repeat(2, 1fr) !important; }
+}

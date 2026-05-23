@@ -1,0 +1,143 @@
+.page {
+  position: absolute;
+  inset: 0;
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  display: flex;
+  flex-direction: column;
+  padding: 60px 28px 36px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.logo {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.eventDate {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.eventTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 36px;
+  text-align: center;
+  margin: var(--space-2) 0 var(--space-1);
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+.eventCause {
+  font-size: var(--fs-body-sm);
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  margin: 0 0 var(--space-8);
+  line-height: 1.4;
+}
+
+.fieldLabel {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-2);
+}
+
+.teamSelect {
+  height: 52px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.08);
+  color: var(--psu-white);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-size: var(--fs-body);
+  font-family: var(--font-sans);
+  appearance: none;
+  width: 100%;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2396BEE6' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+.teamSelect:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.teamSelect option { color: #000; }
+
+.pinRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.pinInput {
+  flex: 1;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,0.08);
+  color: var(--psu-white);
+  border: 1px solid rgba(255,255,255,0.18);
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--psu-pugh);
+}
+
+.pinInput:focus {
+  outline: none;
+  border-color: var(--psu-pugh);
+  box-shadow: var(--ring-focus);
+}
+
+.pinHint {
+  font-size: var(--fs-caption);
+  color: rgba(255,255,255,0.55);
+  margin-top: var(--space-3);
+}
+
+.pinSample { color: var(--psu-pugh); font-weight: 700; }
+
+.spacer { flex: 1; }
+
+.enterBtn {
+  height: var(--hit-tall);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  background: rgba(150,190,230,0.25);
+  color: rgba(255,255,255,0.45);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--fs-body);
+  transition: all var(--dur-base);
+}
+
+.enterBtn.enterBtnActive {
+  background: var(--psu-pugh);
+  color: var(--psu-navy);
+}
+
+.enterBtn.enterBtnActive:hover { background: #7BAFE0; }
+.enterBtn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.pwaHint {
+  font-size: var(--fs-overline);
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  margin-top: var(--space-3);
+}

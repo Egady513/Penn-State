@@ -1,0 +1,107 @@
+/* admin/foursomes/page.module.css */
+
+.page {
+  padding: 28px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin: 0 0 18px;
+}
+
+.holeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.holeCard {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 160ms;
+}
+
+.holeCardFull {
+  border-color: var(--success);
+}
+
+.holeCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.holeHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.holeNumber {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--fg);
+}
+
+.holePar {
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
+.teamSlots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.teamChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--psu-pugh-soft);
+  color: var(--psu-navy);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: grab;
+}
+
+.teamChip:active {
+  cursor: grabbing;
+}
+
+.dropZone {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--ink-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-subtle);
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px;
+  }
+
+  .holeGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}

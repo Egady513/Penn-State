@@ -1,0 +1,97 @@
+.totalCard {
+  margin: -32px 16px 0;
+  position: relative;
+  z-index: 2;
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.totalLabel {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.totalAmount {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 56px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.totalSub {
+  font-size: var(--fs-caption);
+  color: var(--fg-muted);
+}
+
+.settleNote {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--psu-pugh-soft);
+  font-size: var(--fs-caption);
+  color: var(--psu-navy);
+  font-weight: 600;
+}
+
+.itemsSection {
+  padding: 20px 16px;
+}
+
+.sectionLabel {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.itemsCard {
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px var(--space-3);
+}
+
+.itemRowBorder { border-top: 1px solid var(--ink-100); }
+
+.itemInfo { min-width: 0; }
+
+.itemLabel {
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+}
+
+.itemVia {
+  font-size: var(--fs-overline);
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.itemAmount {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  text-align: right;
+}

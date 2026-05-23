@@ -1,0 +1,44 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--psu-white);
+  border: 1px solid var(--ink-200);
+  cursor: pointer;
+  transition: all var(--dur-base);
+}
+
+.wrapper.checked {
+  background: var(--psu-pugh-soft);
+  border-color: var(--psu-beaver);
+}
+
+.input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--psu-navy);
+  flex: none;
+  cursor: pointer;
+}
+
+.input:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+}
+
+.label {
+  flex: 1;
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.price {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-h4);
+  color: var(--psu-navy);
+  font-variant-numeric: tabular-nums;
+}

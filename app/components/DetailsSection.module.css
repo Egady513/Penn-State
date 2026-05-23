@@ -1,0 +1,132 @@
+.section {
+  background: var(--bg);
+  padding: var(--space-20) 0;
+}
+
+.inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-beaver);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.eyebrowSmall {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-beaver);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
+  margin: 0 0 var(--space-4);
+  letter-spacing: -0.01em;
+}
+
+.intro {
+  font-size: 17px;
+  color: var(--fg-muted);
+  max-width: 620px;
+  line-height: var(--lh-body);
+  margin: 0 0 var(--space-10);
+}
+
+.subhead {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  margin: 0 0 var(--space-4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-10);
+}
+
+.schedule { display: flex; flex-direction: column; }
+
+.scheduleRow {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  padding: 14px 0;
+}
+
+.scheduleRowBorder { border-top: 1px solid var(--ink-100); }
+
+.scheduleTime {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--psu-beaver);
+  font-weight: 700;
+}
+
+.scheduleLabel { font-size: 15px; color: var(--fg); }
+
+.included {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.includedItem {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  font-size: 15px;
+}
+
+.checkBubble {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--success-soft);
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-top: 1px;
+}
+
+.locationCard {
+  background: var(--bg-soft);
+  border-radius: 18px;
+  padding: var(--space-6);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+.courseName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.courseAddr {
+  font-size: 14px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .locationCard { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,138 @@
+.page {
+  min-height: 100vh;
+  background: var(--psu-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.card {
+  background: var(--psu-white);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8) var(--space-8);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.successIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto var(--space-4);
+  background: var(--success-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  margin: 0 auto var(--space-4);
+}
+
+.headline {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  margin: 0 0 var(--space-3);
+  letter-spacing: var(--tracking-tight);
+}
+
+.sub {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  margin: 0 0 var(--space-4);
+  line-height: 1.55;
+}
+
+.teamName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h3);
+  color: var(--psu-navy);
+  margin-bottom: var(--space-4);
+}
+
+.pinBlock {
+  background: var(--psu-pugh-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.pinLabel {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  color: var(--psu-navy);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.pinNumber {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 48px;
+  color: var(--psu-navy);
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.pinNote {
+  font-size: var(--fs-caption);
+  color: var(--ink-700);
+  margin-top: var(--space-1);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.btnPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--hit-tall);
+  border-radius: var(--radius-md);
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--fs-body);
+  text-decoration: none;
+  transition: background var(--dur-fast);
+}
+
+.btnPrimary:hover { background: var(--bg-deep); }
+.btnPrimary:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.btnSecondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--psu-navy);
+  border: 1px solid var(--ink-200);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-body-sm);
+  text-decoration: none;
+  transition: background var(--dur-fast);
+}
+
+.btnSecondary:hover { background: var(--ink-050); }
+.btnSecondary:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.taxNote {
+  margin-top: var(--space-6);
+  font-size: var(--fs-caption);
+  color: var(--fg-muted);
+  line-height: 1.5;
+}

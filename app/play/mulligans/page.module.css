@@ -1,0 +1,120 @@
+.summaryCard {
+  margin: -32px 16px 0;
+  position: relative;
+  z-index: 2;
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.summaryLabel {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 36px;
+  color: var(--fg);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.oweValue {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 36px;
+  color: var(--score-bogey);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.holeList {
+  padding: 20px 16px;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.holeRow {
+  background: var(--psu-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 10px var(--space-3);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.holeNum {
+  width: 40px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-h4);
+  color: var(--fg);
+}
+
+.holeInfo { min-width: 0; }
+
+.holeLabel {
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.maxTag {
+  font-size: var(--fs-overline);
+  color: var(--warning);
+  margin-left: var(--space-1);
+  font-weight: 700;
+}
+
+.holeSub { font-size: var(--fs-overline); color: var(--fg-muted); margin-top: 2px; }
+
+.holeControls { display: flex; gap: var(--space-1); }
+
+.stepBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--psu-white);
+  border: 1px solid var(--ink-200);
+  color: var(--psu-navy);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-fast);
+}
+
+.stepBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.stepBtn:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.stepBtnAdd {
+  background: var(--psu-navy);
+  border-color: var(--psu-navy);
+  color: var(--psu-white);
+}
+
+.stepBtnAdd:hover { background: var(--bg-deep); }
+
+.stepBtnDisabled {
+  background: var(--ink-100);
+  border-color: var(--ink-200);
+  color: var(--fg-subtle);
+  cursor: default;
+}

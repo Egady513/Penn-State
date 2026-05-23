@@ -1,0 +1,70 @@
+.wrap {
+  padding: 20px 16px;
+}
+
+.intro {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.tier { margin-bottom: var(--space-6); }
+
+.tierHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.tierLabel {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-body);
+}
+
+.tierSub {
+  font-family: var(--font-mono);
+  font-size: var(--fs-overline);
+  color: var(--fg-muted);
+}
+
+.tierGrid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tierGridLarge { grid-template-columns: 1fr; }
+
+.sponsorCard {
+  background: var(--psu-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sponsorThumb {
+  border-radius: var(--radius-sm);
+  background: var(--ink-050);
+  border: 1px dashed var(--ink-200);
+  flex: none;
+}
+
+.sponsorInfo { flex: 1; min-width: 0; }
+
+.sponsorName {
+  font-size: var(--fs-body-sm);
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.sponsorMeta {
+  font-size: var(--fs-overline);
+  color: var(--fg-muted);
+  margin-top: 2px;
+}

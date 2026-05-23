@@ -1,0 +1,44 @@
+.section {
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  padding: var(--space-20) 0;
+}
+
+.inner {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  text-align: center;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
+  margin: 0 0 var(--space-5);
+  letter-spacing: -0.01em;
+  color: var(--psu-white);
+}
+
+.body {
+  font-size: 18px;
+  color: rgba(255,255,255,0.78);
+  line-height: var(--lh-loose);
+  margin: 0 0 var(--space-8);
+}
+
+.ctas {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}

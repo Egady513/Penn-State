@@ -1,0 +1,100 @@
+.wrap {
+  padding: 0 16px;
+  margin-top: var(--space-3);
+}
+
+.sectionLabel {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  margin: var(--space-1) var(--space-1) var(--space-2);
+}
+
+.table {
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto;
+  gap: var(--space-3);
+  padding: 12px var(--space-3);
+  background: var(--psu-white);
+  color: var(--fg);
+  align-items: center;
+}
+
+.rowBorder { border-top: 1px solid var(--ink-100); }
+
+.rowLeader {
+  background: var(--psu-navy);
+  color: var(--psu-white);
+}
+
+/* 3px left border rail for "your team" */
+.rowYou {
+  background: var(--psu-pugh-soft);
+  border-left: 3px solid var(--psu-beaver);
+  padding-left: calc(var(--space-3) - 3px);
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-h4);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowLeader .rank { color: var(--psu-white); }
+
+.teamInfo { min-width: 0; }
+
+.teamNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.teamName {
+  font-size: var(--fs-body-sm);
+  font-weight: 700;
+}
+
+.players {
+  font-size: var(--fs-caption);
+  margin-top: 2px;
+}
+
+.rowLeader .players { color: rgba(255,255,255,0.65); }
+.row:not(.rowLeader) .players { color: var(--fg-muted); }
+
+.thru {
+  font-family: var(--font-mono);
+  font-size: var(--fs-overline);
+  text-align: right;
+  min-width: 50px;
+}
+
+.rowLeader .thru { color: rgba(255,255,255,0.65); }
+.row:not(.rowLeader) .thru { color: var(--fg-muted); }
+
+.toPar {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: right;
+}
+
+.hint {
+  font-size: var(--fs-overline);
+  color: var(--fg-muted);
+  text-align: center;
+  margin-top: var(--space-3);
+}

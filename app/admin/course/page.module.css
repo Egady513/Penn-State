@@ -1,0 +1,122 @@
+/* admin/course/page.module.css */
+
+.page {
+  padding: 28px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.holeGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.holeCard {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-xs);
+}
+
+.holeCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.holeEyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.holeNum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--fg);
+}
+
+.parBadge {
+  background: var(--psu-pugh-soft);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--psu-navy);
+  white-space: nowrap;
+}
+
+.contestRow {
+  /* just the pill, no extra wrapper needed */
+}
+
+.sponsorLabel {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sponsorSelect {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--ink-200);
+  background: var(--ink-050);
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 160ms;
+}
+
+.sponsorSelect:focus {
+  border-color: var(--psu-beaver);
+  box-shadow: var(--ring-focus);
+}
+
+.sponsorSelectFilled {
+  background: #fff;
+  color: var(--fg);
+}
+
+@media (max-width: 1100px) {
+  .holeGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .holeGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .page {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .holeGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

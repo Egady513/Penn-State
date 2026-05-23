@@ -1,0 +1,163 @@
+.announcementBanner {
+  margin: 14px 16px 0;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--psu-pugh-soft);
+  border-left: 3px solid var(--psu-beaver);
+  color: var(--psu-navy);
+}
+
+.announcementContent { flex: 1; }
+
+.announcementBody {
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--psu-navy);
+}
+
+.announcementPosted {
+  font-size: var(--fs-overline);
+  color: var(--ink-500);
+  margin-top: var(--space-1);
+}
+
+.statRow {
+  padding: var(--space-4) 16px 0;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--space-3);
+}
+
+.sectionWrap {
+  padding: 0 16px;
+  margin-top: var(--space-4);
+}
+
+.sectionLabel {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  margin: var(--space-1) var(--space-1) var(--space-2);
+}
+
+.card {
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cardFlush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--psu-pugh-soft);
+  color: var(--psu-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--fs-body-sm);
+  flex: none;
+  letter-spacing: 0.02em;
+}
+
+.playerName {
+  font-size: var(--fs-body-sm);
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.playerSub { font-size: var(--fs-caption); color: var(--fg-muted); }
+
+.foursomeRow {
+  padding: var(--space-3) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--psu-white);
+}
+
+.foursomeRowYou { background: var(--psu-pugh-soft); }
+
+.foursomeRowBorder { border-top: 1px solid var(--ink-100); }
+
+.foursomeName { flex: 1; }
+.foursomeTeam { font-size: var(--fs-body-sm); font-weight: 700; }
+.foursomePlayers { font-size: var(--fs-caption); color: var(--fg-muted); }
+
+.subTileRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.subTile {
+  background: var(--psu-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+  transition: all var(--dur-fast);
+}
+
+.subTile:hover { background: var(--psu-pugh-soft); }
+.subTile:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.subTileIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--psu-pugh-soft);
+  color: var(--psu-beaver);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subTileLabel { font-size: var(--fs-body-sm); font-weight: 700; color: var(--fg); }
+.subTileSub { font-size: var(--fs-caption); color: var(--fg-muted); }
+
+.schedRow {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  padding: 11px var(--space-3);
+}
+
+.schedRowBorder { border-top: 1px solid var(--ink-100); }
+
+.schedTime {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--psu-beaver);
+  font-weight: 700;
+}
+
+.schedLabel { font-size: var(--fs-body-sm); color: var(--fg); }

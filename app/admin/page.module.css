@@ -1,0 +1,256 @@
+/* admin/page.module.css — Overview dashboard */
+
+.page {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Net-to-LMFR hero ──────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--psu-navy), var(--bg-deep));
+  color: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  align-items: center;
+  box-shadow: var(--shadow-md);
+}
+
+.heroLeft {
+  min-width: 0;
+}
+
+.heroEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--psu-pugh);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* Pixel-good: 80px Roboto Slab 900, bronze underline */
+.heroAmount {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 80px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  color: #fff;
+  display: inline-block;
+  padding-bottom: 8px;
+  border-bottom: 4px solid var(--psu-bronze);
+  margin-bottom: 12px;
+}
+
+.heroBreakdown {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.heroRight {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px;
+}
+
+.heroContext {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.heroContext strong {
+  color: #fff;
+}
+
+.heroAhead {
+  color: var(--psu-pugh);
+  font-weight: 700;
+}
+
+.progressTrack {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--psu-pugh), var(--psu-bronze));
+  border-radius: 999px;
+  transition: width 600ms var(--ease-out);
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 6px;
+}
+
+/* ── Mini stats grid ──────────────────────────────────────────── */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.statCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+  color: var(--fg);
+}
+
+.statSub {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Lower 2-col ──────────────────────────────────────────────── */
+.lowerGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── Recent registrations card ────────────────────────────────── */
+.teamRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--ink-100);
+  align-items: center;
+}
+
+.teamRowFirst {
+  border-top: none;
+}
+
+.teamInfo {
+  min-width: 0;
+}
+
+.teamName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teamMeta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── To-do card ───────────────────────────────────────────────── */
+.todoList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.todoDone {
+  opacity: 0.55;
+}
+
+.todoCheck {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 5px;
+  border: 1.5px solid var(--ink-300);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.todoCheckDone {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.todoLabel {
+  flex: 1;
+  font-size: 14px;
+  color: var(--fg);
+}
+
+.todoDone .todoLabel {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lowerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroAmount {
+    font-size: 56px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}

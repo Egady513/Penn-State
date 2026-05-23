@@ -1,0 +1,89 @@
+/* admin/registrations/page.module.css */
+
+.page {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 100px 100px 70px;
+  padding: 12px 18px;
+  background: var(--ink-050);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--ink-100);
+  border-radius: 12px 12px 0 0;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 100px 100px 70px;
+  padding: 14px 18px;
+  align-items: center;
+  font-size: 14px;
+  border-bottom: 1px solid var(--ink-100);
+  transition: background 120ms;
+}
+
+.tableRow:hover {
+  background: var(--ink-050);
+}
+
+.tableRowLast {
+  border-bottom: none;
+}
+
+.teamName {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.teamCaptain {
+  color: var(--fg);
+}
+
+.teamContact {
+  color: var(--fg-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.startHole {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+@media (max-width: 768px) {
+  .tableHeader {
+    grid-template-columns: 1fr 1fr 100px 70px;
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr 1fr 100px 70px;
+  }
+
+  .hideSmall {
+    display: none;
+  }
+
+  .page {
+    padding: 16px;
+  }
+}
