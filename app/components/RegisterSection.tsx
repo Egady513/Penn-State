@@ -1,13 +1,15 @@
 'use client'
 
 import { forwardRef, useState } from 'react'
-import { ArrowRight, ArrowLeft, Check } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react'
 import styles from './RegisterSection.module.css'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
+import { registerTeam } from '@/app/actions/register'
 
 const ADDONS = [
   { id: 'gimme', label: 'Gimme rope (3-ft)',            desc: 'Use anywhere on the course', price: 10 },
@@ -25,12 +27,15 @@ interface GolferData {
 const blankGolfer = (): GolferData => ({ name: '', email: '', phone: '', shirt: 'M', dietary: '' })
 
 export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(_, ref) {
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [teamName, setTeamName] = useState('')
   const [single, setSingle] = useState(false)
   const [golfers, setGolfers] = useState<GolferData[]>([blankGolfer(), blankGolfer()])
   const [addons, setAddons] = useState<Record<string, boolean>>({})
   const [donation, setDonation] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const numGolfers = single ? 1 : 2
   const setGolfer = (i: number, patch: Partial<GolferData>) =>
@@ -170,8 +175,34 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               </div>
 
               <div className={styles.zeffyBlock}>
-                <Button size="lg" as="a" href="https://www.zeffy.com" target="_blank" rel="noopener noreferrer">
-                  Pay ${total} with Zeffy <ArrowRight size={18} />
+                {submitError && (
+                  <div className={styles.submitError}>{submitError}</div>
+                )}
+                <Button
+                  size="lg"
+                  disabled={submitting}
+                  onClick={async () => {
+                    setSubmitError('')
+                    setSubmitting(true)
+                    const result = await registerTeam({
+                      teamName,
+                      isSingle: single,
+                      golfers: golfers.slice(0, numGolfers),
+                      feeAmount: total,
+                    })
+                    setSubmitting(false)
+                    if (result.error || !result.pin) {
+                      setSubmitError(result.error ?? 'Something went wrong. Please try again.')
+                      return
+                    }
+                    // Open Zeffy in a new tab, then send user to confirmation
+                    window.open('https://www.zeffy.com', '_blank', 'noopener,noreferrer')
+                    router.push(`/confirmation?team=${encodeURIComponent(teamName)}&pin=${result.pin}`)
+                  }}
+                >
+                  {submitting
+                    ? <><Loader2 size={18} className={styles.spinner} /> Saving…</>
+                    : <>Pay ${total} with Zeffy <ArrowRight size={18} /></>}
                 </Button>
                 <p className={styles.zeffyNote}>
                   You&apos;ll be taken to Zeffy to complete payment. Zeffy charges $0 in fees — 100% goes to the cause.

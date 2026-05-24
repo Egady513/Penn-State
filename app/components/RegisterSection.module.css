@@ -260,6 +260,24 @@
   color: var(--fg-muted);
 }
 
+.submitError {
+  background: var(--score-bogey, #e74c3c);
+  color: #fff;
+  font-size: 13px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
   .inner { grid-template-columns: 1fr; }
   .summary { position: static; }
