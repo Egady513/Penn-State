@@ -1,10 +1,103 @@
+/* ── Shell: fills the play layout ─────────────────────────────── */
+.shell {
+  position: absolute;
+  inset: 0;
+  background: var(--psu-cream);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── AppBar ────────────────────────────────────────────────────── */
+.appBar {
+  padding: max(16px, calc(env(safe-area-inset-top) + 8px)) 20px 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: linear-gradient(180deg, var(--psu-navy) 0%, var(--bg-deep) 100%);
+  color: var(--psu-white);
+  flex: none;
+}
+
+.appBarSub {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--psu-pugh);
+  margin-bottom: var(--space-1);
+}
+
+.appBarTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.syncBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-overline);
+  font-weight: 600;
+  color: var(--psu-pugh);
+}
+
+/* ── Pinned message ────────────────────────────────────────────── */
+.pinnedBar {
+  margin: 10px 16px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--psu-pugh-soft);
+  border: 1px solid #C7DCEF;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex: none;
+}
+
+.pinnedContent { flex: 1; min-width: 0; }
+
+.pinnedLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--psu-beaver);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.pinnedBody {
+  font-size: 13px;
+  color: var(--psu-navy);
+  line-height: 1.4;
+}
+
+/* ── Scrollable message area ───────────────────────────────────── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Empty state ───────────────────────────────────────────────── */
 .empty {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 60px 32px;
   gap: var(--space-3);
+  padding: 40px 32px;
+  margin: auto 0;
 }
 
 .emptyIcon { font-size: 40px; line-height: 1; }
@@ -20,49 +113,331 @@
   font-size: var(--fs-body-sm);
   color: var(--fg-muted);
   line-height: 1.55;
-  max-width: 280px;
+  max-width: 260px;
 }
 
-.list {
+/* ── Input bar ─────────────────────────────────────────────────── */
+/* bottom padding = nav height + nav bottom offset + breathing room  */
+.inputBar {
+  padding: 10px 12px 88px;
+  background: var(--bg-soft);
+  border-top: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: 20px 16px;
+  align-items: center;
+  gap: 8px;
+  flex: none;
 }
 
-.item {
-  background: var(--psu-white);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  padding: 14px 16px;
+.input {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid var(--ink-200, #D4D9E0);
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 150ms;
+}
+
+.input::placeholder { color: var(--fg-subtle); }
+.input:focus { border-color: var(--psu-beaver); }
+.input:disabled { opacity: 0.6; }
+
+.sendBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--psu-navy);
+  color: #fff;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: background 160ms;
+}
+
+.sendBtn:disabled {
+  background: var(--ink-200, #D4D9E0);
+  cursor: default;
+}
+
+/* Admin pin toggle */
+.pinBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 30, 68, 0.15);
+  background: rgba(0, 30, 68, 0.06);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  transition: all 160ms;
+}
+
+.pinBtnActive {
+  background: rgba(0, 30, 68, 0.14);
+  border-color: var(--psu-pugh);
+}
+
+/* ── Bottom nav (exact copy of PlayerShell) ────────────────────── */
+.bottomNav {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: max(14px, calc(env(safe-area-inset-bottom) + 4px));
+  background: rgba(0, 19, 43, 0.92);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 22px;
+  padding: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-1);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.itemPinned {
+.tab {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  padding: var(--space-2) 2px var(--space-1);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  min-height: var(--hit-min);
+  text-decoration: none;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+
+.tabActive {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--psu-white);
+}
+
+.tab:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+
+.tabDot {
+  width: 22px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--psu-pugh);
+  opacity: 0;
+  transition: opacity var(--dur-base);
+}
+
+.tabDotVisible { opacity: 1; }
+
+/* ── Bubbles ────────────────────────────────────────────────────── */
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.bubbleMe { align-items: flex-end; }
+
+.bubbleMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 0 0 38px;  /* indent to clear avatar */
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.bubbleMetaMe { padding: 0 4px 0 0; }
+
+.bubbleFrom {
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.bubbleFromAdmin { color: var(--psu-beaver); }
+
+.staffBadge {
+  background: var(--psu-pugh-soft);
+  color: var(--psu-navy);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.bubbleTime {
+  color: var(--fg-subtle);
+  font-size: 11px;
+}
+
+.bubbleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 88%;
+}
+
+.bubbleRowMe { flex-direction: row-reverse; }
+
+.bubbleAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--psu-pugh-soft);
+  color: var(--psu-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.bubbleAvatarAdmin {
+  background: var(--psu-navy);
+  color: #fff;
+}
+
+.bubbleAvatarHidden { visibility: hidden; }
+
+.bubbleBody {
+  background: #fff;
+  color: var(--fg);
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border);
+}
+
+/* Flatten the corner nearest the avatar on first message in a run */
+.bubbleBodyFirstL { border-top-left-radius: 4px; }
+.bubbleBodyFirstR { border-top-right-radius: 4px; }
+
+.bubbleBodyAdmin {
+  background: var(--psu-navy);
+  color: #fff;
+  box-shadow: none;
+  border: none;
+}
+
+.bubbleBodyMe {
+  background: var(--psu-beaver);
+  color: #fff;
+  box-shadow: none;
+  border: none;
+}
+
+/* ── Name picker bottom sheet ───────────────────────────────────── */
+.pickerOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.pickerSheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  padding: 16px 20px max(24px, calc(env(safe-area-inset-bottom) + 16px));
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+}
+
+.pickerHandle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 0 auto 20px;
+}
+
+.pickerTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+
+.pickerSub {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.pickerOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pickerOption {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--psu-cream);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  text-align: left;
+  width: 100%;
+  transition: border-color 150ms, background 150ms;
+}
+
+.pickerOption:hover,
+.pickerOption:focus-visible {
   border-color: var(--psu-beaver);
   background: var(--psu-pugh-soft);
+  outline: none;
 }
 
-.pinnedBadge {
-  font-size: var(--fs-overline);
+.pickerAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--psu-navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  flex: none;
+}
+
+.pickerName {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--psu-beaver);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.message {
-  font-size: var(--fs-body-sm);
-  font-weight: 500;
   color: var(--fg);
-  line-height: 1.55;
 }
 
-.time {
-  font-size: var(--fs-overline);
+.pickerFull {
+  font-size: 12px;
   color: var(--fg-muted);
-  margin-top: 4px;
+  margin-top: 2px;
 }

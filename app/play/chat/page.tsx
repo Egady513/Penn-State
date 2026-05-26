@@ -1,48 +1,50 @@
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import styles from './page.module.css'
-import { PlayerShell } from '@/components/player/PlayerShell'
-import { EVENT_ID } from '@/lib/eventId'
-
-type AnnouncementRow = { id: string; message: string; posted_at: string; pinned: boolean }
+import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
+import ChatClient from './ChatClient'
+import type { MessageRow } from './ChatClient'
 
 export default async function ChatPage() {
+  const cookieStore = await cookies()
+  const teamId = cookieStore.get('golf_team_id')?.value ?? FALLBACK_TEAM_ID
+
   const supabase = await createClient()
 
-  const { data } = await supabase
-    .from('announcement')
-    .select('id, message, posted_at, pinned')
-    .eq('event_id', EVENT_ID)
-    .order('posted_at', { ascending: false })
+  const [teamRes, playersRes, messagesRes, teamCountRes] = await Promise.all([
+    supabase
+      .from('team')
+      .select('id, name, is_admin')
+      .eq('id', teamId)
+      .maybeSingle(),
+    supabase
+      .from('player')
+      .select('name')
+      .eq('team_id', teamId),
+    supabase
+      .from('messages')
+      .select('id, team_id, sender_name, role, body, is_pinned, created_at')
+      .eq('event_id', EVENT_ID)
+      .order('created_at', { ascending: true })
+      .limit(100),
+    supabase
+      .from('team')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', EVENT_ID),
+  ])
 
-  const announcements = data as AnnouncementRow[] | null
+  const team = teamRes.data as { id: string; name: string; is_admin: boolean } | null
+  const players = (playersRes.data ?? []) as { name: string }[]
+  const messages = (messagesRes.data ?? []) as MessageRow[]
+  const totalTeams = teamCountRes.count ?? 36
 
   return (
-    <PlayerShell title="Updates" subtitle="From the organizers" syncStatus="synced" liftBar>
-      {!announcements || announcements.length === 0 ? (
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>📢</div>
-          <div className={styles.emptyTitle}>No updates yet</div>
-          <div className={styles.emptySub}>
-            Eddie will post updates here throughout the day — schedule changes, contest results, lunch call, and more.
-          </div>
-        </div>
-      ) : (
-        <div className={styles.list}>
-          {announcements.map(a => {
-            const time = new Date(a.posted_at).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-            })
-            return (
-              <div key={a.id} className={`${styles.item} ${a.pinned ? styles.itemPinned : ''}`}>
-                {a.pinned && <div className={styles.pinnedBadge}>📌 Pinned</div>}
-                <div className={styles.message}>{a.message}</div>
-                <div className={styles.time}>{time}</div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </PlayerShell>
+    <ChatClient
+      initialMessages={messages}
+      teamId={teamId}
+      teamName={team?.name ?? 'Your team'}
+      isAdmin={team?.is_admin ?? false}
+      players={players}
+      totalTeams={totalTeams}
+    />
   )
 }

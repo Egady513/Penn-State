@@ -69,10 +69,41 @@ export interface Database {
           payment_status: PaymentStatus
           checked_in: boolean
           single_golfer: boolean
+          is_admin: boolean
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['team']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['team']['Insert']>
+      }
+
+      // ── Messages (group chat) ─────────────────────────────
+      messages: {
+        Row: {
+          id: string
+          event_id: string
+          team_id: string | null
+          sender_name: string
+          role: 'player' | 'admin'
+          body: string
+          is_pinned: boolean
+          created_at: string
+        }
+        Insert: {
+          event_id: string
+          team_id?: string | null
+          sender_name: string
+          role?: 'player' | 'admin'
+          body: string
+          is_pinned?: boolean
+        }
+        Update: {
+          event_id?: string
+          team_id?: string | null
+          sender_name?: string
+          role?: 'player' | 'admin'
+          body?: string
+          is_pinned?: boolean
+        }
       }
 
       // ── Player ────────────────────────────────────────────
