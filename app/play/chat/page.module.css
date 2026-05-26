@@ -1,0 +1,68 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 60px 32px;
+  gap: var(--space-3);
+}
+
+.emptyIcon { font-size: 40px; line-height: 1; }
+
+.emptyTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--fg);
+}
+
+.emptySub {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  line-height: 1.55;
+  max-width: 280px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 20px 16px;
+}
+
+.item {
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.itemPinned {
+  border-color: var(--psu-beaver);
+  background: var(--psu-pugh-soft);
+}
+
+.pinnedBadge {
+  font-size: var(--fs-overline);
+  font-weight: 700;
+  color: var(--psu-beaver);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.message {
+  font-size: var(--fs-body-sm);
+  font-weight: 500;
+  color: var(--fg);
+  line-height: 1.55;
+}
+
+.time {
+  font-size: var(--fs-overline);
+  color: var(--fg-muted);
+  margin-top: 4px;
+}

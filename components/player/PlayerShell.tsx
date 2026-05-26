@@ -9,7 +9,7 @@ const TABS = [
   { id: 'home',      href: '/play/home',        label: 'Home',     icon: 'home'       },
   { id: 'scorecard', href: '/play/scorecard',   label: 'Scorecard',icon: 'scorecard'  },
   { id: 'board',     href: '/play/leaderboard', label: 'Board',    icon: 'leaderboard'},
-  { id: 'mulligans', href: '/play/mulligans',   label: 'Mulls',    icon: 'target'     },
+  { id: 'chat',      href: '/play/chat',         label: 'Updates',  icon: 'megaphone'  },
   { id: 'owe',       href: '/play/owe',         label: 'Owe',      icon: 'owe'        },
 ]
 

@@ -5,7 +5,7 @@
   color: var(--psu-white);
   display: flex;
   flex-direction: column;
-  padding: 60px 28px 36px;
+  padding: max(60px, calc(env(safe-area-inset-top) + 20px)) 28px max(36px, calc(env(safe-area-inset-bottom) + 20px));
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -78,14 +78,9 @@
 
 .teamSelect option { color: #000; }
 
-.pinRow {
-  display: flex;
-  gap: var(--space-3);
-}
-
 .pinInput {
-  flex: 1;
-  height: 64px;
+  width: 100%;
+  height: 72px;
   border-radius: var(--radius-lg);
   background: rgba(255,255,255,0.08);
   color: var(--psu-white);
@@ -93,9 +88,11 @@
   text-align: center;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 30px;
+  font-size: 40px;
+  letter-spacing: 0.2em;
   font-variant-numeric: tabular-nums;
   caret-color: var(--psu-pugh);
+  box-sizing: border-box;
 }
 
 .pinInput:focus {

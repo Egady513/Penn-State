@@ -14,7 +14,7 @@ export default function PlayerEntryPage() {
   const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
   const [team, setTeam] = useState('')
-  const [pin, setPin] = useState(['', '', '', ''])
+  const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -34,21 +34,13 @@ export default function PlayerEntryPage() {
       })
   }, [])
 
-  const setDigit = (i: number, v: string) => {
-    const d = v.replace(/\D/g, '').slice(-1)
-    setPin(p => p.map((x, idx) => (idx === i ? d : x)))
-    if (d && i < 3) {
-      document.getElementById(`pin-${i + 1}`)?.focus()
-    }
-  }
-
-  const allFilled = pin.every(d => d.length === 1)
+  const allFilled = pin.length === 4
 
   const handleEnter = async () => {
     if (!allFilled || !team) return
     setError('')
     setLoading(true)
-    const pinStr = pin.join('')
+    const pinStr = pin
     const result = await loginWithPin(team, pinStr)
     setLoading(false)
     if (result.error) {
@@ -80,25 +72,18 @@ export default function PlayerEntryPage() {
       </select>
 
       <label className={styles.fieldLabel} style={{ marginTop: 22 }}>Team PIN</label>
-      <div className={styles.pinRow}>
-        {pin.map((d, i) => (
-          <input
-            key={i}
-            id={`pin-${i}`}
-            value={d}
-            onChange={e => setDigit(i, e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Backspace' && !d && i > 0) {
-                document.getElementById(`pin-${i - 1}`)?.focus()
-              }
-            }}
-            inputMode="numeric"
-            maxLength={1}
-            className={styles.pinInput}
-            aria-label={`PIN digit ${i + 1}`}
-          />
-        ))}
-      </div>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]{4}"
+        maxLength={4}
+        value={pin}
+        onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+        placeholder="0000"
+        className={styles.pinInput}
+        aria-label="4-digit team PIN"
+        autoComplete="one-time-code"
+      />
 
       {error ? (
         <div className={styles.pinHint} style={{ color: 'var(--score-bogey)' }}>{error}</div>

@@ -106,9 +106,19 @@ export default async function OwePage() {
           ${paidTotal} already paid · {items.length} line items
         </div>
         {unpaidTotal > 0 && (
-          <div className={styles.settleNote}>
-            Settle at the registration tent or with Eddie.
-          </div>
+          <>
+            <div className={styles.settleNote}>
+              Settle at the registration tent or with Eddie.
+            </div>
+            <a
+              href="https://www.zeffy.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.zeffyBtn}
+            >
+              Pay with Zeffy
+            </a>
+          </>
         )}
       </div>
 

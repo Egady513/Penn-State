@@ -9,14 +9,16 @@ import { createClient } from '@/lib/supabase/client'
 import { getTeamId } from '@/lib/getTeamId'
 import { EVENT_ID } from '@/lib/eventId'
 
-type HoleInfo = { n: number; par: number; contest: 'ctp' | 'ld' | null }
-type SponsorMap = Record<number, { name: string; amount: number }>
+type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
+type SponsorMap  = Record<number, { name: string; amount: number }>
+type ContestEntries = { ctp: boolean; ld: boolean }
 
 export default function ScorecardPage() {
   const [holes, setHoles] = useState<HoleInfo[]>([])
   const [scores, setScores] = useState<Record<number, number>>({})
   const [mulligans, setMulligans] = useState<Record<number, number>>({})
   const [sponsorByHole, setSponsorByHole] = useState<SponsorMap>({})
+  const [contestEntries, setContestEntries] = useState<ContestEntries>({ ctp: false, ld: false })
   const [activeHole, setActiveHole] = useState(1)
   const [draftScore, setDraftScore] = useState(4)
   const [loaded, setLoaded] = useState(false)
@@ -28,17 +30,19 @@ export default function ScorecardPage() {
   // Load all initial data on mount
   useEffect(() => {
     async function load() {
-      const [holeRes, scoreRes, mullRes, sponsorRes] = await Promise.all([
+      const [holeRes, scoreRes, mullRes, sponsorRes, purchRes] = await Promise.all([
         supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
         supabase.from('sponsor').select('name, amount, hole_id').eq('event_id', EVENT_ID).not('hole_id', 'is', null),
+        supabase.from('purchase').select('catalog_item:catalog_item_id(name)').eq('team_id', teamId),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
       const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_id: string | null }[] | null
+      const purchRows   = purchRes.data   as { catalog_item: { name: string } | null }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
         n: h.number,
@@ -72,10 +76,20 @@ export default function ScorecardPage() {
         if (num) sponsMap[num] = { name: s.name, amount: s.amount }
       })
 
+      // Build contest entry flags from purchases
+      const purchNames = (purchRows ?? []).map(p =>
+        (p.catalog_item as { name: string } | null)?.name?.toLowerCase() ?? ''
+      )
+      const entries: ContestEntries = {
+        ctp: purchNames.some(n => n.includes('closest')),
+        ld:  purchNames.some(n => n.includes('long-drive') || n.includes('long drive')),
+      }
+
       setHoles(mappedHoles)
       setScores(scoreMap)
       setMulligans(mullMap)
       setSponsorByHole(sponsMap)
+      setContestEntries(entries)
 
       // Set active hole to first unscored
       const firstUnscored = mappedHoles.find(h => scoreMap[h.n] == null)?.n
@@ -235,17 +249,23 @@ export default function ScorecardPage() {
             </div>
           )}
 
-          {holeContest && (
-            <div className={styles.contestBanner}>
-              <div className={styles.contestIcon}>
-                <Icon name="target" size={16} color="#fff" />
+          {holeContest && (() => {
+            const entered = holeContest === 'ctp' ? contestEntries.ctp : contestEntries.ld
+            return (
+              <div className={styles.contestBanner}>
+                <div className={styles.contestIcon}>
+                  <Icon name="target" size={16} color="#fff" />
+                </div>
+                <div className={styles.contestInfo}>
+                  <div className={styles.contestLabel}>{holeContest === 'ctp' ? 'Closest-to-pin hole' : 'Long-drive hole'}</div>
+                  <div className={styles.contestDesc}>{contestName} contest on this hole</div>
+                </div>
+                <div className={entered ? styles.contestEntered : styles.contestNotEntered}>
+                  {entered ? '✓ Entered' : 'Not entered'}
+                </div>
               </div>
-              <div className={styles.contestInfo}>
-                <div className={styles.contestLabel}>{holeContest === 'ctp' ? 'Closest-to-pin hole' : 'Long-drive hole'}</div>
-                <div className={styles.contestDesc}>{contestName} contest on this hole</div>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           <div className={styles.holeHeader}>
             <div>

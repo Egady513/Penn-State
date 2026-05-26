@@ -44,6 +44,25 @@
   font-weight: 600;
 }
 
+.zeffyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-3);
+  height: var(--hit-tall);
+  border-radius: var(--radius-lg);
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: var(--fs-body-sm);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  transition: background var(--dur-fast);
+}
+
+.zeffyBtn:hover { background: var(--psu-beaver); }
+
 .itemsSection {
   padding: 20px 16px;
 }
