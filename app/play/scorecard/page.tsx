@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Stepper } from '@/components/ui/Stepper'
@@ -249,23 +249,35 @@ export default function ScorecardPage() {
             </div>
           )}
 
-          {holeContest && (() => {
-            const entered = holeContest === 'ctp' ? contestEntries.ctp : contestEntries.ld
-            return (
-              <div className={styles.contestBanner}>
-                <div className={styles.contestIcon}>
-                  <Icon name="target" size={16} color="#fff" />
-                </div>
-                <div className={styles.contestInfo}>
-                  <div className={styles.contestLabel}>{holeContest === 'ctp' ? 'Closest-to-pin hole' : 'Long-drive hole'}</div>
-                  <div className={styles.contestDesc}>{contestName} contest on this hole</div>
-                </div>
-                <div className={entered ? styles.contestEntered : styles.contestNotEntered}>
-                  {entered ? '✓ Entered' : 'Not entered'}
-                </div>
-              </div>
-            )
-          })()}
+          {holeContest && (
+            <ContestBanner
+              kind={holeContest}
+              name={contestName!}
+              entered={holeContest === 'ctp' ? contestEntries.ctp : contestEntries.ld}
+              onJoin={async () => {
+                // Find catalog item for this contest type and create a purchase
+                const itemName = holeContest === 'ctp' ? 'Closest-to-pin entry' : 'Long-drive entry'
+                const { data: item } = await (supabase.from('catalog_item') as any)
+                  .select('id, price')
+                  .eq('event_id', EVENT_ID)
+                  .ilike('name', `%${holeContest === 'ctp' ? 'closest' : 'long-drive'}%`)
+                  .maybeSingle()
+                if (!item) return
+                await (supabase.from('purchase') as any).insert({
+                  team_id: teamId,
+                  catalog_item_id: item.id,
+                  quantity: 1,
+                  amount: item.price,
+                  paid_status: 'unpaid',
+                  channel: 'during_round',
+                })
+                setContestEntries(e => ({
+                  ...e,
+                  [holeContest]: true,
+                }))
+              }}
+            />
+          )}
 
           <div className={styles.holeHeader}>
             <div>
@@ -327,6 +339,50 @@ export default function ScorecardPage() {
         </div>
       </div>
     </PlayerShell>
+  )
+}
+
+function ContestBanner({
+  kind, name, entered, onJoin,
+}: {
+  kind: 'ctp' | 'ld'
+  name: string
+  entered: boolean
+  onJoin: () => void
+}) {
+  const [joining, setJoining] = React.useState(false)
+
+  const handleJoin = async () => {
+    setJoining(true)
+    await onJoin()
+    setJoining(false)
+  }
+
+  return (
+    <div className={`${styles.contestBanner} ${entered ? styles.contestBannerPaid : styles.contestBannerUnpaid}`}>
+      <div className={`${styles.contestIcon} ${entered ? styles.contestIconPaid : styles.contestIconUnpaid}`}>
+        <Icon name={entered ? 'check' : 'target'} size={16} color="#fff" />
+      </div>
+      <div className={styles.contestInfo}>
+        <div className={`${styles.contestLabel} ${entered ? styles.contestLabelPaid : styles.contestLabelUnpaid}`}>
+          {kind === 'ctp' ? 'Closest-to-pin hole' : 'Long-drive hole'}
+        </div>
+        <div className={styles.contestDesc}>
+          {entered
+            ? `You're in the ${name.toLowerCase()} contest — good luck.`
+            : `Pay $10 to enter — last chance before you tee off.`}
+        </div>
+      </div>
+      {!entered && (
+        <button
+          onClick={handleJoin}
+          disabled={joining}
+          className={styles.contestJoinBtn}
+        >
+          {joining ? '…' : 'Add $10 to tab'}
+        </button>
+      )}
+    </div>
   )
 }
 
