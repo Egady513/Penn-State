@@ -15,7 +15,9 @@ export const viewport: Viewport = {
 export default function PlayerLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={styles.shell}>
-      {children}
+      <div className={styles.inner}>
+        {children}
+      </div>
     </div>
   )
 }

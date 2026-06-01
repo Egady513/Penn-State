@@ -1,9 +1,22 @@
+/* Outer shell: fills the viewport, dark navy surround on wide screens */
 .shell {
   position: fixed;
   inset: 0;
   background: var(--psu-navy);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
   overflow: hidden;
-  /* Safe area for iPhone notch/home indicator */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Inner container: max 430px, centered, clips all player app pages */
+.inner {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  overflow: hidden;
+  background: var(--psu-cream);
+  /* Safe area padding — applies to the inner content container.
+     Absolutely-positioned children (PlayerShell, ChatClient) that use
+     inset: 0 are relative to this element and handle their own safe areas. */
 }

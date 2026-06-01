@@ -32,7 +32,7 @@
 .appBarTitle {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 22px;
+  font-size: 26px;
   line-height: 1.1;
   letter-spacing: var(--tracking-tight);
 }
