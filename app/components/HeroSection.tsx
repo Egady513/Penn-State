@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { ArrowRight, Heart, Calendar, MapPin, Flag } from 'lucide-react'
 import styles from './HeroSection.module.css'
 import { Button } from '@/components/ui/Button'
+import { MoneyRaised } from './MoneyRaised'
 
 interface HeroSectionProps {
   onJump: (id: string) => void
@@ -47,9 +48,12 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           </Button>
         </div>
 
-        <div className={styles.spotsChip}>
-          <span className={styles.spotsNum}>{SPOTS_TAKEN}/{SPOTS_TOTAL}</span>
-          team spots taken
+        <div className={styles.chipRow}>
+          <div className={styles.spotsChip}>
+            <span className={styles.spotsNum}>{SPOTS_TAKEN}/{SPOTS_TOTAL}</span>
+            team spots taken
+          </div>
+          <MoneyRaised variant="chip" />
         </div>
       </div>
 

@@ -102,6 +102,13 @@
   margin-bottom: var(--space-8);
 }
 
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
 .spotsChip {
   display: inline-flex;
   align-items: center;

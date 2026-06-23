@@ -5,6 +5,7 @@ import styles from './page.module.css'
 import { Icon } from '@/components/ui/Icon'
 import { StatTile } from '@/components/ui/StatTile'
 import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { MoneyRaised } from '@/app/components/MoneyRaised'
 
 export default async function HomePage() {
   const cookieStore = await cookies()
@@ -101,6 +102,9 @@ export default async function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Live money raised — motivation */}
+      <MoneyRaised variant="banner" goal={10000} />
 
       {/* Stat tiles */}
       <div className={styles.statRow}>

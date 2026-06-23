@@ -1,0 +1,81 @@
+/* ── Chip (hero) ─────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill, 999px);
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--psu-white, #fff);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chipNum {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: #F2D479;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Banner (player app) ─────────────────────────────────────── */
+.banner {
+  margin: 14px 16px 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg, 16px);
+  background: linear-gradient(135deg, var(--psu-navy) 0%, var(--bg-deep, #00132B) 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bannerTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.bannerLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--psu-pugh);
+}
+
+.bannerGoal {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.bannerAmount {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1.1;
+  margin: 4px 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--psu-pugh) 0%, #F2D479 100%);
+  transition: width 600ms ease;
+}
+
+.bannerSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
+  margin-top: 10px;
+}
