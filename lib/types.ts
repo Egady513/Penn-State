@@ -115,6 +115,7 @@ export interface Database {
           email: string
           phone: string | null
           shirt_size: string | null
+          skill_level: string | null
           dietary_notes: string | null
           arrived: boolean
         }
@@ -128,6 +129,7 @@ export interface Database {
           id: string
           team_id: string
           fee_amount: number
+          donation_amount: number
           payment_method: PaymentMethod | null
           payment_status: PaymentStatus
           registered_at: string

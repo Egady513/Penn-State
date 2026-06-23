@@ -19,12 +19,16 @@ const ADDONS = [
 ]
 
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+const SKILL_LEVELS = ['New to golf', 'Casual', 'Intermediate', 'Regular golfer']
+
+// Shirt sizes are paused for now — flip to true to collect them again.
+const SHOW_SHIRT_SIZE = false
 
 interface GolferData {
-  name: string; email: string; phone: string; shirt: string; dietary: string
+  name: string; email: string; phone: string; shirt: string; skill: string; dietary: string
 }
 
-const blankGolfer = (): GolferData => ({ name: '', email: '', phone: '', shirt: 'M', dietary: '' })
+const blankGolfer = (): GolferData => ({ name: '', email: '', phone: '', shirt: 'M', skill: '', dietary: '' })
 
 export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(_, ref) {
   const router = useRouter()
@@ -102,9 +106,17 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       <Input type="tel" placeholder="(513) 555-0100" value={g.phone}
                         onChange={e => setGolfer(i, { phone: e.target.value })} />
                     </Field>
-                    <Field label="Shirt size">
-                      <Select value={g.shirt} onChange={e => setGolfer(i, { shirt: e.target.value })}>
-                        {SHIRT_SIZES.map(s => <option key={s}>{s}</option>)}
+                    {SHOW_SHIRT_SIZE && (
+                      <Field label="Shirt size">
+                        <Select value={g.shirt} onChange={e => setGolfer(i, { shirt: e.target.value })}>
+                          {SHIRT_SIZES.map(s => <option key={s}>{s}</option>)}
+                        </Select>
+                      </Field>
+                    )}
+                    <Field label="Skill level" hint="Helps us with flighting & prizes">
+                      <Select value={g.skill} onChange={e => setGolfer(i, { skill: e.target.value })}>
+                        <option value="">— Select —</option>
+                        {SKILL_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
                       </Select>
                     </Field>
                     <Field label="Dietary needs" hint="Allergies, preferences, etc.">
@@ -188,7 +200,8 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       teamName,
                       isSingle: single,
                       golfers: golfers.slice(0, numGolfers),
-                      feeAmount: total,
+                      addons: ADDONS.filter(a => addons[a.id]).map(a => a.id),
+                      donation: Number(donation) || 0,
                     })
                     setSubmitting(false)
                     if (result.error || !result.pin) {
