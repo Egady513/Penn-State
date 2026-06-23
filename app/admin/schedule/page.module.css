@@ -1,0 +1,192 @@
+/* admin/schedule/page.module.css */
+
+.page {
+  padding: 28px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Edit table ─────────────────────────────────────────────── */
+.tableHeader,
+.tableRow {
+  display: grid;
+  grid-template-columns: 110px 1.3fr 1.3fr 76px 34px;
+  gap: 10px;
+  align-items: center;
+}
+
+.tableHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.tableRow {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.tableRowFirst {
+  border-top: none;
+}
+
+.schedInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 150ms;
+}
+
+.schedInput::placeholder { color: var(--fg-subtle); }
+.schedInput:focus { border-color: var(--psu-beaver); }
+
+/* Auto-post toggle (pill checkbox) */
+.announceToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms;
+  user-select: none;
+}
+
+.announceToggleOn {
+  background: var(--psu-pugh-soft);
+  border-color: var(--psu-pugh);
+  color: var(--psu-navy);
+}
+
+.announceCheckbox {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--psu-navy);
+  cursor: pointer;
+}
+
+.removeBtn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-subtle);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.removeBtn:hover {
+  background: #FDECEC;
+  color: #C0392B;
+}
+
+/* ── Preview card ───────────────────────────────────────────── */
+.previewTag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--psu-beaver);
+  background: var(--psu-pugh-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.previewList {
+  display: flex;
+  flex-direction: column;
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+}
+
+.previewRowFirst {
+  border-top: none;
+}
+
+.previewTime {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--psu-beaver);
+}
+
+.previewLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.previewDetail {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.previewNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--psu-pugh-soft);
+  border-radius: 10px;
+}
+
+.previewNote p {
+  font-size: 12px;
+  color: var(--fg);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+  .tableHeader,
+  .tableRow {
+    grid-template-columns: 90px 1fr 70px 30px;
+  }
+  .hideSmall {
+    display: none;
+  }
+}

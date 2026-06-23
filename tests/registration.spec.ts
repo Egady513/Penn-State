@@ -203,15 +203,18 @@ test.describe('Registration Form — R-12 to R-27', () => {
     await fillStep1(page)
     await page.getByRole('button', { name: /Continue to add-ons/i }).click()
     await page.getByRole('button', { name: /Review & pay/i }).click()
-    await expect(page.getByRole('link', { name: /Pay \$200 with Zeffy/i })).toBeVisible()
+    // Pay is a button that registers the team then opens Zeffy via window.open
+    await expect(page.getByRole('button', { name: /Pay \$200 with Zeffy/i })).toBeVisible()
   })
 
-  test('R-26: Zeffy pay link href contains zeffy.com', async ({ page }) => {
+  test('R-26: Pay step shows Zeffy + tax-deductible disclosure', async ({ page }) => {
     await fillStep1(page)
     await page.getByRole('button', { name: /Continue to add-ons/i }).click()
     await page.getByRole('button', { name: /Review & pay/i }).click()
-    const link = page.getByRole('link', { name: /Pay.*Zeffy/i })
-    await expect(link).toHaveAttribute('href', /zeffy\.com/)
+    // Non-destructive: we don't click Pay (that writes a real team to Supabase).
+    // Verify the payment disclosure renders instead.
+    await expect(page.getByText(/Zeffy charges \$0 in fees/i)).toBeVisible()
+    await expect(page.getByText(/You.ll be taken to Zeffy to complete payment/i)).toBeVisible()
   })
 
   test('R-27: Back button from step 3 returns to step 2', async ({ page }) => {
