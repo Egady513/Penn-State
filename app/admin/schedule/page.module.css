@@ -4,6 +4,34 @@
   padding: 28px;
 }
 
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.savedHint {
+  font-size: 12px;
+  color: var(--success, #1F8A5B);
+  font-weight: 600;
+}
+
+.errorBar {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  color: #C0392B;
+  font-size: 13px;
+}
+
+.loadingRow {
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1.6fr 1fr;

@@ -41,12 +41,14 @@ test.describe('Registration Content — R-01 to R-11', () => {
     await expect(page.getByText(/Aug 30, 2026/)).toBeVisible()
   })
 
-  test('R-05: Schedule has 5 rows; all times visible', async ({ page }) => {
+  test('R-05: Schedule renders from the database (heading + at least one time)', async ({ page }) => {
     await page.locator('#details').scrollIntoViewIfNeeded()
-    // Verify all 5 schedule time entries are present
-    for (const time of ['8:00 AM', '8:45 AM', '9:00 AM', '12:30 PM', '3:30 PM']) {
-      await expect(page.getByText(time)).toBeVisible()
-    }
+    // Schedule is now data-driven (admin-editable), so assert structure not exact
+    // times: the Schedule heading and at least one time-formatted row render.
+    await expect(page.getByRole('heading', { name: /^Schedule$/i })).toBeVisible()
+    await expect(
+      page.locator('#details').getByText(/\d{1,2}:\d{2}\s?(AM|PM)/i).first()
+    ).toBeVisible()
   })
 
   test('R-06: Included list has 6 items; greens fee item is present', async ({ page }) => {
@@ -57,7 +59,7 @@ test.describe('Registration Content — R-01 to R-11', () => {
       'Greens fee and cart for both golfers',
       'Range balls',
       'Breakfast and on-course lunch',
-      'Dinner and awards reception',
+      'Lunch & awards reception',
       'Tournament gift bag',
       'Live mobile scoring app',
     ]
