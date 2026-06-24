@@ -200,6 +200,7 @@ export interface Database {
           paid_status: PaymentStatus
           payment_method: PaymentMethod | null
           channel: PurchaseChannel
+          used: boolean
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['purchase']['Row'], 'id' | 'created_at'>

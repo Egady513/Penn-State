@@ -1,0 +1,101 @@
+.wrap {
+  padding: 0 16px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  background: var(--psu-white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.cardTitle {
+  font-size: var(--fs-overline);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+
+.holeMap {
+  font-size: var(--fs-caption);
+  color: var(--fg-muted);
+  margin-top: 4px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.empty {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  margin-top: 8px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rowName {
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+
+.statusPaid {
+  background: rgba(31, 138, 91, 0.14);
+  color: var(--success, #1F8A5B);
+}
+
+.statusUnpaid {
+  background: rgba(199, 122, 10, 0.16);
+  color: var(--score-bogey, #B97A0A);
+}
+
+.cardBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--psu-navy);
+  background: #fff;
+  color: var(--psu-navy);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: var(--fs-caption);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.cardBtn:hover { background: var(--psu-pugh-soft); }
+
+.cardBtnUsed {
+  border-color: transparent;
+  background: rgba(31, 138, 91, 0.14);
+  color: var(--success, #1F8A5B);
+}

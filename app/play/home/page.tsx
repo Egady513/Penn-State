@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon'
 import { StatTile } from '@/components/ui/StatTile'
 import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
 import { MoneyRaised } from '@/app/components/MoneyRaised'
+import { GameCards } from './GameCards'
 
 export default async function HomePage() {
   const cookieStore = await cookies()
@@ -137,6 +138,9 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* Your game — challenge + advantage cards */}
+      <GameCards teamId={teamId} />
 
       {/* Quick sub-tiles */}
       <div className={styles.sectionWrap}>
