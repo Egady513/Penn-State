@@ -1,6 +1,6 @@
 'use server'
 
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 
 export interface CheckoutArgs {
   teamId: string
@@ -26,7 +26,7 @@ export async function createCheckoutSession(args: CheckoutArgs): Promise<Checkou
     const successUrl = `${args.origin}/confirmation?team=${encodeURIComponent(args.teamName)}&pin=${args.pin}`
     const cancelUrl = `${args.origin}/?canceled=1#register`
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {

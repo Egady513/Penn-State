@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // Stripe SDK needs the Node runtime (not Edge).
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, secret)
+    event = getStripe().webhooks.constructEvent(body, sig, secret)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Invalid signature'
     return NextResponse.json({ error: `Webhook verification failed: ${message}` }, { status: 400 })
