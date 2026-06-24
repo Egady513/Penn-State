@@ -47,6 +47,16 @@
   color: var(--fg-muted);
 }
 
+.sponsorTypeLabel {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--psu-beaver);
+}
+
 .tierGrid {
   display: grid;
   gap: var(--space-3);

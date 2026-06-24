@@ -2,25 +2,44 @@
 
 .page {
   padding: 28px;
+}
+
+.topActions {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 10px;
+}
+
+.savedHint {
+  font-size: 12px;
+  color: var(--success, #1F8A5B);
+  font-weight: 600;
+}
+
+.errorBar {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  color: #C0392B;
+  font-size: 13px;
 }
 
 .statsRow {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
 .statPill {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 16px;
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   box-shadow: var(--shadow-xs);
 }
 
@@ -28,94 +47,127 @@
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 22px;
-  font-variant-numeric: tabular-nums;
   color: var(--fg);
 }
 
 .statLabel {
   font-size: 12px;
-  font-weight: 600;
   color: var(--fg-muted);
 }
 
-.tableHeader {
-  display: grid;
-  grid-template-columns: 1fr 110px 110px 80px 70px;
-  padding: 12px 18px;
-  background: var(--ink-050);
+.previewTag {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--ink-100);
-  border-radius: 12px 12px 0 0;
+  color: var(--psu-beaver);
+  background: var(--psu-pugh-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
 }
 
-.tableRow {
-  display: grid;
-  grid-template-columns: 1fr 110px 110px 80px 70px;
-  padding: 14px 18px;
-  align-items: center;
-  border-bottom: 1px solid var(--ink-100);
-  transition: background 120ms;
+.loadingRow {
+  padding: 16px 4px;
+  font-size: 13px;
+  color: var(--fg-muted);
 }
 
-.tableRow:hover {
-  background: var(--ink-050);
+/* ── Editable rows ──────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.tableRowLast {
-  border-bottom: none;
-}
-
-.sponsorName {
+.row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--fg);
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
 }
 
-.logoThumb {
-  width: 36px;
+.rowOff { opacity: 0.55; background: var(--bg-soft); }
+
+.nameInput,
+.typeInput,
+.select {
   height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--ink-050);
-  border: 1px dashed var(--ink-200);
-  flex: none;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
 }
 
-.amount {
+.nameInput { flex: 2 1 160px; font-weight: 600; }
+.typeInput { flex: 1.4 1 150px; }
+.select    { flex: 0 0 110px; }
+
+.nameInput:focus,
+.typeInput:focus,
+.select:focus,
+.holeInput:focus,
+.amountInput:focus { border-color: var(--psu-beaver); }
+
+.holeInput {
+  flex: 0 0 64px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--psu-beaver);
+  border-radius: 8px;
+  background: var(--psu-pugh-soft);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+}
+
+.holeSpacer { flex: 0 0 64px; }
+
+.amountField {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 16px;
-  font-variant-numeric: tabular-nums;
   color: var(--fg);
+  flex: 0 0 auto;
 }
 
-.hole {
+.amountInput {
+  width: 76px;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-muted);
+  font-size: 15px;
+  color: var(--fg);
+  outline: none;
 }
 
-@media (max-width: 768px) {
-  .tableHeader {
-    grid-template-columns: 1fr 110px 110px 70px;
-  }
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
 
-  .tableRow {
-    grid-template-columns: 1fr 110px 110px 70px;
-  }
+.toggle input { accent-color: var(--psu-navy); cursor: pointer; }
 
-  .hideSmall {
-    display: none;
-  }
-
-  .page {
-    padding: 16px;
-  }
+@media (max-width: 600px) {
+  .page { padding: 16px; }
 }

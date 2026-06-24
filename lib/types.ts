@@ -144,11 +144,15 @@ export interface Database {
           id: string
           event_id: string
           name: string
-          tier: SponsorTier
+          tier: SponsorTier | null
           amount: number
           logo_url: string | null
           website: string | null
           hole_id: string | null
+          sponsorship_type: string | null
+          hole_number: number | null
+          active: boolean
+          sort_order: number
         }
         Insert: Omit<Database['public']['Tables']['sponsor']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['sponsor']['Insert']>

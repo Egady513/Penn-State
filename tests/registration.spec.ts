@@ -74,19 +74,23 @@ test.describe('Registration Content — R-01 to R-11', () => {
     await expect(page.getByText('Beckett Ridge Golf Club')).toBeVisible()
   })
 
-  test('R-08: Eagle sponsor tier has 2 sponsor cards', async ({ page }) => {
+  test('R-08: Sponsors section renders sponsor cards', async ({ page }) => {
+    // Sponsors are now data-driven from the catalog/admin, so assert that the
+    // section renders cards rather than a fixed per-tier count.
     await page.locator('#sponsors').scrollIntoViewIfNeeded()
-    await expect(page.locator('[data-testid="tier-eagle"] [data-testid="sponsor-card"]')).toHaveCount(2)
+    await expect(page.getByRole('heading', { name: /Sponsors & donors/i })).toBeVisible()
+    expect(await page.locator('#sponsors [data-testid="sponsor-card"]').count()).toBeGreaterThan(0)
   })
 
-  test('R-09: Birdie sponsor tier has 3 sponsor cards', async ({ page }) => {
+  test('R-09: Eagle tier renders when there are eagle sponsors', async ({ page }) => {
     await page.locator('#sponsors').scrollIntoViewIfNeeded()
-    await expect(page.locator('[data-testid="tier-birdie"] [data-testid="sponsor-card"]')).toHaveCount(3)
+    // Fallback/seed both include eagle sponsors
+    await expect(page.locator('[data-testid="tier-eagle"]')).toBeVisible()
   })
 
-  test('R-10: Par sponsor tier has 6 sponsor cards', async ({ page }) => {
+  test('R-10: Become-a-sponsor call to action renders', async ({ page }) => {
     await page.locator('#sponsors').scrollIntoViewIfNeeded()
-    await expect(page.locator('[data-testid="tier-par"] [data-testid="sponsor-card"]')).toHaveCount(6)
+    await expect(page.getByText(/Become a sponsor/i)).toBeVisible()
   })
 
   test('R-11: Donors grid has 12 entries; Acme Family is present', async ({ page }) => {
