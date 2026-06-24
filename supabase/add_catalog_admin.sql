@@ -15,6 +15,10 @@ update catalog_item set tag = 'ctp', per_person = true
 update catalog_item set tag = 'ld', per_person = true
   where event_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' and name ilike '%long-drive%';
 
+-- Tag the base registration fee so it does NOT appear as a registration add-on
+update catalog_item set tag = 'base'
+  where event_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' and name ilike 'Team registration%';
+
 -- 3. Save function for the admin Catalog page (insert when p_id is null, else update).
 --    Security definer so the admin page can write without a login (for now).
 create or replace function save_catalog_item(

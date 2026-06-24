@@ -91,7 +91,9 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const ld = items.find(i => i.tag === 'ld')
   const challengeUnit = (ctp?.price ?? DEFAULT_CHALLENGE_UNIT) + (ld?.price ?? DEFAULT_CHALLENGE_UNIT)
   const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
-  const otherAddons = items.filter(i => i.tag !== 'ctp' && i.tag !== 'ld')
+  // Exclude the contest items (shown as the combined challenge) and the base
+  // registration fee (tag 'base') — only real add-ons become checkboxes.
+  const otherAddons = items.filter(i => i.tag !== 'ctp' && i.tag !== 'ld' && i.tag !== 'base')
 
   const addonTotal = otherAddons.filter(i => addons[i.id]).reduce((s, i) => s + i.price, 0)
   const challengeTotal = challenge ? challengePrices[challenge] : 0
