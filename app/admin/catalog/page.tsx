@@ -22,6 +22,7 @@ type Item = {
 export default function CatalogPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -35,7 +36,13 @@ export default function CatalogPage() {
       .order('per_person')
       .order('sort_order')
       .order('name')
-      .then(({ data }) => {
+      .then(({ data, error: loadErr }) => {
+        if (loadErr) {
+          // Usually means the catalog migration hasn't been run yet
+          setLoadError(true);
+          setLoading(false);
+          return;
+        }
         const rows = (data ?? []) as (Item & { sort_order: number })[];
         setItems(
           rows.map((r) => ({
@@ -119,6 +126,11 @@ export default function CatalogPage() {
 
           {loading ? (
             <div className={styles.loadingRow}>Loading catalog…</div>
+          ) : loadError ? (
+            <div className={styles.errorBar}>
+              Couldn&apos;t load the catalog. Run <strong>add_catalog_admin.sql</strong> in
+              Supabase (it adds the columns this page needs), then refresh.
+            </div>
           ) : (
             <div className={styles.editGrid}>
               {items.map((it, i) => (

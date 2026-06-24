@@ -61,6 +61,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [step1Error, setStep1Error] = useState<string[]>([])
 
   // Load the registration add-ons from the catalog (admin-editable)
   useEffect(() => {
@@ -97,9 +98,19 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const baseFee = single ? 100 : 200
   const total = baseFee + addonTotal + challengeTotal + (Number(donation) || 0)
 
-  const canContinue =
-    teamName.trim() !== '' &&
-    golfers.slice(0, numGolfers).every(g => g.name.trim() !== '' && g.email.trim() !== '')
+  // Validate step 1 on click (instead of a silently-disabled button) so we can
+  // tell the user exactly what's missing.
+  function continueToAddons() {
+    const missing: string[] = []
+    if (!teamName.trim()) missing.push('Team name')
+    golfers.slice(0, numGolfers).forEach((g, i) => {
+      const who = single ? 'Golfer' : `Golfer ${i + 1}`
+      if (!g.name.trim()) missing.push(`${who} name`)
+      if (!g.email.trim()) missing.push(`${who} email`)
+    })
+    setStep1Error(missing)
+    if (missing.length === 0) setStep(2)
+  }
 
   return (
     <section id="register" ref={ref} className={styles.section}>
@@ -180,7 +191,12 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               ))}
 
               <div className={styles.stepFooter}>
-                <Button size="lg" onClick={() => setStep(2)} disabled={!canContinue}>
+                {step1Error.length > 0 && (
+                  <div className={styles.missingBox}>
+                    <strong>Please fill in:</strong> {step1Error.join(' · ')}
+                  </div>
+                )}
+                <Button size="lg" onClick={continueToAddons}>
                   Continue to add-ons <ArrowRight size={18} />
                 </Button>
               </div>

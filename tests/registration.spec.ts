@@ -117,13 +117,17 @@ test.describe('Registration Form — R-12 to R-27', () => {
     await page.locator('#register').scrollIntoViewIfNeeded()
   })
 
-  test('R-12: Step 1 continue button is disabled when fields are empty', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /Continue to add-ons/i })).toBeDisabled()
+  test('R-12: Empty step 1 shows a "what you missed" message on Continue', async ({ page }) => {
+    await page.getByRole('button', { name: /Continue to add-ons/i }).click()
+    // Shows the missing-fields message and does NOT advance to add-ons
+    await expect(page.getByText(/Please fill in:/i)).toBeVisible()
+    await expect(page.getByText(/Add-ons \(optional\)/i)).not.toBeVisible()
   })
 
-  test('R-13: Step 1 continue button is enabled when required fields are filled', async ({ page }) => {
+  test('R-13: Filled step 1 advances to add-ons on Continue', async ({ page }) => {
     await fillStep1(page)
-    await expect(page.getByRole('button', { name: /Continue to add-ons/i })).not.toBeDisabled()
+    await page.getByRole('button', { name: /Continue to add-ons/i }).click()
+    await expect(page.getByText(/Add-ons \(optional\)/i)).toBeVisible()
   })
 
   test('R-14: Single-golfer toggle hides Golfer 2 block', async ({ page }) => {
