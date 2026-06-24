@@ -82,10 +82,9 @@ test.describe('Registration Content — R-01 to R-11', () => {
     expect(await page.locator('#sponsors [data-testid="sponsor-card"]').count()).toBeGreaterThan(0)
   })
 
-  test('R-09: Eagle tier renders when there are eagle sponsors', async ({ page }) => {
+  test('R-09: Sponsors are organized into at least one category group', async ({ page }) => {
     await page.locator('#sponsors').scrollIntoViewIfNeeded()
-    // Fallback/seed both include eagle sponsors
-    await expect(page.locator('[data-testid="tier-eagle"]')).toBeVisible()
+    expect(await page.locator('[data-testid="sponsor-group"]').count()).toBeGreaterThan(0)
   })
 
   test('R-10: Become-a-sponsor call to action renders', async ({ page }) => {

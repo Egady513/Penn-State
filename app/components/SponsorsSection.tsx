@@ -34,13 +34,7 @@ const DONORS = [
   'Jensen Roofing', 'Kepler Marketing', 'Lamar Films',
 ]
 
-function typeLabel(s: Sponsor): string | null {
-  if (!s.sponsorship_type) return null
-  if (s.sponsorship_type.toLowerCase().includes('hole')) {
-    return s.hole_number ? `Hole ${s.hole_number}` : 'Hole sponsor'
-  }
-  return s.sponsorship_type
-}
+const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hole')
 
 export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(_, ref) {
   const [sponsors, setSponsors] = useState<Sponsor[]>(FALLBACK)
@@ -59,10 +53,22 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
       })
   }, [])
 
-  const eagle = sponsors.filter(s => s.tier === 'eagle')
-  const birdie = sponsors.filter(s => s.tier === 'birdie')
-  const par = sponsors.filter(s => s.tier === 'par')
-  const untiered = sponsors.filter(s => !s.tier)
+  // Group by what they sponsor: hole sponsors together, then each custom
+  // category, then anyone uncategorized.
+  const groups: { label: string; sponsors: Sponsor[] }[] = []
+
+  const holeSponsors = sponsors.filter(isHole)
+  if (holeSponsors.length > 0) groups.push({ label: 'Hole Sponsors', sponsors: holeSponsors })
+
+  const otherTypes = Array.from(
+    new Set(sponsors.filter(s => s.sponsorship_type && !isHole(s)).map(s => s.sponsorship_type as string))
+  )
+  for (const t of otherTypes) {
+    groups.push({ label: t, sponsors: sponsors.filter(s => s.sponsorship_type === t) })
+  }
+
+  const uncategorized = sponsors.filter(s => !s.sponsorship_type)
+  if (uncategorized.length > 0) groups.push({ label: 'Our Supporters', sponsors: uncategorized })
 
   return (
     <section id="sponsors" ref={ref} className={styles.section}>
@@ -70,10 +76,23 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
         <div className={styles.eyebrow}>Made possible by</div>
         <h2 className={styles.heading}>Sponsors &amp; donors</h2>
 
-        {eagle.length > 0 && <SponsorTier label="Eagle"  sponsors={eagle}  cols={2} size="lg" />}
-        {birdie.length > 0 && <SponsorTier label="Birdie" sponsors={birdie} cols={3} size="md" />}
-        {par.length > 0 && <SponsorTier label="Par"    sponsors={par}    cols={6} size="sm" />}
-        {untiered.length > 0 && <SponsorTier label="Our supporters" sponsors={untiered} cols={4} size="md" />}
+        {groups.map(g => (
+          <div key={g.label} className={styles.tier} data-testid="sponsor-group">
+            <div className={styles.tierHeader}>
+              <span className={styles.tierLabel}>{g.label}</span>
+            </div>
+            <div className={styles.tierGrid} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+              {g.sponsors.map(s => (
+                <div key={s.id} data-testid="sponsor-card">
+                  <SponsorLogo name={s.name} size="md" />
+                  {isHole(s) && s.hole_number && (
+                    <div className={styles.sponsorTypeLabel}>Hole {s.hole_number}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
 
         <div className={styles.donors}>
           <h3 className={styles.donorsHead}>Raffle &amp; prize donors</h3>
@@ -105,31 +124,3 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
     </section>
   )
 })
-
-function SponsorTier({
-  label, sponsors, cols, size,
-}: {
-  label: string
-  sponsors: Sponsor[]
-  cols: number
-  size: 'lg' | 'md' | 'sm'
-}) {
-  return (
-    <div className={styles.tier} data-testid={`tier-${label.toLowerCase().replace(/\s+/g, '-')}`}>
-      <div className={styles.tierHeader}>
-        <span className={styles.tierLabel}>{label}</span>
-      </div>
-      <div className={styles.tierGrid} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {sponsors.map(s => {
-          const lbl = typeLabel(s)
-          return (
-            <div key={s.id} data-testid="sponsor-card">
-              <SponsorLogo name={s.name} size={size} />
-              {lbl && <div className={styles.sponsorTypeLabel}>{lbl}</div>}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
