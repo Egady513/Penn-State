@@ -2,7 +2,7 @@
 
 import styles from './Button.module.css'
 
-type ButtonVariant = 'primary' | 'secondary' | 'pugh' | 'bronze' | 'ghost' | 'danger'
+type ButtonVariant = 'primary' | 'secondary' | 'secondaryLight' | 'pugh' | 'bronze' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
 type ButtonAsButton = React.ButtonHTMLAttributes<HTMLButtonElement> & { as?: 'button' }

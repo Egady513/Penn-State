@@ -43,8 +43,8 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           <Button size="lg" variant="pugh" onClick={() => onJump('register')}>
             Register your team <ArrowRight size={18} />
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => onJump('details')}>
-            See what's included
+          <Button size="lg" variant="secondaryLight" onClick={() => onJump('details')}>
+            See what&apos;s included
           </Button>
         </div>
 

@@ -40,6 +40,14 @@
 }
 .secondary:hover { background: var(--ink-050); }
 
+/* For use on dark backgrounds (e.g. the navy hero) */
+.secondaryLight {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--psu-white);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+.secondaryLight:hover { background: rgba(255, 255, 255, 0.14); }
+
 .pugh {
   background: var(--psu-pugh);
   color: var(--psu-navy);
