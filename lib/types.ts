@@ -25,6 +25,7 @@ export interface Database {
           greens_fee_cost: number
           shotgun_time: string | null
           schedule: Json | null
+          included: Json | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['event']['Row'], 'id' | 'created_at'>

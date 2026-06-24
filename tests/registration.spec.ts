@@ -59,7 +59,7 @@ test.describe('Registration Content — R-01 to R-11', () => {
     const items = [
       'Greens fee and cart for both golfers',
       'Range balls',
-      'Breakfast and on-course lunch',
+      'Breakfast at check-in',
       'Lunch & awards reception',
       'Tournament gift bag',
       'Live mobile scoring app',

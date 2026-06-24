@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/admin/catalog',      label: 'Catalog',           icon: 'dollar'    as const },
   { href: '/admin/course',       label: 'Course setup',      icon: 'flag'      as const },
   { href: '/admin/schedule',     label: 'Schedule',          icon: 'clock'     as const },
+  { href: '/admin/included',     label: "What's included",   icon: 'check'     as const },
   { href: '/admin/checkin',      label: 'Check-in',          icon: 'qr'        as const },
   { href: '/admin/announcements',label: 'Announcements',     icon: 'megaphone' as const },
 ] satisfies { href: string; label: string; icon: Parameters<typeof Icon>[0]['name'] }[];

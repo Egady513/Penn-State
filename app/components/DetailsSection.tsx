@@ -17,10 +17,11 @@ const DEFAULT_SCHEDULE: ScheduleItem[] = [
   { time: '1:00 PM', label: 'Lunch & awards' },
 ]
 
-const INCLUDED = [
+// Fallback only — the live list comes from the database (admin-editable).
+const DEFAULT_INCLUDED = [
   'Greens fee and cart for both golfers',
   'Range balls + practice green',
-  'Breakfast and on-course lunch',
+  'Breakfast at check-in',
   'Lunch & awards reception',
   'Tournament gift bag',
   'Live mobile scoring app',
@@ -28,9 +29,12 @@ const INCLUDED = [
 
 export const DetailsSection = forwardRef<HTMLElement>(function DetailsSection(_, ref) {
   const [schedule, setSchedule] = useState<ScheduleItem[]>(DEFAULT_SCHEDULE)
+  const [included, setIncluded] = useState<string[]>(DEFAULT_INCLUDED)
 
   useEffect(() => {
     const supabase = createClient()
+    // Two separate queries so a missing `included` column (before its migration)
+    // doesn't stop the schedule from loading.
     supabase
       .from('event')
       .select('schedule')
@@ -39,6 +43,16 @@ export const DetailsSection = forwardRef<HTMLElement>(function DetailsSection(_,
       .then(({ data }) => {
         const s = (data as { schedule?: ScheduleItem[] } | null)?.schedule
         if (Array.isArray(s) && s.length > 0) setSchedule(s)
+      })
+    supabase
+      .from('event')
+      .select('included')
+      .eq('id', EVENT_ID)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) return // included column not added yet
+        const inc = (data as { included?: string[] } | null)?.included
+        if (Array.isArray(inc) && inc.length > 0) setIncluded(inc)
       })
   }, [])
 
@@ -68,7 +82,7 @@ export const DetailsSection = forwardRef<HTMLElement>(function DetailsSection(_,
           <div>
             <h3 className={styles.subhead}>What&apos;s included</h3>
             <ul className={styles.included}>
-              {INCLUDED.map((item, i) => (
+              {included.map((item, i) => (
                 <li key={i} className={styles.includedItem}>
                   <span className={styles.checkBubble}>
                     <Check size={13} strokeWidth={2.5} />
