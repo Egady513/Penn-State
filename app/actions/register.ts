@@ -15,7 +15,7 @@ export interface RegisterPayload {
   teamName: string
   isSingle: boolean
   golfers: GolferData[]
-  /** Selected per-team add-on ids: 'gimme' | 'adv-opponent' | 'adv-front' */
+  /** Selected per-team add-on catalog_item ids (UUIDs from the catalog) */
   addons: string[]
   /**
    * Long-Drive + Closest-to-Pin challenge entry:
@@ -39,14 +39,7 @@ function randomPin(): string {
   return String(Math.floor(1000 + Math.random() * 9000))
 }
 
-// Per-team add-on id → catalog_item name pattern (from supabase/seed.sql).
-const ADDON_CATALOG_PATTERN: Record<string, string> = {
-  gimme: 'gimme',
-  'adv-opponent': 'opponent',
-  'adv-front': 'front tees',
-}
-
-type CatalogRow = { id: string; name: string; price: number }
+type CatalogRow = { id: string; name: string; price: number; tag: string | null }
 type PurchaseRow = {
   catalog_item_id: string
   team_id: string
@@ -73,12 +66,12 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
   // Look up the catalog items once so we can itemize.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: catalog } = await (supabase.from('catalog_item') as any)
-    .select('id, name, price')
+    .select('id, name, price, tag')
     .eq('event_id', EVENT_ID)
     .eq('active', true) as { data: CatalogRow[] | null }
 
-  const findItem = (pattern: string) =>
-    catalog?.find(c => c.name.toLowerCase().includes(pattern)) ?? null
+  const findById  = (id: string)  => catalog?.find(c => c.id === id) ?? null
+  const findByTag = (tag: string) => catalog?.find(c => c.tag === tag) ?? null
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const pin = randomPin()
@@ -138,9 +131,9 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     // 4 ── Build itemized purchases
     const purchases: PurchaseRow[] = []
 
-    // Per-team add-ons (gimme rope, advantage cards)
+    // Per-team add-ons (gimme rope, advantage cards) — selected by catalog id
     for (const id of payload.addons ?? []) {
-      const item = findItem(ADDON_CATALOG_PATTERN[id] ?? '')
+      const item = findById(id)
       if (item) {
         purchases.push({
           catalog_item_id: item.id, team_id: teamId, player_id: null,
@@ -151,8 +144,8 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
 
     // Challenge: CTP + LD entry for each entered golfer
     if (payload.challenge) {
-      const ctp = findItem('closest')
-      const ld = findItem('long-drive')
+      const ctp = findByTag('ctp')
+      const ld = findByTag('ld')
       const entered = payload.challenge === 'team' ? playerIds : playerIds.slice(0, 1)
       for (const pid of entered) {
         for (const item of [ctp, ld]) {

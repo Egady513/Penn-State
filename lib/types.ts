@@ -180,6 +180,9 @@ export interface Database {
           channels: PurchaseChannel[]
           active: boolean
           description: string | null
+          per_person: boolean
+          sort_order: number
+          tag: string | null
         }
         Insert: Omit<Database['public']['Tables']['catalog_item']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['catalog_item']['Insert']>

@@ -2,88 +2,170 @@
 
 .page {
   padding: 28px;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.savedHint {
+  font-size: 12px;
+  color: var(--success, #1F8A5B);
+  font-weight: 600;
+}
+
+.errorBar {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  color: #C0392B;
+  font-size: 13px;
+}
+
+.previewTag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--psu-beaver);
+  background: var(--psu-pugh-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.loadingRow {
+  padding: 20px 4px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+/* ── Editable item grid ─────────────────────────────────────── */
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.editCard {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 14px;
+  box-shadow: var(--shadow-xs);
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
 }
 
-.section {
-  margin-bottom: 32px;
+.editCardOff {
+  opacity: 0.55;
+  background: var(--bg-soft);
 }
 
-.sectionHeader {
+.editRowTop {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
-.sectionTitle {
+.nameInput {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  outline: none;
+}
+
+.nameInput:focus,
+.descInput:focus,
+.priceInput:focus { border-color: var(--psu-beaver); }
+
+.tagBadge {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--psu-navy);
+  background: var(--psu-pugh-soft);
+  border-radius: 6px;
+  padding: 3px 7px;
+}
+
+.descInput {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--fg-muted);
+  outline: none;
+}
+
+.editRowBottom {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.priceField {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 18px;
   color: var(--fg);
 }
 
-.sectionSub {
-  font-size: 12px;
-  color: var(--fg-muted);
-}
-
-.cardGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-}
-
-.itemCard {
-  background: #fff;
-  border-radius: 12px;
+.priceInput {
+  width: 64px;
+  height: 34px;
+  padding: 0 6px;
   border: 1px solid var(--border);
-  padding: 16px;
-  box-shadow: var(--shadow-xs);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.itemTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.itemLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.itemDesc {
-  font-size: 12px;
-  color: var(--fg-muted);
-}
-
-.itemPrice {
+  border-radius: 8px;
+  background: #fff;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 26px;
+  font-size: 18px;
   font-variant-numeric: tabular-nums;
   color: var(--fg);
-  margin-top: 8px;
+  outline: none;
 }
 
-.perGolfer {
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
-  font-family: var(--font-sans);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--fg-muted);
-  margin-left: 2px;
+  cursor: pointer;
 }
+
+.toggle input { accent-color: var(--psu-navy); cursor: pointer; }
 
 @media (max-width: 600px) {
-  .page {
-    padding: 16px;
-  }
+  .page { padding: 16px; }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react'
 import styles from './RegisterSection.module.css'
@@ -11,17 +11,31 @@ import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { registerTeam } from '@/app/actions/register'
 import { createCheckoutSession } from '@/app/actions/checkout'
+import { createClient } from '@/lib/supabase/client'
+import { EVENT_ID } from '@/lib/eventId'
 
-// Simple per-team checkbox add-ons
-const ADDONS = [
-  { id: 'gimme',        label: 'Gimme rope (3-ft)',                desc: 'Use anywhere on the course · team', price: 10 },
-  { id: 'adv-opponent', label: 'Advantage card: opponent’s drive', desc: 'One-time advantage · team',   price: 10 },
-  { id: 'adv-front',    label: 'Advantage card: front tees',       desc: 'One-time advantage · team',         price: 10 },
-]
+// Add-ons come from the catalog (admin-editable single source of truth).
+type CatalogAddon = {
+  id: string
+  name: string
+  price: number
+  description: string | null
+  tag: string | null
+}
 
-// Combined Long-Drive + Closest-to-Pin challenge: pay once, in both contests.
-const CHALLENGE_PRICES = { individual: 20, team: 40 } as const
+// Fallback per-golfer challenge price if the CTP/LD catalog rows aren't loaded.
+const DEFAULT_CHALLENGE_UNIT = 10
 type ChallengeChoice = 'individual' | 'team' | null
+
+// Shown if the catalog query fails (e.g. before the catalog migration is run),
+// so registration never shows an empty add-ons step.
+const FALLBACK_ADDONS: CatalogAddon[] = [
+  { id: 'fb-gimme', name: 'Gimme rope (3 ft)',                price: 10, description: 'Use anywhere on the course', tag: null },
+  { id: 'fb-ctp',   name: 'Closest-to-pin entry',            price: 10, description: 'Per person',                 tag: 'ctp' },
+  { id: 'fb-ld',    name: 'Long-drive entry',                price: 10, description: 'Per person',                 tag: 'ld' },
+  { id: 'fb-opp',   name: 'Advantage card: opponent’s drive', price: 10, description: 'One-time advantage card',    tag: null },
+  { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null },
+]
 
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SKILL_LEVELS = ['New to golf', 'Casual', 'Intermediate', 'Regular golfer']
@@ -44,15 +58,42 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const [addons, setAddons] = useState<Record<string, boolean>>({})
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [donation, setDonation] = useState('')
+  const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  // Load the registration add-ons from the catalog (admin-editable)
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('catalog_item')
+      .select('id, name, price, description, tag, sort_order')
+      .eq('event_id', EVENT_ID)
+      .eq('active', true)
+      .contains('channels', ['signup'])
+      .order('sort_order')
+      .then(({ data, error }) => {
+        // Fall back to the built-in list if the query fails or returns nothing
+        // (e.g. before the catalog migration adds the tag/sort_order columns).
+        const rows = data as CatalogAddon[] | null
+        setCatalog(error || !rows || rows.length === 0 ? FALLBACK_ADDONS : rows)
+      })
+  }, [])
 
   const numGolfers = single ? 1 : 2
   const setGolfer = (i: number, patch: Partial<GolferData>) =>
     setGolfers(g => g.map((x, idx) => idx === i ? { ...x, ...patch } : x))
 
-  const addonTotal = ADDONS.filter(a => addons[a.id]).reduce((s, a) => s + a.price, 0)
-  const challengeTotal = challenge ? CHALLENGE_PRICES[challenge] : 0
+  // Derive challenge price from the CTP + LD catalog rows; other items = checkboxes
+  const items = catalog ?? []
+  const ctp = items.find(i => i.tag === 'ctp')
+  const ld = items.find(i => i.tag === 'ld')
+  const challengeUnit = (ctp?.price ?? DEFAULT_CHALLENGE_UNIT) + (ld?.price ?? DEFAULT_CHALLENGE_UNIT)
+  const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
+  const otherAddons = items.filter(i => i.tag !== 'ctp' && i.tag !== 'ld')
+
+  const addonTotal = otherAddons.filter(i => addons[i.id]).reduce((s, i) => s + i.price, 0)
+  const challengeTotal = challenge ? challengePrices[challenge] : 0
   const baseFee = single ? 100 : 200
   const total = baseFee + addonTotal + challengeTotal + (Number(donation) || 0)
 
@@ -160,7 +201,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                     className={`${styles.pill} ${challenge === 'individual' ? styles.pillActive : ''}`}
                     onClick={() => setChallenge(c => (c === 'individual' ? null : 'individual'))}
                   >
-                    Individual <span className={styles.pillPrice}>$20</span>
+                    Individual <span className={styles.pillPrice}>${challengePrices.individual}</span>
                   </button>
                   {!single && (
                     <button
@@ -168,19 +209,19 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       className={`${styles.pill} ${challenge === 'team' ? styles.pillActive : ''}`}
                       onClick={() => setChallenge(c => (c === 'team' ? null : 'team'))}
                     >
-                      Team <span className={styles.pillPrice}>$40</span>
+                      Team <span className={styles.pillPrice}>${challengePrices.team}</span>
                     </button>
                   )}
                 </div>
               </div>
 
               <div className={styles.addonList}>
-                {ADDONS.map(a => (
+                {otherAddons.map(a => (
                   <Checkbox
                     key={a.id}
                     checked={!!addons[a.id]}
                     onChange={v => setAddons(s => ({ ...s, [a.id]: v }))}
-                    label={`${a.label} · ${a.desc}`}
+                    label={a.description ? `${a.name} · ${a.description}` : a.name}
                     price={a.price}
                   />
                 ))}
@@ -236,7 +277,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       teamName,
                       isSingle: single,
                       golfers: golfers.slice(0, numGolfers),
-                      addons: ADDONS.filter(a => addons[a.id]).map(a => a.id),
+                      addons: otherAddons.filter(i => addons[i.id]).map(i => i.id),
                       challenge,
                       donation: Number(donation) || 0,
                     })
@@ -292,13 +333,13 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
             {challenge && (
               <div className={styles.summaryLine}>
                 <span>LD &amp; CTP Challenge ({challenge === 'individual' ? 'Individual' : 'Team'})</span>
-                <span className={styles.summaryAmt}>${CHALLENGE_PRICES[challenge]}</span>
+                <span className={styles.summaryAmt}>${challengePrices[challenge]}</span>
               </div>
             )}
-            {ADDONS.filter(a => addons[a.id]).map(a => (
-              <div key={a.id} className={styles.summaryLine}>
-                <span>{a.label}</span>
-                <span className={styles.summaryAmt}>${a.price}</span>
+            {otherAddons.filter(i => addons[i.id]).map(i => (
+              <div key={i.id} className={styles.summaryLine}>
+                <span>{i.name}</span>
+                <span className={styles.summaryAmt}>${i.price}</span>
               </div>
             ))}
             {Number(donation) > 0 && (
