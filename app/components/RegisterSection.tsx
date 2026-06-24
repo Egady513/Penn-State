@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { registerTeam } from '@/app/actions/register'
+import { createCheckoutSession } from '@/app/actions/checkout'
 
 const ADDONS = [
   { id: 'gimme', label: 'Gimme rope (3-ft)',            desc: 'Use anywhere on the course', price: 10 },
@@ -203,23 +204,35 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       addons: ADDONS.filter(a => addons[a.id]).map(a => a.id),
                       donation: Number(donation) || 0,
                     })
-                    setSubmitting(false)
-                    if (result.error || !result.pin) {
+                    if (result.error || !result.pin || !result.teamId) {
+                      setSubmitting(false)
                       setSubmitError(result.error ?? 'Something went wrong. Please try again.')
                       return
                     }
-                    // Open Zeffy in a new tab, then send user to confirmation
-                    window.open('https://www.zeffy.com', '_blank', 'noopener,noreferrer')
-                    router.push(`/confirmation?team=${encodeURIComponent(teamName)}&pin=${result.pin}`)
+                    // Create a Stripe Checkout session and redirect to it.
+                    // The webhook marks the team paid once Stripe confirms.
+                    const checkout = await createCheckoutSession({
+                      teamId: result.teamId,
+                      amount: total,
+                      teamName,
+                      pin: result.pin,
+                      origin: window.location.origin,
+                    })
+                    if (checkout.error || !checkout.url) {
+                      setSubmitting(false)
+                      setSubmitError(checkout.error ?? 'Could not start checkout. Please try again.')
+                      return
+                    }
+                    window.location.href = checkout.url
                   }}
                 >
                   {submitting
-                    ? <><Loader2 size={18} className={styles.spinner} /> Saving…</>
-                    : <>Pay ${total} with Zeffy <ArrowRight size={18} /></>}
+                    ? <><Loader2 size={18} className={styles.spinner} /> Starting checkout…</>
+                    : <>Pay ${total} <ArrowRight size={18} /></>}
                 </Button>
                 <p className={styles.zeffyNote}>
-                  You&apos;ll be taken to Zeffy to complete payment. Zeffy charges $0 in fees — 100% goes to the cause.
-                  Your registration is tax-deductible (EIN&nbsp;31-1100175).
+                  You&apos;ll be taken to our secure Stripe checkout to finish paying —
+                  cards and wallets accepted. Your registration is tax-deductible (EIN&nbsp;31-1100175).
                 </p>
               </div>
 
