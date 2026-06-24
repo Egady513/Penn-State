@@ -15,8 +15,15 @@ export interface RegisterPayload {
   teamName: string
   isSingle: boolean
   golfers: GolferData[]
-  /** Selected add-on ids from the form: 'gimme' | 'ctp' | 'ld' | 'adv' */
+  /** Selected per-team add-on ids: 'gimme' | 'adv-opponent' | 'adv-front' */
   addons: string[]
+  /**
+   * Long-Drive + Closest-to-Pin challenge entry:
+   *  'individual' = one golfer in both contests ($20)
+   *  'team'       = both golfers in both contests ($40)
+   *  null         = not entered
+   */
+  challenge: 'individual' | 'team' | null
   /** Optional donation in dollars */
   donation: number
 }
@@ -32,22 +39,30 @@ function randomPin(): string {
   return String(Math.floor(1000 + Math.random() * 9000))
 }
 
-// Maps a form add-on id → a name pattern that matches the seeded catalog_item.
-// Catalog names (supabase/seed.sql): 'Gimme rope (3 ft)', 'Closest-to-pin entry',
-// 'Long-drive entry', 'Advantage card: …'.
+// Per-team add-on id → catalog_item name pattern (from supabase/seed.sql).
 const ADDON_CATALOG_PATTERN: Record<string, string> = {
   gimme: 'gimme',
-  ctp: 'closest',
-  ld: 'long-drive',
-  adv: 'advantage',
+  'adv-opponent': 'opponent',
+  'adv-front': 'front tees',
+}
+
+type CatalogRow = { id: string; name: string; price: number }
+type PurchaseRow = {
+  catalog_item_id: string
+  team_id: string
+  player_id: string | null
+  quantity: number
+  amount: number
+  paid_status: 'unpaid'
+  channel: 'signup'
 }
 
 /**
  * Save a new team registration to Supabase.
- * Writes: team → players → registration (base fee + donation) → one purchase
- * row per selected add-on (so the money is itemized and contest entries flag
- * as paid on the day-of scorecard).
- * Returns { teamId, pin } on success or { error } on failure.
+ * Writes: team → players → registration (base fee + donation) → itemized
+ * purchase rows. Per-team add-ons attach to the team; the challenge writes a
+ * Closest-to-pin + Long-drive entry for each entered golfer (so the money is
+ * itemized AND both contests flag as entered on the day-of scorecard).
  */
 export async function registerTeam(payload: RegisterPayload): Promise<RegisterResult> {
   const supabase = await createClient()
@@ -55,24 +70,16 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
   const baseFee = payload.isSingle ? 100 : 200
   const donation = Number(payload.donation) || 0
 
-  // Look up the catalog items once so we can itemize the selected add-ons.
+  // Look up the catalog items once so we can itemize.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: catalog } = await (supabase.from('catalog_item') as any)
     .select('id, name, price')
     .eq('event_id', EVENT_ID)
-    .eq('active', true) as { data: { id: string; name: string; price: number }[] | null }
+    .eq('active', true) as { data: CatalogRow[] | null }
 
-  // Build the purchase rows for the selected add-ons (team_id filled in below).
-  const addonItems = (payload.addons ?? [])
-    .map(id => {
-      const pattern = ADDON_CATALOG_PATTERN[id]
-      if (!pattern || !catalog) return null
-      const item = catalog.find(c => c.name.toLowerCase().includes(pattern))
-      return item ? { catalog_item_id: item.id, amount: item.price } : null
-    })
-    .filter((x): x is { catalog_item_id: string; amount: number } => x !== null)
+  const findItem = (pattern: string) =>
+    catalog?.find(c => c.name.toLowerCase().includes(pattern)) ?? null
 
-  // Try up to 5 PINs in case of collision (unique constraint on event_id + pin)
   for (let attempt = 0; attempt < 5; attempt++) {
     const pin = randomPin()
 
@@ -87,18 +94,16 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     }).select('id').single()
 
     if (teamInsert.error) {
-      // 23505 = unique_violation (PIN collision) → retry
-      if (teamInsert.error.code === '23505') continue
+      if (teamInsert.error.code === '23505') continue // PIN collision → retry
       return { error: `Could not create team: ${teamInsert.error.message}` }
     }
 
     const teamId = (teamInsert.data as { id: string }).id
 
-    // Helper to roll back the team if a later step fails
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rollback = async () => { await (supabase.from('team') as any).delete().eq('id', teamId) }
 
-    // 2 ── Insert players (with skill level)
+    // 2 ── Insert players, returning their ids (for challenge attribution)
     const playerRows = payload.golfers.map(g => ({
       team_id:       teamId,
       name:          g.name.trim(),
@@ -109,19 +114,20 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     }))
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: playerError } = await (supabase.from('player') as any).insert(playerRows)
-    if (playerError) {
+    const playerInsert = await (supabase.from('player') as any).insert(playerRows).select('id')
+    if (playerInsert.error) {
       await rollback()
-      return { error: `Could not save player info: ${playerError.message}` }
+      return { error: `Could not save player info: ${playerInsert.error.message}` }
     }
+    const playerIds = (playerInsert.data as { id: string }[]).map(p => p.id)
 
-    // 3 ── Insert registration (base fee + donation, both unpaid)
+    // 3 ── Insert registration (base fee + donation)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: regError } = await (supabase.from('registration') as any).insert({
       team_id:         teamId,
       fee_amount:      baseFee,
       donation_amount: donation,
-      payment_method:  null,          // method chosen at the Pay step
+      payment_method:  null,
       payment_status:  'unpaid',
     })
     if (regError) {
@@ -129,18 +135,40 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
       return { error: `Could not create registration: ${regError.message}` }
     }
 
-    // 4 ── Insert one purchase row per selected add-on (itemized, unpaid)
-    if (addonItems.length > 0) {
-      const purchaseRows = addonItems.map(a => ({
-        catalog_item_id: a.catalog_item_id,
-        team_id:         teamId,
-        quantity:        1,
-        amount:          a.amount,
-        paid_status:     'unpaid',
-        channel:         'signup',
-      }))
+    // 4 ── Build itemized purchases
+    const purchases: PurchaseRow[] = []
+
+    // Per-team add-ons (gimme rope, advantage cards)
+    for (const id of payload.addons ?? []) {
+      const item = findItem(ADDON_CATALOG_PATTERN[id] ?? '')
+      if (item) {
+        purchases.push({
+          catalog_item_id: item.id, team_id: teamId, player_id: null,
+          quantity: 1, amount: item.price, paid_status: 'unpaid', channel: 'signup',
+        })
+      }
+    }
+
+    // Challenge: CTP + LD entry for each entered golfer
+    if (payload.challenge) {
+      const ctp = findItem('closest')
+      const ld = findItem('long-drive')
+      const entered = payload.challenge === 'team' ? playerIds : playerIds.slice(0, 1)
+      for (const pid of entered) {
+        for (const item of [ctp, ld]) {
+          if (item) {
+            purchases.push({
+              catalog_item_id: item.id, team_id: teamId, player_id: pid,
+              quantity: 1, amount: item.price, paid_status: 'unpaid', channel: 'signup',
+            })
+          }
+        }
+      }
+    }
+
+    if (purchases.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: purchError } = await (supabase.from('purchase') as any).insert(purchaseRows)
+      const { error: purchError } = await (supabase.from('purchase') as any).insert(purchases)
       if (purchError) {
         await rollback()
         return { error: `Could not save add-ons: ${purchError.message}` }

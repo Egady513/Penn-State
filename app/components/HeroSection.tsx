@@ -1,19 +1,34 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { ArrowRight, Heart, Calendar, MapPin, Flag } from 'lucide-react'
 import styles from './HeroSection.module.css'
 import { Button } from '@/components/ui/Button'
 import { MoneyRaised } from './MoneyRaised'
+import { createClient } from '@/lib/supabase/client'
+import { EVENT_ID } from '@/lib/eventId'
 
 interface HeroSectionProps {
   onJump: (id: string) => void
 }
 
-const SPOTS_TAKEN = 28
 const SPOTS_TOTAL = 36
 
 export function HeroSection({ onJump }: HeroSectionProps) {
+  // Real count of paid (confirmed) teams
+  const [spotsTaken, setSpotsTaken] = useState<number | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('team')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', EVENT_ID)
+      .eq('payment_status', 'paid')
+      .then(({ count }) => setSpotsTaken(count ?? 0))
+  }, [])
+
   return (
     <section className={styles.hero}>
       <div className={styles.glowOrb} aria-hidden />
@@ -50,7 +65,7 @@ export function HeroSection({ onJump }: HeroSectionProps) {
 
         <div className={styles.chipRow}>
           <div className={styles.spotsChip}>
-            <span className={styles.spotsNum}>{SPOTS_TAKEN}/{SPOTS_TOTAL}</span>
+            <span className={styles.spotsNum}>{spotsTaken ?? '—'}/{SPOTS_TOTAL}</span>
             team spots taken
           </div>
           <MoneyRaised variant="chip" />

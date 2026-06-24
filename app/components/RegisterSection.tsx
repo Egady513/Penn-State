@@ -12,12 +12,16 @@ import { Checkbox } from '@/components/ui/Checkbox'
 import { registerTeam } from '@/app/actions/register'
 import { createCheckoutSession } from '@/app/actions/checkout'
 
+// Simple per-team checkbox add-ons
 const ADDONS = [
-  { id: 'gimme', label: 'Gimme rope (3-ft)',            desc: 'Use anywhere on the course', price: 10 },
-  { id: 'ctp',   label: 'Closest-to-pin contest',       desc: 'Enter your team',           price: 10 },
-  { id: 'ld',    label: 'Long-drive contest',           desc: 'Enter your team',           price: 10 },
-  { id: 'adv',   label: 'Advantage cards (pack of 2)',  desc: 'Two plays for your team',   price: 10 },
+  { id: 'gimme',        label: 'Gimme rope (3-ft)',                desc: 'Use anywhere on the course · team', price: 10 },
+  { id: 'adv-opponent', label: 'Advantage card: opponent’s drive', desc: 'One-time advantage · team',   price: 10 },
+  { id: 'adv-front',    label: 'Advantage card: front tees',       desc: 'One-time advantage · team',         price: 10 },
 ]
+
+// Combined Long-Drive + Closest-to-Pin challenge: pay once, in both contests.
+const CHALLENGE_PRICES = { individual: 20, team: 40 } as const
+type ChallengeChoice = 'individual' | 'team' | null
 
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SKILL_LEVELS = ['New to golf', 'Casual', 'Intermediate', 'Regular golfer']
@@ -38,6 +42,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const [single, setSingle] = useState(false)
   const [golfers, setGolfers] = useState<GolferData[]>([blankGolfer(), blankGolfer()])
   const [addons, setAddons] = useState<Record<string, boolean>>({})
+  const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [donation, setDonation] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -47,8 +52,9 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
     setGolfers(g => g.map((x, idx) => idx === i ? { ...x, ...patch } : x))
 
   const addonTotal = ADDONS.filter(a => addons[a.id]).reduce((s, a) => s + a.price, 0)
+  const challengeTotal = challenge ? CHALLENGE_PRICES[challenge] : 0
   const baseFee = single ? 100 : 200
-  const total = baseFee + addonTotal + (Number(donation) || 0)
+  const total = baseFee + addonTotal + challengeTotal + (Number(donation) || 0)
 
   const canContinue =
     teamName.trim() !== '' &&
@@ -77,7 +83,11 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                 <input
                   type="checkbox"
                   checked={single}
-                  onChange={e => setSingle(e.target.checked)}
+                  onChange={e => {
+                    setSingle(e.target.checked)
+                    // A solo golfer can't enter the Team challenge
+                    if (e.target.checked) setChallenge(c => (c === 'team' ? null : c))
+                  }}
                   className={styles.singleCheckInput}
                 />
                 <div>
@@ -139,6 +149,31 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
           {step === 2 && (
             <div className={styles.stepBody}>
               <div className={styles.sectionLabel}>Add-ons (optional)</div>
+
+              {/* Combined Long-Drive + Closest-to-Pin challenge */}
+              <div className={styles.challengeCard}>
+                <div className={styles.challengeTitle}>Long-Drive &amp; Closest-to-Pin Challenge</div>
+                <div className={styles.challengeDesc}>Pay once — you&apos;re entered in both contests.</div>
+                <div className={styles.pillRow}>
+                  <button
+                    type="button"
+                    className={`${styles.pill} ${challenge === 'individual' ? styles.pillActive : ''}`}
+                    onClick={() => setChallenge(c => (c === 'individual' ? null : 'individual'))}
+                  >
+                    Individual <span className={styles.pillPrice}>$20</span>
+                  </button>
+                  {!single && (
+                    <button
+                      type="button"
+                      className={`${styles.pill} ${challenge === 'team' ? styles.pillActive : ''}`}
+                      onClick={() => setChallenge(c => (c === 'team' ? null : 'team'))}
+                    >
+                      Team <span className={styles.pillPrice}>$40</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className={styles.addonList}>
                 {ADDONS.map(a => (
                   <Checkbox
@@ -202,6 +237,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       isSingle: single,
                       golfers: golfers.slice(0, numGolfers),
                       addons: ADDONS.filter(a => addons[a.id]).map(a => a.id),
+                      challenge,
                       donation: Number(donation) || 0,
                     })
                     if (result.error || !result.pin || !result.teamId) {
@@ -253,6 +289,12 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               <span>{single ? 'Single golfer registration' : 'Team registration · 2 golfers'}</span>
               <span className={styles.summaryAmt}>${baseFee}</span>
             </div>
+            {challenge && (
+              <div className={styles.summaryLine}>
+                <span>LD &amp; CTP Challenge ({challenge === 'individual' ? 'Individual' : 'Team'})</span>
+                <span className={styles.summaryAmt}>${CHALLENGE_PRICES[challenge]}</span>
+              </div>
+            )}
             {ADDONS.filter(a => addons[a.id]).map(a => (
               <div key={a.id} className={styles.summaryLine}>
                 <span>{a.label}</span>

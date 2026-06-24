@@ -31,9 +31,10 @@ test.describe('Registration Content — R-01 to R-11', () => {
     await expect(page.getByText(/Benefits Last Mile Food Rescue/i)).toBeVisible()
   })
 
-  test('R-03: Spots chip shows 28/36', async ({ page }) => {
-    // The spots chip renders "28/36" in a span + " team spots taken" as a text node
-    await expect(page.getByText('28/36').first()).toBeVisible()
+  test('R-03: Spots chip shows real paid-team count out of 36', async ({ page }) => {
+    // Count is now data-driven (paid teams from the DB), so assert the /36
+    // denominator + label rather than a hardcoded number.
+    await expect(page.getByText(/\/36/).first()).toBeVisible()
     await expect(page.getByText(/team spots taken/i).first()).toBeVisible()
   })
 
@@ -154,13 +155,21 @@ test.describe('Registration Form — R-12 to R-27', () => {
     await expect(page.getByText(/Add-ons \(optional\)/i)).toBeVisible()
   })
 
-  test('R-19: Step 2 shows 4 add-on checkboxes', async ({ page }) => {
+  test('R-19: Step 2 shows the challenge + add-on options', async ({ page }) => {
     await fillStep1(page)
     await page.getByRole('button', { name: /Continue to add-ons/i }).click()
+    await expect(page.getByText(/Long-Drive & Closest-to-Pin Challenge/i)).toBeVisible()
     await expect(page.getByText(/Gimme rope/i)).toBeVisible()
-    await expect(page.getByText(/Closest-to-pin contest/i)).toBeVisible()
-    await expect(page.getByText(/Long-drive contest/i)).toBeVisible()
-    await expect(page.getByText(/Advantage cards/i)).toBeVisible()
+    await expect(page.getByText(/opponent.s drive/i)).toBeVisible()
+    await expect(page.getByText(/front tees/i)).toBeVisible()
+  })
+
+  test('R-19b: Challenge Team pill adds $40 to the total', async ({ page }) => {
+    await fillStep1(page)
+    await page.getByRole('button', { name: /Continue to add-ons/i }).click()
+    await page.getByRole('button', { name: /Team \$40/i }).click()
+    // Base $200 + $40 challenge = $240
+    await expect(page.getByText('$240')).toBeVisible()
   })
 
   test('R-20: Checking an add-on makes it appear in the order summary', async ({ page }) => {
