@@ -26,6 +26,8 @@ export interface RegisterPayload {
   challenge: 'individual' | 'team' | null
   /** Optional donation in dollars */
   donation: number
+  /** Chosen payment method (recorded on the registration) */
+  paymentMethod?: 'card' | 'venmo'
 }
 
 export interface RegisterResult {
@@ -120,7 +122,9 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
       team_id:         teamId,
       fee_amount:      baseFee,
       donation_amount: donation,
-      payment_method:  null,
+      // 'card' isn't a payment_method enum value (Stripe webhook handles it);
+      // record 'venmo' so the admin knows to look for a Venmo transfer.
+      payment_method:  payload.paymentMethod === 'venmo' ? 'venmo' : null,
       payment_status:  'unpaid',
     })
     if (regError) {

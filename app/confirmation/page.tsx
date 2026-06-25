@@ -11,6 +11,7 @@ function ConfirmationContent() {
   const params = useSearchParams()
   const pin = params.get('pin') ?? '4821'
   const team = params.get('team') ?? 'Your Team'
+  const method = params.get('method')
 
   return (
     <div className={styles.page}>
@@ -28,6 +29,13 @@ function ConfirmationContent() {
         </p>
 
         <div className={styles.teamName}>{decodeURIComponent(team)}</div>
+
+        {method === 'venmo' && (
+          <div className={styles.venmoNote}>
+            Finish up in Venmo — pay <strong>@psucincy_treasurer</strong> if the app
+            didn&apos;t open. Your spot is reserved; we&apos;ll confirm once it&apos;s received.
+          </div>
+        )}
 
         <div className={styles.pinBlock}>
           <div className={styles.pinLabel}>Team PIN</div>

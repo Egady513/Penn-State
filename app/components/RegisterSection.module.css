@@ -171,6 +171,49 @@
   line-height: 1.5;
 }
 
+/* Solo-golfer modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 19, 43, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalCard {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--fg);
+  margin-bottom: 10px;
+}
+
+.modalBody {
+  font-size: var(--fs-body-sm);
+  color: var(--fg-muted);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .addonList { display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* Combined LD + CTP challenge */
