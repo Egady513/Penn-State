@@ -16,7 +16,7 @@ interface HeroSectionProps {
 const SPOTS_TOTAL = 36
 
 export function HeroSection({ onJump }: HeroSectionProps) {
-  // Real count of paid (confirmed) teams
+  // Real count of registered teams (matches the admin Teams total)
   const [spotsTaken, setSpotsTaken] = useState<number | null>(null)
 
   useEffect(() => {
@@ -25,7 +25,6 @@ export function HeroSection({ onJump }: HeroSectionProps) {
       .from('team')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', EVENT_ID)
-      .eq('payment_status', 'paid')
       .then(({ count }) => setSpotsTaken(count ?? 0))
   }, [])
 
