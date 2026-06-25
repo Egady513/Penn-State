@@ -9,7 +9,6 @@ import styles from './AdminShell.module.css';
 const NAV_ITEMS = [
   { href: '/admin',              label: 'Overview',         icon: 'home'      as const },
   { href: '/admin/registrations', label: 'Teams',           icon: 'users'     as const },
-  { href: '/admin/foursomes',    label: 'Foursome builder',  icon: 'grid'      as const },
   { href: '/admin/sponsors',     label: 'Sponsors',          icon: 'tag'       as const },
   { href: '/admin/donors',       label: 'Donors',            icon: 'tag'       as const },
   { href: '/admin/catalog',      label: 'Catalog',           icon: 'dollar'    as const },
@@ -22,11 +21,11 @@ const NAV_ITEMS = [
 
 // Mobile tab bar shows only the 5 most-used items
 const MOBILE_TABS = [
-  NAV_ITEMS[0], // Overview
-  NAV_ITEMS[1], // Teams
-  NAV_ITEMS[8], // Check-in
-  NAV_ITEMS[9], // Announcements
-  NAV_ITEMS[2], // Foursomes
+  NAV_ITEMS.find((n) => n.href === '/admin')!,
+  NAV_ITEMS.find((n) => n.href === '/admin/registrations')!,
+  NAV_ITEMS.find((n) => n.href === '/admin/checkin')!,
+  NAV_ITEMS.find((n) => n.href === '/admin/announcements')!,
+  NAV_ITEMS.find((n) => n.href === '/admin/catalog')!,
 ];
 
 interface AdminShellProps {

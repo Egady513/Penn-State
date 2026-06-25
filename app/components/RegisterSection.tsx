@@ -63,7 +63,8 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const [submitError, setSubmitError] = useState('')
   const [step1Error, setStep1Error] = useState<string[]>([])
   const [showSoloModal, setShowSoloModal] = useState(false)
-  const [payMethod, setPayMethod] = useState<'card' | 'venmo'>('card')
+  const [showNameTaken, setShowNameTaken] = useState(false)
+  const [checkingName, setCheckingName] = useState(false)
 
   // Load the registration add-ons from the catalog (admin-editable)
   useEffect(() => {
@@ -104,7 +105,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
 
   // Validate step 1 on click (instead of a silently-disabled button) so we can
   // tell the user exactly what's missing.
-  function continueToAddons() {
+  async function continueToAddons() {
     const missing: string[] = []
     if (!teamName.trim()) missing.push('Team name')
     golfers.slice(0, numGolfers).forEach((g, i) => {
@@ -113,7 +114,23 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
       if (!g.email.trim()) missing.push(`${who} email`)
     })
     setStep1Error(missing)
-    if (missing.length === 0) setStep(2)
+    if (missing.length > 0) return
+
+    // Make sure the team name isn't already registered
+    setCheckingName(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('team')
+      .select('id')
+      .eq('event_id', EVENT_ID)
+      .ilike('name', teamName.trim())
+      .limit(1)
+    setCheckingName(false)
+    if (data && data.length > 0) {
+      setShowNameTaken(true)
+      return
+    }
+    setStep(2)
   }
 
   return (
@@ -203,8 +220,8 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                     <strong>Please fill in:</strong> {step1Error.join(' · ')}
                   </div>
                 )}
-                <Button size="lg" onClick={continueToAddons}>
-                  Continue to add-ons <ArrowRight size={18} />
+                <Button size="lg" onClick={continueToAddons} disabled={checkingName}>
+                  {checkingName ? 'Checking…' : <>Continue to add-ons <ArrowRight size={18} /></>}
                 </Button>
               </div>
             </div>
@@ -287,25 +304,6 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               </div>
 
               <div className={styles.zeffyBlock}>
-                {/* Payment method */}
-                <div className={styles.sectionLabel}>Payment method</div>
-                <div className={styles.pillRow}>
-                  <button
-                    type="button"
-                    className={`${styles.pill} ${payMethod === 'card' ? styles.pillActive : ''}`}
-                    onClick={() => setPayMethod('card')}
-                  >
-                    Credit / debit card
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.pill} ${payMethod === 'venmo' ? styles.pillActive : ''}`}
-                    onClick={() => setPayMethod('venmo')}
-                  >
-                    Venmo
-                  </button>
-                </div>
-
                 {submitError && (
                   <div className={styles.submitError}>{submitError}</div>
                 )}
@@ -322,7 +320,6 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       addons: otherAddons.filter(i => addons[i.id]).map(i => i.id),
                       challenge,
                       donation: Number(donation) || 0,
-                      paymentMethod: payMethod,
                     })
                     if (result.error || !result.pin || !result.teamId) {
                       setSubmitting(false)
@@ -330,16 +327,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       return
                     }
 
-                    if (payMethod === 'venmo') {
-                      // Open Venmo prefilled to the chapter treasurer, then confirm.
-                      const note = encodeURIComponent(`Drive Out Hunger — ${teamName} (PIN ${result.pin})`)
-                      const venmoUrl = `https://venmo.com/?txn=pay&recipients=psucincy_treasurer&amount=${total}&note=${note}`
-                      window.open(venmoUrl, '_blank', 'noopener,noreferrer')
-                      router.push(`/confirmation?team=${encodeURIComponent(teamName)}&pin=${result.pin}&method=venmo`)
-                      return
-                    }
-
-                    // Card → Stripe Checkout; the webhook marks the team paid.
+                    // Stripe Checkout; the webhook marks the team paid.
                     const checkout = await createCheckoutSession({
                       teamId: result.teamId,
                       amount: total,
@@ -356,17 +344,12 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                   }}
                 >
                   {submitting
-                    ? <><Loader2 size={18} className={styles.spinner} /> {payMethod === 'venmo' ? 'Opening Venmo…' : 'Starting checkout…'}</>
-                    : <>Pay ${total} {payMethod === 'venmo' ? 'with Venmo' : ''} <ArrowRight size={18} /></>}
+                    ? <><Loader2 size={18} className={styles.spinner} /> Starting checkout…</>
+                    : <>Pay ${total} <ArrowRight size={18} /></>}
                 </Button>
                 <p className={styles.zeffyNote}>
-                  {payMethod === 'venmo' ? (
-                    <>You&apos;ll be taken to Venmo to pay <strong>@psucincy_treasurer</strong>. Your
-                    team is reserved — we&apos;ll confirm once payment is received. Tax-deductible (EIN&nbsp;31-1100175).</>
-                  ) : (
-                    <>You&apos;ll be taken to our secure Stripe checkout to finish paying —
-                    cards and wallets accepted. Tax-deductible (EIN&nbsp;31-1100175).</>
-                  )}
+                  You&apos;ll be taken to our secure Stripe checkout to finish paying —
+                  cards and wallets accepted. Tax-deductible (EIN&nbsp;31-1100175).
                 </p>
               </div>
 
@@ -439,6 +422,24 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
               </Button>
               <Button size="md" onClick={() => setShowSoloModal(false)}>
                 Pair me up
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team-name-taken modal */}
+      {showNameTaken && (
+        <div className={styles.modalOverlay} onClick={() => setShowNameTaken(false)}>
+          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalTitle}>That team name is taken</div>
+            <p className={styles.modalBody}>
+              &ldquo;{teamName}&rdquo; is already registered for this outing. Please
+              pick a different team name to continue.
+            </p>
+            <div className={styles.modalActions}>
+              <Button size="md" onClick={() => setShowNameTaken(false)}>
+                Pick another name
               </Button>
             </div>
           </div>
