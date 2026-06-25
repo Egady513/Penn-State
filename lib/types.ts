@@ -71,6 +71,8 @@ export interface Database {
           checked_in: boolean
           single_golfer: boolean
           is_admin: boolean
+          start_hole: number | null
+          pairing: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['team']['Row'], 'id' | 'created_at'>

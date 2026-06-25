@@ -71,7 +71,11 @@ export default async function HomePage() {
   const totalToPar = scores?.reduce((acc, s) => acc + (s.strokes - (parByHole[s.hole_number] ?? 4)), 0) ?? 0
   const toParDisplay = thru === 0 ? '—' : totalToPar === 0 ? 'E' : totalToPar > 0 ? `+${totalToPar}` : `${totalToPar}`
   const mulliganTotal = mulligans?.reduce((a, m) => a + m.count, 0) ?? 0
-  const startingHole = group?.starting_hole ?? 7
+  // Per-team start hole takes precedence (separate query so a missing column
+  // before the pairing migration doesn't break the page).
+  const shRes = await supabase.from('team').select('start_hole').eq('id', teamId).maybeSingle()
+  const teamStartHole = shRes.error ? null : (shRes.data as { start_hole?: number | null } | null)?.start_hole ?? null
+  const startingHole = teamStartHole ?? group?.starting_hole ?? 7
 
   // Players with computed initials
   const playerList = (players ?? []).map(p => ({

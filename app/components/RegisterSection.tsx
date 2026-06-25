@@ -281,7 +281,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       <div className={styles.reviewGolferName}>{g.name || `Golfer ${i + 1}`}</div>
                       <div className={styles.reviewGolferSub}>{[g.email, g.phone].filter(Boolean).join(' · ') || '(contact info)'}</div>
                     </div>
-                    <div className={styles.reviewGolferShirt}>Shirt: {g.shirt}</div>
+                    {g.skill && <div className={styles.reviewGolferShirt}>{g.skill}</div>}
                   </div>
                 ))}
               </div>

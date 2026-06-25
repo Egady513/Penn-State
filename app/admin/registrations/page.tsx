@@ -9,14 +9,15 @@ import { createClient } from '@/lib/supabase/client';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
+type PlayerInfo = { name: string; skill: string | null };
 type Row = {
   id: string;
   name: string;
   paid: boolean;
   method: string | null;
-  captain: string;
-  email: string;
-  startHole: number | null;
+  players: PlayerInfo[];
+  pairing: string;
+  startHole: string; // kept as string for the input
 };
 
 export default function RegistrationsPage() {
@@ -26,43 +27,48 @@ export default function RegistrationsPage() {
 
   async function load() {
     const supabase = createClient();
-    const [teamsRes, playersRes, groupsRes, regsRes] = await Promise.all([
-      supabase.from('team').select('id, name, payment_status, group_id, created_at').eq('event_id', EVENT_ID).order('created_at'),
-      supabase.from('player').select('team_id, name, email'),
-      supabase.from('group').select('id, starting_hole'),
-      // registration.payment_method (may be blocked by RLS for anon — handled gracefully)
+    const [teamsRes, playersRes, regsRes] = await Promise.all([
+      supabase.from('team').select('id, name, payment_status, start_hole, pairing, created_at').eq('event_id', EVENT_ID).order('created_at'),
+      supabase.from('player').select('team_id, name, skill_level'),
       supabase.from('registration').select('team_id, payment_method'),
     ]);
 
-    const teams = (teamsRes.data ?? []) as { id: string; name: string; payment_status: string; group_id: string | null }[];
-    const players = (playersRes.data ?? []) as { team_id: string; name: string; email: string }[];
-    const groups = (groupsRes.data ?? []) as { id: string; starting_hole: number }[];
+    const teams = (teamsRes.data ?? []) as { id: string; name: string; payment_status: string; start_hole: number | null; pairing: string | null }[];
+    const players = (playersRes.data ?? []) as { team_id: string; name: string; skill_level: string | null }[];
     const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null }[];
 
     setRows(
-      teams.map((t) => {
-        const first = players.find((p) => p.team_id === t.id);
-        const grp = groups.find((g) => g.id === t.group_id);
-        const reg = regs.find((r) => r.team_id === t.id);
-        return {
-          id: t.id,
-          name: t.name,
-          paid: t.payment_status === 'paid',
-          method: reg?.payment_method ?? null,
-          captain: first?.name ?? '—',
-          email: first?.email ?? '—',
-          startHole: grp?.starting_hole ?? null,
-        };
-      })
+      teams.map((t) => ({
+        id: t.id,
+        name: t.name,
+        paid: t.payment_status === 'paid',
+        method: regs.find((r) => r.team_id === t.id)?.payment_method ?? null,
+        players: players.filter((p) => p.team_id === t.id).map((p) => ({ name: p.name, skill: p.skill_level })),
+        pairing: t.pairing ?? '',
+        startHole: t.start_hole != null ? String(t.start_hole) : '',
+      }))
     );
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
+  const patch = (id: string, p: Partial<Row>) =>
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
+
+  async function saveAssignment(row: Row) {
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('set_team_assignment', {
+      p_team_id: row.id,
+      p_start_hole: row.startHole ? Number(row.startHole) : null,
+      p_pairing: row.pairing,
+    });
+  }
+
   async function togglePaid(id: string, paid: boolean) {
     setBusy(id);
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, paid } : r)));
+    patch(id, { paid });
     const supabase = createClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.rpc as any)('set_team_paid', { p_team_id: id, p_paid: paid });
@@ -83,38 +89,62 @@ export default function RegistrationsPage() {
           {unpaid > 0 && <AdminPill tone="unpaid">{unpaid} unpaid</AdminPill>}
         </div>
 
-        <AdminCard padding={0}>
-          <div className={styles.tableHeader}>
-            <div>Team</div>
-            <div>Captain</div>
-            <div className={styles.hideSmall}>Contact</div>
-            <div>Payment</div>
-            <div className={styles.hideSmall}>Start hole</div>
-            <div />
-          </div>
+        <p className={styles.hint}>
+          Type a <strong>Pairing</strong> label (e.g. A, B, 1) to group teams that play
+          together, and a <strong>Hole</strong> if you have placements. Both save automatically.
+        </p>
 
+        <AdminCard padding={0}>
           {loading ? (
-            <div className={styles.tableRow}>Loading teams…</div>
+            <div className={styles.loadingRow}>Loading teams…</div>
           ) : rows.length === 0 ? (
-            <div className={styles.tableRow}>No teams registered yet.</div>
+            <div className={styles.loadingRow}>No teams registered yet.</div>
           ) : (
             rows.map((team, i) => (
-              <div
-                key={team.id}
-                className={`${styles.tableRow} ${i === rows.length - 1 ? styles.tableRowLast : ''}`}
-              >
-                <div className={styles.teamName}>{team.name}</div>
-                <div className={styles.teamCaptain}>{team.captain}</div>
-                <div className={`${styles.teamContact} ${styles.hideSmall}`}>{team.email}</div>
-                <div>
+              <div key={team.id} className={`${styles.row} ${i === 0 ? styles.rowFirst : ''}`}>
+                {/* Team + both golfers */}
+                <div className={styles.teamCol}>
+                  <div className={styles.teamName}>{team.name}</div>
+                  {team.players.map((p, j) => (
+                    <div key={j} className={styles.golfer}>
+                      <span className={styles.golferName}>{p.name}</span>
+                      {p.skill && <span className={styles.golferSkill}>{p.skill}</span>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pairing */}
+                <label className={styles.fieldCol}>
+                  <span className={styles.fieldLabel}>Pairing</span>
+                  <input
+                    className={styles.pairingInput}
+                    value={team.pairing}
+                    placeholder="—"
+                    onChange={(e) => patch(team.id, { pairing: e.target.value })}
+                    onBlur={() => saveAssignment({ ...team, pairing: team.pairing })}
+                  />
+                </label>
+
+                {/* Start hole */}
+                <label className={styles.fieldCol}>
+                  <span className={styles.fieldLabel}>Hole</span>
+                  <input
+                    className={styles.holeInput}
+                    type="number"
+                    min={1}
+                    max={18}
+                    value={team.startHole}
+                    placeholder="—"
+                    onChange={(e) => patch(team.id, { startHole: e.target.value })}
+                    onBlur={() => saveAssignment({ ...team, startHole: team.startHole })}
+                  />
+                </label>
+
+                {/* Payment */}
+                <div className={styles.payCol}>
                   <AdminPill tone={team.paid ? 'paid' : 'unpaid'}>
                     {team.paid ? 'Paid' : team.method === 'venmo' ? 'Venmo · unpaid' : 'Unpaid'}
                   </AdminPill>
-                </div>
-                <div className={`${styles.startHole} ${styles.hideSmall}`}>
-                  {team.startHole ?? '—'}
-                </div>
-                <div>
                   <Button
                     variant={team.paid ? 'ghost' : 'primary'}
                     size="sm"
