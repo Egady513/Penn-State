@@ -84,8 +84,8 @@
 
 .donorGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
 }
 
 .donorItem {
@@ -94,7 +94,7 @@
   gap: var(--space-3);
   font-size: 14px;
   color: var(--fg);
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 .donorDot {
@@ -102,6 +102,43 @@
   background: var(--psu-bronze);
   border-radius: 2px;
   flex: none;
+  margin-top: 2px;
+  align-self: flex-start;
+}
+
+.donorLogo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  flex: none;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.donorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.donorName {
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.donorItem2 {
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .becomeSponsor {

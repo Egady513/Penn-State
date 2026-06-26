@@ -17,7 +17,7 @@ type Sponsor = {
   logo_url: string | null
 }
 
-type DonorRow = { id: string; name: string }
+type DonorRow = { id: string; name: string; donated_item: string | null; logo_url: string | null }
 
 // Fallback if the sponsor query fails (e.g. before the sponsor migration runs).
 const FALLBACK: Sponsor[] = [
@@ -47,7 +47,7 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
 
     supabase
       .from('donor')
-      .select('id, name')
+      .select('id, name, donated_item, logo_url')
       .eq('event_id', EVENT_ID)
       .order('name')
       .then(({ data }) => {
@@ -107,8 +107,18 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
             <div className={styles.donorGrid}>
               {donors.map(d => (
                 <div key={d.id} className={styles.donorItem}>
-                  <span className={styles.donorDot} />
-                  {d.name}
+                  {d.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={d.logo_url} alt={d.name} className={styles.donorLogo} />
+                  ) : (
+                    <span className={styles.donorDot} />
+                  )}
+                  <div className={styles.donorInfo}>
+                    <span className={styles.donorName}>{d.name}</span>
+                    {d.donated_item && (
+                      <span className={styles.donorItem2}>{d.donated_item}</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
