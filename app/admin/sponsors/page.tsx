@@ -37,7 +37,7 @@ export default function SponsorsPage() {
     const supabase = createClient();
     supabase
       .from('sponsor')
-      .select('id, name, tier, sponsorship_type, hole_number, amount, active, sort_order')
+      .select('id, name, tier, sponsorship_type, hole_number, amount, active, sort_order, logo_url')
       .eq('event_id', EVENT_ID)
       .order('sort_order')
       .order('amount', { ascending: false })
@@ -58,6 +58,17 @@ export default function SponsorsPage() {
         setLoading(false);
       });
   }, []);
+
+  async function deleteSponsor(i: number) {
+    const s = items[i];
+    if (!s.id) { setItems(prev => prev.filter((_, idx) => idx !== i)); return; }
+    if (!confirm(`Delete "${s.name}"? This cannot be undone.`)) return;
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: rpcErr } = await (supabase.rpc as any)('delete_sponsor', { p_id: s.id });
+    if (rpcErr) { setError('Could not delete: ' + rpcErr.message); return; }
+    setItems(prev => prev.filter((_, idx) => idx !== i));
+  }
 
   const update = (i: number, patch: Partial<Sp>) =>
     setItems((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
@@ -249,6 +260,13 @@ export default function SponsorsPage() {
                       >✕</button>
                     )}
                   </div>
+
+                  <button
+                    className={styles.deleteRowBtn}
+                    type="button"
+                    onClick={() => deleteSponsor(i)}
+                    title="Delete sponsor"
+                  >✕</button>
                 </div>
               ))}
             </div>

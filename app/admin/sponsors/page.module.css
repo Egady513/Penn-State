@@ -217,6 +217,20 @@
 }
 .removeLogo:hover { color: var(--error, #C0392B); }
 
+.deleteRowBtn {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  flex: none;
+  transition: color 120ms, background 120ms;
+}
+.deleteRowBtn:hover { color: var(--error, #C0392B); background: #FDECEC; }
+
 @media (max-width: 600px) {
   .page { padding: 16px; }
 }
