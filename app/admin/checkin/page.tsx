@@ -1,74 +1,115 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import styles from './page.module.css'
-import { Search, Check, Plus, Minus } from 'lucide-react'
+import { Search, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { createClient } from '@/lib/supabase/client'
+import { EVENT_ID } from '@/lib/eventId'
 
-interface Golfer { id: string; name: string; arrived: boolean }
-interface Team {
-  id: string; name: string; pin: string; paid: boolean
-  golfers: Golfer[]
-  addons: { label: string; price: number; paid: boolean }[]
-}
-
-const MOCK_TEAMS: Team[] = [
-  {
-    id: 't1', name: 'Nittany Drivers', pin: '4821', paid: true,
-    golfers: [
-      { id: 'g1', name: 'James Paterno', arrived: false },
-      { id: 'g2', name: 'Sarah White',   arrived: false },
-    ],
-    addons: [
-      { label: 'Gimme rope', price: 10, paid: true },
-      { label: 'Closest-to-pin', price: 10, paid: false },
-    ],
-  },
-  {
-    id: 't2', name: 'Lions of Cincy', pin: '7734', paid: false,
-    golfers: [
-      { id: 'g3', name: 'Mike Chen',    arrived: false },
-      { id: 'g4', name: 'Lisa Nguyen',  arrived: false },
-    ],
-    addons: [],
-  },
-  {
-    id: 't3', name: 'Beaver Stadium Boys', pin: '2291', paid: true,
-    golfers: [
-      { id: 'g5', name: 'Tom Bradley',  arrived: true },
-      { id: 'g6', name: 'Chris Harper', arrived: true },
-    ],
-    addons: [{ label: 'Long-drive contest', price: 10, paid: true }],
-  },
-]
+type Golfer = { id: string; name: string; arrived: boolean }
+type Purchase = { id: string; label: string; amount: number; paid: boolean }
+type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[] }
+type CatalogItem = { id: string; name: string; price: number }
 
 export default function CheckinPage() {
+  const [teams, setTeams] = useState<Team[]>([])
+  const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const [teams, setTeams] = useState<Team[]>(MOCK_TEAMS)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [addingTo, setAddingTo] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState('')
+  const [busyPurchase, setBusyPurchase] = useState<string | null>(null)
 
-  const filtered = teams.filter(t =>
-    t.name.toLowerCase().includes(query.toLowerCase()) ||
-    t.pin.includes(query) ||
-    t.golfers.some(g => g.name.toLowerCase().includes(query.toLowerCase()))
-  )
+  async function load() {
+    const supabase = createClient()
+    const [teamsRes, playersRes, purchasesRes, catalogRes] = await Promise.all([
+      supabase.from('team').select('id, name, pin, payment_status').eq('event_id', EVENT_ID).order('name'),
+      supabase.from('player').select('id, team_id, name, arrived_at'),
+      supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id'),
+      supabase.from('catalog_item').select('id, name, price').eq('event_id', EVENT_ID).eq('active', true).order('name'),
+    ])
 
-  const toggleArrived = (teamId: string, golferId: string) => {
-    setTeams(prev => prev.map(t =>
-      t.id === teamId
-        ? { ...t, golfers: t.golfers.map(g => g.id === golferId ? { ...g, arrived: !g.arrived } : g) }
-        : t
-    ))
+    const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string }[]
+    const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
+    const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string }[]
+    const rawCatalog   = (catalogRes.data  ?? []) as CatalogItem[]
+
+    const catalogById: Record<string, string> = {}
+    rawCatalog.forEach(c => { catalogById[c.id] = c.name })
+
+    setTeams(rawTeams.map(t => ({
+      id: t.id,
+      name: t.name,
+      pin: t.pin,
+      paid: t.payment_status === 'paid',
+      golfers: rawPlayers.filter(p => p.team_id === t.id).map(p => ({
+        id: p.id, name: p.name, arrived: !!p.arrived_at,
+      })),
+      purchases: rawPurchases.filter(p => p.team_id === t.id).map(p => ({
+        id: p.id,
+        label: catalogById[p.catalog_item_id] ?? 'Item',
+        amount: Number(p.amount),
+        paid: p.paid_status === 'paid',
+      })),
+    })))
+    setCatalog(rawCatalog)
+    setLoading(false)
   }
 
-  const checkedIn = teams.filter(t => t.golfers.every(g => g.arrived)).length
+  useEffect(() => { load() }, [])
+
+  async function toggleArrived(teamId: string, golferId: string, arrived: boolean) {
+    setTeams(prev => prev.map(t =>
+      t.id === teamId
+        ? { ...t, golfers: t.golfers.map(g => g.id === golferId ? { ...g, arrived: !arrived } : g) }
+        : t
+    ))
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('set_player_arrived', { p_player_id: golferId, p_arrived: !arrived })
+  }
+
+  async function togglePurchasePaid(teamId: string, purchaseId: string, paid: boolean) {
+    setBusyPurchase(purchaseId)
+    setTeams(prev => prev.map(t =>
+      t.id === teamId
+        ? { ...t, purchases: t.purchases.map(p => p.id === purchaseId ? { ...p, paid: !paid } : p) }
+        : t
+    ))
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid })
+    setBusyPurchase(null)
+  }
+
+  async function addItem(teamId: string) {
+    if (!selectedItem) return
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('add_checkin_purchase', { p_team_id: teamId, p_catalog_item_id: selectedItem })
+    setAddingTo(null)
+    setSelectedItem('')
+    load()
+  }
+
+  const q = query.toLowerCase()
+  const filtered = teams.filter(t =>
+    !q || t.name.toLowerCase().includes(q) || t.pin.includes(q) ||
+    t.golfers.some(g => g.name.toLowerCase().includes(q))
+  )
+
+  const checkedIn = teams.filter(t => t.golfers.length > 0 && t.golfers.every(g => g.arrived)).length
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Check-in</h1>
-          <p className={styles.sub}>{checkedIn} of {teams.length} teams arrived</p>
+          <p className={styles.sub}>
+            {loading ? 'Loading…' : `${checkedIn} of ${teams.length} teams fully arrived`}
+          </p>
         </div>
       </div>
 
@@ -85,9 +126,10 @@ export default function CheckinPage() {
 
       <div className={styles.list}>
         {filtered.map(team => {
-          const allArrived = team.golfers.every(g => g.arrived)
-          const outstanding = team.addons.filter(a => !a.paid).reduce((s, a) => s + a.price, 0)
+          const allArrived = team.golfers.length > 0 && team.golfers.every(g => g.arrived)
+          const outstanding = team.purchases.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0)
           const isOpen = expanded === team.id
+          const isAdding = addingTo === team.id
 
           return (
             <div key={team.id} className={`${styles.card} ${allArrived ? styles.cardArrived : ''}`}>
@@ -100,7 +142,7 @@ export default function CheckinPage() {
                       {team.paid ? 'Paid' : 'Unpaid'}
                     </Badge>
                     {outstanding > 0 && (
-                      <span className={styles.outstanding}> · ${outstanding} outstanding</span>
+                      <span className={styles.outstanding}> · ${outstanding.toFixed(0)} outstanding</span>
                     )}
                   </div>
                 </div>
@@ -119,7 +161,7 @@ export default function CheckinPage() {
                       <div key={g.id} className={styles.golferRow}>
                         <button
                           className={`${styles.arrivedBtn} ${g.arrived ? styles.arrivedBtnOn : ''}`}
-                          onClick={() => toggleArrived(team.id, g.id)}
+                          onClick={() => toggleArrived(team.id, g.id, g.arrived)}
                           aria-label={g.arrived ? 'Mark not arrived' : 'Mark arrived'}
                         >
                           <Check size={16} />
@@ -130,14 +172,20 @@ export default function CheckinPage() {
                     ))}
                   </div>
 
-                  {team.addons.length > 0 && (
+                  {team.purchases.length > 0 && (
                     <div className={styles.addons}>
-                      <div className={styles.addonsLabel}>Add-ons</div>
-                      {team.addons.map((a, i) => (
-                        <div key={i} className={styles.addonRow}>
-                          <span>{a.label}</span>
-                          <span className={styles.addonPrice}>${a.price}</span>
-                          <Badge tone={a.paid ? 'paid' : 'unpaid'} size="sm">{a.paid ? 'Paid' : 'Unpaid'}</Badge>
+                      <div className={styles.addonsLabel}>Add-ons &amp; purchases</div>
+                      {team.purchases.map(p => (
+                        <div key={p.id} className={styles.addonRow}>
+                          <span>{p.label}</span>
+                          <span className={styles.addonPrice}>${p.amount.toFixed(0)}</span>
+                          <button
+                            className={`${styles.paidToggle} ${p.paid ? styles.paidToggleOn : ''}`}
+                            onClick={() => togglePurchasePaid(team.id, p.id, p.paid)}
+                            disabled={busyPurchase === p.id}
+                          >
+                            {p.paid ? 'Paid ✓' : 'Mark paid'}
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -146,8 +194,30 @@ export default function CheckinPage() {
                   {outstanding > 0 && (
                     <div className={styles.outstandingRow}>
                       <span>Outstanding balance</span>
-                      <span className={styles.outstandingAmt}>${outstanding}</span>
+                      <span className={styles.outstandingAmt}>${outstanding.toFixed(0)}</span>
                     </div>
+                  )}
+
+                  {isAdding ? (
+                    <div className={styles.addItemRow}>
+                      <select
+                        className={styles.addItemSelect}
+                        value={selectedItem}
+                        onChange={e => setSelectedItem(e.target.value)}
+                        autoFocus
+                      >
+                        <option value="">— Select item —</option>
+                        {catalog.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
+                        ))}
+                      </select>
+                      <button className={styles.addBtn} onClick={() => addItem(team.id)} disabled={!selectedItem}>Add</button>
+                      <button className={styles.cancelAddBtn} onClick={() => { setAddingTo(null); setSelectedItem(''); }}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button className={styles.addItemTrigger} onClick={() => { setAddingTo(team.id); setSelectedItem(''); }}>
+                      + Add item to tab
+                    </button>
                   )}
                 </div>
               )}
@@ -155,8 +225,10 @@ export default function CheckinPage() {
           )
         })}
 
-        {filtered.length === 0 && (
-          <div className={styles.empty}>No teams match &ldquo;{query}&rdquo;</div>
+        {!loading && filtered.length === 0 && (
+          <div className={styles.empty}>
+            {query ? `No teams match "${query}"` : 'No teams registered yet.'}
+          </div>
         )}
       </div>
     </div>

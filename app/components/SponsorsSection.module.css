@@ -47,6 +47,17 @@
   color: var(--fg-muted);
 }
 
+.sponsorImg {
+  width: 100%;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 6px;
+  box-sizing: border-box;
+}
+
 .sponsorTypeLabel {
   margin-top: 6px;
   text-align: center;

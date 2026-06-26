@@ -200,7 +200,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                         </Select>
                       </Field>
                     )}
-                    <Field label="Skill level" hint="Helps us with flighting & prizes">
+                    <Field label="Skill level" hint="Helps us with pairing foursomes">
                       <Select value={g.skill} onChange={e => setGolfer(i, { skill: e.target.value })}>
                         <option value="">— Select —</option>
                         {SKILL_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}

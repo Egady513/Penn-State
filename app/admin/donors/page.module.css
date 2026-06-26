@@ -107,6 +107,154 @@
   color: var(--fg);
 }
 
+/* ── Donor logo thumbnail ─────────────────────────────────────── */
+.donorLogo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #fff;
+  flex: none;
+}
+
+/* ── Actions column ───────────────────────────────────────────── */
+.donorActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.deleteBtn:hover { color: var(--error); background: var(--error-soft, #FDECEC); }
+
+/* ── Modal overlay ────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.modalClose:hover { background: var(--ink-100); }
+
+.errorBar {
+  margin: 0 24px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  color: #C0392B;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.formGrid {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.formInput {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--fg);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formInput:focus { border-color: var(--psu-beaver); }
+
+.logoRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logoPreview {
+  height: 40px;
+  max-width: 100px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--ink-050);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
 @media (max-width: 768px) {
   .statGrid {
     grid-template-columns: repeat(2, 1fr);

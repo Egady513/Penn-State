@@ -126,3 +126,87 @@
 .outstandingAmt { font-family: var(--font-display); font-size: 22px; font-weight: 900; color: var(--warning); font-variant-numeric: tabular-nums; }
 
 .empty { text-align: center; color: var(--fg-muted); padding: var(--space-10); font-size: 14px; }
+
+/* ── Add item controls ──────────────────────────────────────── */
+.addItemTrigger {
+  display: inline-block;
+  margin-top: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--psu-beaver);
+  background: none;
+  border: 1px dashed var(--psu-beaver);
+  border-radius: var(--radius-md);
+  padding: 7px 14px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.addItemTrigger:hover { background: var(--psu-pugh-soft); }
+
+.addItemRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.addItemSelect {
+  flex: 1;
+  min-width: 180px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+}
+
+.addItemSelect:focus { border-color: var(--psu-beaver); }
+
+.addBtn {
+  height: 36px;
+  padding: 0 14px;
+  background: var(--psu-navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cancelAddBtn {
+  height: 36px;
+  padding: 0 12px;
+  background: var(--ink-050);
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ── Paid toggle on individual purchases ───────────────────── */
+.paidToggle {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.paidToggle:hover { background: var(--ink-050); }
+.paidToggleOn { background: var(--success-soft, #D1FAE5); border-color: var(--success); color: var(--success); }
+.paidToggle:disabled { opacity: 0.5; cursor: not-allowed; }

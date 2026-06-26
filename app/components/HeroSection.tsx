@@ -16,16 +16,19 @@ interface HeroSectionProps {
 const SPOTS_TOTAL = 36
 
 export function HeroSection({ onJump }: HeroSectionProps) {
-  // Real count of registered teams (matches the admin Teams total)
   const [spotsTaken, setSpotsTaken] = useState<number | null>(null)
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
-    supabase
-      .from('team')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', EVENT_ID)
-      .then(({ count }) => setSpotsTaken(count ?? 0))
+    Promise.all([
+      supabase.from('team').select('id', { count: 'exact', head: true }).eq('event_id', EVENT_ID),
+      supabase.from('event').select('hero_image_url').eq('id', EVENT_ID).maybeSingle(),
+    ]).then(([teamsRes, eventRes]) => {
+      setSpotsTaken(teamsRes.count ?? 0)
+      const url = (eventRes.data as { hero_image_url?: string | null } | null)?.hero_image_url
+      if (url) setHeroImageUrl(url)
+    })
   }, [])
 
   return (
@@ -71,14 +74,26 @@ export function HeroSection({ onJump }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Hero photo placeholder */}
+      {/* Hero photo */}
       <div className={styles.photoWrap}>
-        <div className={styles.photoPlaceholder} role="img" aria-label="Course photo — coming soon">
-          <div>
-            <div className={styles.placeholderLabel}>Hero photo</div>
-            <div className={styles.placeholderSub}>Beckett Ridge · warm + sunlit</div>
+        {heroImageUrl ? (
+          <div className={styles.photoImgContainer}>
+            <Image
+              src={heroImageUrl}
+              alt="Beckett Ridge Golf Club"
+              fill
+              style={{ objectFit: 'cover' }}
+              priority
+            />
           </div>
-        </div>
+        ) : (
+          <div className={styles.photoPlaceholder} role="img" aria-label="Course photo — coming soon">
+            <div>
+              <div className={styles.placeholderLabel}>Hero photo</div>
+              <div className={styles.placeholderSub}>Set from Admin → Settings</div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

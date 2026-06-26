@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/admin/included',     label: "What's included",   icon: 'check'     as const },
   { href: '/admin/checkin',      label: 'Check-in',          icon: 'qr'        as const },
   { href: '/admin/announcements',label: 'Announcements',     icon: 'megaphone' as const },
+  { href: '/admin/settings',     label: 'Settings',           icon: 'check'     as const },
 ] satisfies { href: string; label: string; icon: Parameters<typeof Icon>[0]['name'] }[];
 
 // Mobile tab bar shows only the 5 most-used items

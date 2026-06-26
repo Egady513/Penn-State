@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { AdminTopBar } from '@/components/admin/AdminTopBar';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,7 @@ type Sp = {
   hole_number: number | null;
   amount: number;
   active: boolean;
+  logo_url: string | null;
 };
 
 const TYPE_SUGGESTIONS = ['Hole', 'Cart', 'Putting Green Challenge', 'Beverage Cart', 'Dinner', 'General'];
@@ -29,6 +30,8 @@ export default function SponsorsPage() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -49,6 +52,7 @@ export default function SponsorsPage() {
             hole_number: r.hole_number,
             amount: Number(r.amount),
             active: r.active,
+            logo_url: r.logo_url ?? null,
           }))
         );
         setLoading(false);
@@ -61,8 +65,21 @@ export default function SponsorsPage() {
   const add = () =>
     setItems((prev) => [
       ...prev,
-      { id: null, name: '', tier: '', sponsorship_type: '', hole_number: null, amount: 0, active: true },
+      { id: null, name: '', tier: '', sponsorship_type: '', hole_number: null, amount: 0, active: true, logo_url: null },
     ]);
+
+  async function handleLogoUpload(i: number, file: File) {
+    setUploadingIdx(i);
+    setError('');
+    const supabase = createClient();
+    const ext = file.name.split('.').pop();
+    const path = `${EVENT_ID}/sponsors/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('event-assets').upload(path, file, { upsert: true });
+    if (upErr) { setError('Logo upload failed: ' + upErr.message); setUploadingIdx(null); return; }
+    const { data: urlData } = supabase.storage.from('event-assets').getPublicUrl(path);
+    update(i, { logo_url: urlData.publicUrl });
+    setUploadingIdx(null);
+  }
 
   async function save() {
     setSaving(true);
@@ -80,6 +97,7 @@ export default function SponsorsPage() {
           p_hole_number: isHole(s.sponsorship_type) ? s.hole_number : null,
           p_amount: s.amount,
           p_active: s.active,
+          p_logo_url: s.logo_url,
         });
         if (rpcError) throw new Error(rpcError.message);
       }
@@ -199,6 +217,38 @@ export default function SponsorsPage() {
                     />
                     Active
                   </label>
+
+                  {/* Logo */}
+                  <div className={styles.logoField}>
+                    {s.logo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.logo_url} alt="logo" className={styles.logoThumb} />
+                    )}
+                    <input
+                      ref={el => { fileRefs.current[i] = el; }}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => { if (e.target.files?.[0]) handleLogoUpload(i, e.target.files[0]); }}
+                    />
+                    <button
+                      className={styles.uploadBtn}
+                      type="button"
+                      disabled={uploadingIdx === i}
+                      onClick={() => fileRefs.current[i]?.click()}
+                      title={s.logo_url ? 'Change logo' : 'Add logo'}
+                    >
+                      {uploadingIdx === i ? '…' : s.logo_url ? '↺' : '+ Logo'}
+                    </button>
+                    {s.logo_url && (
+                      <button
+                        className={styles.removeLogo}
+                        type="button"
+                        onClick={() => update(i, { logo_url: null })}
+                        title="Remove logo"
+                      >✕</button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

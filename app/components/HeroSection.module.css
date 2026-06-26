@@ -135,6 +135,19 @@
   padding: 0 var(--space-6);
 }
 
+/* Container for next/image fill mode when a hero URL is set */
+.photoWrap > img,
+.photoWrap > span > img {
+  border-radius: 18px;
+}
+
+.photoImgContainer {
+  position: relative;
+  height: 280px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
 .photoPlaceholder {
   height: 280px;
   border-radius: 18px;

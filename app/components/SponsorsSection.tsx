@@ -14,42 +14,44 @@ type Sponsor = {
   tier: 'eagle' | 'birdie' | 'par' | null
   sponsorship_type: string | null
   hole_number: number | null
+  logo_url: string | null
 }
+
+type DonorRow = { id: string; name: string }
 
 // Fallback if the sponsor query fails (e.g. before the sponsor migration runs).
 const FALLBACK: Sponsor[] = [
-  { id: 'a', name: 'Sponsor A', tier: 'eagle',  sponsorship_type: 'Hole', hole_number: 4 },
-  { id: 'b', name: 'Sponsor B', tier: 'eagle',  sponsorship_type: null, hole_number: null },
-  { id: 'c', name: 'Sponsor C', tier: 'birdie', sponsorship_type: null, hole_number: null },
-  { id: 'd', name: 'Sponsor D', tier: 'birdie', sponsorship_type: null, hole_number: null },
-  { id: 'e', name: 'Sponsor E', tier: 'birdie', sponsorship_type: null, hole_number: null },
-  { id: 'f', name: 'Sponsor F', tier: 'par',    sponsorship_type: null, hole_number: null },
-  { id: 'g', name: 'Sponsor G', tier: 'par',    sponsorship_type: null, hole_number: null },
-]
-
-const DONORS = [
-  'Acme Family', 'Bechtel Group', 'Cincinnati Cellars',
-  'Dunn Logistics', 'Elliott & Co.', 'Fields Auto',
-  'Garrett Estates', 'Hopper Brewing', 'Indigo Print Co.',
-  'Jensen Roofing', 'Kepler Marketing', 'Lamar Films',
+  { id: 'a', name: 'Sponsor A', tier: 'eagle',  sponsorship_type: 'Hole', hole_number: 4, logo_url: null },
+  { id: 'b', name: 'Sponsor B', tier: 'eagle',  sponsorship_type: null, hole_number: null, logo_url: null },
+  { id: 'c', name: 'Sponsor C', tier: 'birdie', sponsorship_type: null, hole_number: null, logo_url: null },
 ]
 
 const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hole')
 
 export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(_, ref) {
   const [sponsors, setSponsors] = useState<Sponsor[]>(FALLBACK)
+  const [donors, setDonors] = useState<DonorRow[]>([])
 
   useEffect(() => {
     const supabase = createClient()
     supabase
       .from('sponsor')
-      .select('id, name, tier, sponsorship_type, hole_number, sort_order')
+      .select('id, name, tier, sponsorship_type, hole_number, logo_url, sort_order')
       .eq('event_id', EVENT_ID)
       .eq('active', true)
       .order('sort_order')
       .then(({ data, error }) => {
         const rows = data as Sponsor[] | null
         if (!error && rows && rows.length > 0) setSponsors(rows)
+      })
+
+    supabase
+      .from('donor')
+      .select('id, name')
+      .eq('event_id', EVENT_ID)
+      .order('name')
+      .then(({ data }) => {
+        if (data && data.length > 0) setDonors(data as DonorRow[])
       })
   }, [])
 
@@ -84,7 +86,12 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
             <div className={styles.tierGrid} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               {g.sponsors.map(s => (
                 <div key={s.id} data-testid="sponsor-card">
-                  <SponsorLogo name={s.name} size="md" />
+                  {s.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.logo_url} alt={s.name} className={styles.sponsorImg} title={s.name} />
+                  ) : (
+                    <SponsorLogo name={s.name} size="md" />
+                  )}
                   {isHole(s) && s.hole_number && (
                     <div className={styles.sponsorTypeLabel}>Hole {s.hole_number}</div>
                   )}
@@ -94,17 +101,19 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
           </div>
         ))}
 
-        <div className={styles.donors}>
-          <h3 className={styles.donorsHead}>Raffle &amp; prize donors</h3>
-          <div className={styles.donorGrid}>
-            {DONORS.map(d => (
-              <div key={d} className={styles.donorItem}>
-                <span className={styles.donorDot} />
-                {d}
-              </div>
-            ))}
+        {donors.length > 0 && (
+          <div className={styles.donors}>
+            <h3 className={styles.donorsHead}>Raffle &amp; prize donors</h3>
+            <div className={styles.donorGrid}>
+              {donors.map(d => (
+                <div key={d.id} className={styles.donorItem}>
+                  <span className={styles.donorDot} />
+                  {d.name}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.becomeSponsor}>
           <div>

@@ -168,6 +168,55 @@
 
 .toggle input { accent-color: var(--psu-navy); cursor: pointer; }
 
+/* ── Logo field ──────────────────────────────────────────────── */
+.logoField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 180px;
+}
+
+.logoUrlInput { flex: 1; min-width: 0; }
+
+.logoThumb {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #fff;
+  flex: none;
+}
+
+.uploadBtn {
+  height: 36px;
+  width: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--ink-050);
+  font-size: 14px;
+  cursor: pointer;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uploadBtn:hover { background: var(--ink-100); }
+.uploadBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.removeLogo {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.removeLogo:hover { color: var(--error, #C0392B); }
+
 @media (max-width: 600px) {
   .page { padding: 16px; }
 }
