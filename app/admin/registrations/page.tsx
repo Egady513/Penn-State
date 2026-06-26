@@ -16,6 +16,7 @@ type Row = {
   pin: string;
   paid: boolean;
   method: string | null;
+  donation: number;
   players: PlayerInfo[];
   pairing: string;
   startHole: string;
@@ -39,12 +40,12 @@ export default function RegistrationsPage() {
     const [teamsRes, playersRes, regsRes] = await Promise.all([
       supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer').eq('event_id', EVENT_ID).order('created_at'),
       supabase.from('player').select('team_id, name, skill_level'),
-      supabase.from('registration').select('team_id, payment_method'),
+      supabase.from('registration').select('team_id, payment_method, donation_amount'),
     ]);
 
     const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean }[];
     const players = (playersRes.data ?? []) as { team_id: string; name: string; skill_level: string | null }[];
-    const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null }[];
+    const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null; donation_amount: number | null }[];
 
     setRows(
       teams.map((t) => ({
@@ -53,6 +54,7 @@ export default function RegistrationsPage() {
         pin: t.pin ?? '',
         paid: t.payment_status === 'paid',
         method: regs.find((r) => r.team_id === t.id)?.payment_method ?? null,
+        donation: Number(regs.find((r) => r.team_id === t.id)?.donation_amount ?? 0),
         players: players.filter((p) => p.team_id === t.id).map((p) => ({ name: p.name, skill: p.skill_level })),
         pairing: t.pairing ?? '',
         startHole: t.start_hole != null ? String(t.start_hole) : '',
@@ -155,6 +157,11 @@ export default function RegistrationsPage() {
                   {team.pin && (
                     <div className={styles.pinRow}>
                       PIN <span className={styles.pinCode}>{team.pin}</span>
+                    </div>
+                  )}
+                  {team.donation > 0 && (
+                    <div className={styles.donationTag}>
+                      +${team.donation} donation — thank them!
                     </div>
                   )}
                 </div>

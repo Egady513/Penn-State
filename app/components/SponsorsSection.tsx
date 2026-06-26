@@ -134,7 +134,7 @@ export const SponsorsSection = forwardRef<HTMLElement, SponsorsSectionProps>(fun
               Put your name on a hole — $100.
             </h3>
             <p className={styles.becomeSub}>
-              Sponsor a hole for $100 and take <strong>$15 off</strong> registering a twosome.
+              Sponsor a hole for $100 and take <strong>$15 off</strong>{' '}registering a twosome.
               Your name goes on the hole and you&apos;re recognized at dinner.
             </p>
           </div>

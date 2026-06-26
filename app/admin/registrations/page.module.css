@@ -108,6 +108,17 @@
   margin-left: 4px;
 }
 
+.donationTag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #065F46;
+  background: #D1FAE5;
+  padding: 2px 7px;
+  border-radius: 5px;
+  margin-top: 5px;
+}
+
 .golferSkill {
   font-size: 11px;
   font-weight: 700;
