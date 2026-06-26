@@ -21,6 +21,7 @@ type CatalogAddon = {
   price: number
   description: string | null
   tag: string | null
+  per_person: boolean
 }
 
 // Fallback per-golfer challenge price if the CTP/LD catalog rows aren't loaded.
@@ -30,11 +31,11 @@ type ChallengeChoice = 'individual' | 'team' | null
 // Shown if the catalog query fails (e.g. before the catalog migration is run),
 // so registration never shows an empty add-ons step.
 const FALLBACK_ADDONS: CatalogAddon[] = [
-  { id: 'fb-gimme', name: 'Gimme rope (3 ft)',                price: 10, description: 'Use anywhere on the course', tag: null },
-  { id: 'fb-ctp',   name: 'Closest-to-pin entry',            price: 10, description: 'Per person',                 tag: 'ctp' },
-  { id: 'fb-ld',    name: 'Long-drive entry',                price: 10, description: 'Per person',                 tag: 'ld' },
-  { id: 'fb-opp',   name: 'Advantage card: opponent’s drive', price: 10, description: 'One-time advantage card',    tag: null },
-  { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null },
+  { id: 'fb-gimme', name: 'Gimme rope (3 ft)',                price: 10, description: 'Use anywhere on the course', tag: null,  per_person: false },
+  { id: 'fb-ctp',   name: 'Closest-to-pin entry',            price: 10, description: 'Per person',                 tag: 'ctp', per_person: true  },
+  { id: 'fb-ld',    name: 'Long-drive entry',                price: 10, description: 'Per person',                 tag: 'ld',  per_person: true  },
+  { id: 'fb-opp',   name: 'Advantage card: opponent’s drive', price: 10, description: 'One-time advantage card',    tag: null,  per_person: false },
+  { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null,  per_person: false },
 ]
 
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
@@ -71,7 +72,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
     const supabase = createClient()
     supabase
       .from('catalog_item')
-      .select('id, name, price, description, tag, sort_order')
+      .select('id, name, price, description, tag, sort_order, per_person')
       .eq('event_id', EVENT_ID)
       .eq('active', true)
       .contains('channels', ['signup'])
@@ -96,7 +97,12 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
   // Exclude the contest items (shown as the combined challenge) and the base
   // registration fee (tag 'base') — only real add-ons become checkboxes.
-  const otherAddons = items.filter(i => i.tag !== 'ctp' && i.tag !== 'ld' && i.tag !== 'base')
+  // For solo golfers, also hide team-level (non per-golfer) add-ons like gimme
+  // ropes and advantage cards — those get bought once by the full team after
+  // pairing, so a solo buying one would create a duplicate.
+  const otherAddons = items.filter(
+    i => i.tag !== 'ctp' && i.tag !== 'ld' && i.tag !== 'base' && (!single || i.per_person)
+  )
 
   const addonTotal = otherAddons.filter(i => addons[i.id]).reduce((s, i) => s + i.price, 0)
   const challengeTotal = challenge ? challengePrices[challenge] : 0
@@ -265,6 +271,13 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                     price={a.price}
                   />
                 ))}
+                {single && otherAddons.length === 0 && (
+                  <p className={styles.soloAddonNote}>
+                    Team add-ons like gimme ropes and advantage cards are bought once
+                    by your full team after you&apos;re paired — so we&apos;ll skip them here.
+                    You can still enter the challenge above.
+                  </p>
+                )}
               </div>
               <div className={styles.donationBlock}>
                 <Field
