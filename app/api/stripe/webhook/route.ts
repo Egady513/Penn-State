@@ -70,7 +70,62 @@ export async function POST(req: NextRequest) {
     await (supabase.from('registration') as any).update({ payment_status: 'paid' }).eq('team_id', teamId)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId)
+
+    // 4 ── If this team bought a hole sponsorship, auto-list them under
+    //      "Hole Sponsors" on the public page. Uses the team name as the
+    //      sponsor name. Eddie can edit (add logo, assign hole number) from
+    //      Admin → Sponsors afterwards. Idempotent: skips if a sponsor with
+    //      this team name already exists for the event.
+    await maybeCreateHoleSponsor(supabase, teamId)
   }
 
   return NextResponse.json({ received: true })
+}
+
+/**
+ * If the team's signup purchases include a hole_sponsor catalog item, list
+ * the team under "Hole Sponsors" on the public page. The team name becomes
+ * the sponsor name. Skips if a sponsor with the same name already exists for
+ * the event (idempotent — safe across webhook retries).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
+  try {
+    const { data: team } = await supabase
+      .from('team')
+      .select('id, name, event_id')
+      .eq('id', teamId)
+      .maybeSingle()
+    if (!team) return
+
+    const { data: holePurchases } = await supabase
+      .from('purchase')
+      .select('id, catalog_item:catalog_item_id(tag)')
+      .eq('team_id', teamId)
+    type Row = { catalog_item: { tag: string | null } | null }
+    const hasHoleSponsorship = (holePurchases as Row[] | null)?.some(
+      (p) => p.catalog_item?.tag === 'hole_sponsor',
+    )
+    if (!hasHoleSponsorship) return
+
+    const { data: existing } = await supabase
+      .from('sponsor')
+      .select('id')
+      .eq('event_id', team.event_id)
+      .ilike('name', team.name)
+      .limit(1)
+    if (existing && existing.length > 0) return
+
+    await supabase.from('sponsor').insert({
+      event_id: team.event_id,
+      name: team.name,
+      sponsorship_type: 'Hole',
+      amount: 100,
+      active: true,
+    })
+  } catch (err) {
+    // Don't fail the webhook if the auto-list fails — payment already
+    // succeeded; Eddie can add the sponsor manually from admin if needed.
+    console.error(`[webhook] maybeCreateHoleSponsor failed for team ${teamId}:`, err)
+  }
 }

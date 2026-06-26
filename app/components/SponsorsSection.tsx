@@ -56,11 +56,10 @@ export const SponsorsSection = forwardRef<HTMLElement, SponsorsSectionProps>(fun
   }, [])
 
   // Group by what they sponsor: hole sponsors together, then each custom
-  // category, then anyone uncategorized.
+  // category, then anyone uncategorized. Hole Sponsors render LAST among the
+  // sponsor groups (just above Donors) since they're the lowest tier and we
+  // expect a long list of them once registration is open.
   const groups: { label: string; sponsors: Sponsor[] }[] = []
-
-  const holeSponsors = sponsors.filter(isHole)
-  if (holeSponsors.length > 0) groups.push({ label: 'Hole Sponsors', sponsors: holeSponsors })
 
   const otherTypes = Array.from(
     new Set(sponsors.filter(s => s.sponsorship_type && !isHole(s)).map(s => s.sponsorship_type as string))
@@ -71,6 +70,9 @@ export const SponsorsSection = forwardRef<HTMLElement, SponsorsSectionProps>(fun
 
   const uncategorized = sponsors.filter(s => !s.sponsorship_type)
   if (uncategorized.length > 0) groups.push({ label: 'Our Supporters', sponsors: uncategorized })
+
+  const holeSponsors = sponsors.filter(isHole)
+  if (holeSponsors.length > 0) groups.push({ label: 'Hole Sponsors', sponsors: holeSponsors })
 
   return (
     <section id="sponsors" ref={ref} className={styles.section}>
