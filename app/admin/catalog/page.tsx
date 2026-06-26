@@ -16,6 +16,7 @@ type Item = {
   description: string;
   active: boolean;
   per_person: boolean;
+  allow_multiple: boolean;
   tag: string | null;
 };
 
@@ -31,7 +32,7 @@ export default function CatalogPage() {
     const supabase = createClient();
     supabase
       .from('catalog_item')
-      .select('id, name, price, description, active, per_person, tag, sort_order')
+      .select('id, name, price, description, active, per_person, allow_multiple, tag, sort_order')
       .eq('event_id', EVENT_ID)
       .order('per_person')
       .order('sort_order')
@@ -52,6 +53,7 @@ export default function CatalogPage() {
             description: r.description ?? '',
             active: r.active,
             per_person: r.per_person,
+            allow_multiple: r.allow_multiple ?? false,
             tag: r.tag,
           }))
         );
@@ -65,7 +67,7 @@ export default function CatalogPage() {
   const add = () =>
     setItems((prev) => [
       ...prev,
-      { id: null, name: '', price: 0, description: '', active: true, per_person: false, tag: null },
+      { id: null, name: '', price: 0, description: '', active: true, per_person: false, allow_multiple: false, tag: null },
     ]);
 
   async function save() {
@@ -83,6 +85,7 @@ export default function CatalogPage() {
           p_description: it.description.trim(),
           p_active: it.active,
           p_per_person: it.per_person,
+          p_allow_multiple: it.allow_multiple,
         });
         if (rpcError) throw new Error(rpcError.message);
       }
@@ -174,6 +177,15 @@ export default function CatalogPage() {
                         onChange={(e) => update(i, { per_person: e.target.checked })}
                       />
                       Per golfer
+                    </label>
+
+                    <label className={styles.toggle} title="Show a quantity stepper on registration so a registrant can buy more than one">
+                      <input
+                        type="checkbox"
+                        checked={it.allow_multiple}
+                        onChange={(e) => update(i, { allow_multiple: e.target.checked })}
+                      />
+                      Multi-buy
                     </label>
 
                     <label className={styles.toggle}>

@@ -216,6 +216,98 @@
 
 .addonList { display: flex; flex-direction: column; gap: var(--space-3); }
 
+/* ── Add-on cards: name centered at top, description below, action row ── */
+.addonCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--psu-white);
+  border: 1px solid var(--ink-200);
+  transition: background var(--dur-base), border-color var(--dur-base);
+}
+.addonCardOn {
+  background: var(--psu-pugh-soft);
+  border-color: var(--psu-beaver);
+}
+.addonName {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--fg);
+}
+.addonDesc {
+  font-size: 13px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  text-align: left;
+}
+.addonActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--ink-100);
+  margin-top: var(--space-1);
+}
+.addonToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+}
+.addonToggle input { accent-color: var(--psu-navy); width: 18px; height: 18px; cursor: pointer; }
+.addonPrice {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--psu-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quantity stepper for multi-buy items */
+.qtyStepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--ink-200);
+  border-radius: 999px;
+  background: #fff;
+  overflow: hidden;
+}
+.qtyBtn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--psu-navy);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-fast);
+}
+.qtyBtn:hover:not(:disabled) { background: var(--psu-pugh-soft); }
+.qtyBtn:disabled { color: var(--ink-200); cursor: not-allowed; }
+.qtyNum {
+  min-width: 28px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
 /* Hole sponsorship card */
 .holeSponsorCard {
   display: flex;

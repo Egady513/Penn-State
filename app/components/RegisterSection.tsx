@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { Checkbox } from '@/components/ui/Checkbox'
 import { registerTeam } from '@/app/actions/register'
 import { createCheckoutSession } from '@/app/actions/checkout'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +21,7 @@ type CatalogAddon = {
   description: string | null
   tag: string | null
   per_person: boolean
+  allow_multiple: boolean
 }
 
 // Fallback per-golfer challenge price if the CTP/LD catalog rows aren't loaded.
@@ -31,11 +31,11 @@ type ChallengeChoice = 'individual' | 'team' | null
 // Shown if the catalog query fails (e.g. before the catalog migration is run),
 // so registration never shows an empty add-ons step.
 const FALLBACK_ADDONS: CatalogAddon[] = [
-  { id: 'fb-gimme', name: 'Gimme rope (3 ft)',                price: 10, description: 'Use anywhere on the course', tag: null,  per_person: false },
-  { id: 'fb-ctp',   name: 'Closest-to-pin entry',            price: 10, description: 'Per person',                 tag: 'ctp', per_person: true  },
-  { id: 'fb-ld',    name: 'Long-drive entry',                price: 10, description: 'Per person',                 tag: 'ld',  per_person: true  },
-  { id: 'fb-opp',   name: 'Advantage card: opponent’s drive', price: 10, description: 'One-time advantage card',    tag: null,  per_person: false },
-  { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null,  per_person: false },
+  { id: 'fb-gimme', name: 'Gimme rope (3 ft)',                price: 10, description: 'Use anywhere on the course', tag: null,  per_person: false, allow_multiple: false },
+  { id: 'fb-ctp',   name: 'Closest-to-pin entry',            price: 10, description: 'Per person',                 tag: 'ctp', per_person: true,  allow_multiple: false },
+  { id: 'fb-ld',    name: 'Long-drive entry',                price: 10, description: 'Per person',                 tag: 'ld',  per_person: true,  allow_multiple: false },
+  { id: 'fb-opp',   name: 'Advantage card: opponent’s drive', price: 10, description: 'One-time advantage card',    tag: null,  per_person: false, allow_multiple: true  },
+  { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null,  per_person: false, allow_multiple: false },
 ]
 
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
@@ -62,7 +62,8 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [teamName, setTeamName] = useState('')
   const [single, setSingle] = useState(false)
   const [golfers, setGolfers] = useState<GolferData[]>([blankGolfer(), blankGolfer()])
-  const [addons, setAddons] = useState<Record<string, boolean>>({})
+  // Quantity per catalog item id. 0 / missing = not selected.
+  const [addons, setAddons] = useState<Record<string, number>>({})
   const [holeSponsor, setHoleSponsor] = useState(false)
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [donation, setDonation] = useState('')
@@ -81,7 +82,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
     const supabase = createClient()
     supabase
       .from('catalog_item')
-      .select('id, name, price, description, tag, sort_order, per_person')
+      .select('id, name, price, description, tag, sort_order, per_person, allow_multiple')
       .eq('event_id', EVENT_ID)
       .eq('active', true)
       .contains('channels', ['signup'])
@@ -126,7 +127,18 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
     i => !HIDDEN_TAGS.includes(i.tag ?? '') && (!single || i.per_person)
   )
 
-  const addonTotal = otherAddons.filter(i => addons[i.id]).reduce((s, i) => s + i.price, 0)
+  const addonTotal = otherAddons.reduce((s, i) => s + i.price * (addons[i.id] ?? 0), 0)
+
+  // Helper: change quantity for an item, clamped to [0, 99]
+  function setAddonQty(id: string, qty: number) {
+    const clamped = Math.max(0, Math.min(99, Math.floor(qty)))
+    setAddons(prev => {
+      const next = { ...prev }
+      if (clamped <= 0) delete next[id]
+      else next[id] = clamped
+      return next
+    })
+  }
   const challengeTotal = challenge ? challengePrices[challenge] : 0
   const baseFee = single ? 100 : 200
   const total = baseFee + addonTotal + challengeTotal + holeSponsorTotal + (Number(donation) || 0)
@@ -318,15 +330,50 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
               )}
 
               <div className={styles.addonList}>
-                {otherAddons.map(a => (
-                  <Checkbox
-                    key={a.id}
-                    checked={!!addons[a.id]}
-                    onChange={v => setAddons(s => ({ ...s, [a.id]: v }))}
-                    label={a.description ? `${a.name} · ${a.description}` : a.name}
-                    price={a.price}
-                  />
-                ))}
+                {otherAddons.map(a => {
+                  const qty = addons[a.id] ?? 0
+                  const selected = qty > 0
+                  return (
+                    <div key={a.id} className={`${styles.addonCard} ${selected ? styles.addonCardOn : ''}`}>
+                      <div className={styles.addonName}>{a.name}</div>
+                      {a.description && (
+                        <div className={styles.addonDesc}>{a.description}</div>
+                      )}
+                      <div className={styles.addonActions}>
+                        {a.allow_multiple ? (
+                          <div className={styles.qtyStepper} role="group" aria-label={`${a.name} quantity`}>
+                            <button
+                              type="button"
+                              className={styles.qtyBtn}
+                              onClick={() => setAddonQty(a.id, qty - 1)}
+                              disabled={qty === 0}
+                              aria-label="Decrease"
+                            >−</button>
+                            <span className={styles.qtyNum}>{qty}</span>
+                            <button
+                              type="button"
+                              className={styles.qtyBtn}
+                              onClick={() => setAddonQty(a.id, qty + 1)}
+                              aria-label="Increase"
+                            >+</button>
+                          </div>
+                        ) : (
+                          <label className={styles.addonToggle}>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={e => setAddonQty(a.id, e.target.checked ? 1 : 0)}
+                            />
+                            <span>{selected ? 'Added' : 'Add to order'}</span>
+                          </label>
+                        )}
+                        <div className={styles.addonPrice}>
+                          ${a.allow_multiple && qty > 1 ? a.price * qty : a.price}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
                 {single && otherAddons.length === 0 && (
                   <p className={styles.soloAddonNote}>
                     Team add-ons like gimme ropes and advantage cards are bought once
@@ -390,7 +437,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       teamName,
                       isSingle: single,
                       golfers: golfers.slice(0, numGolfers),
-                      addons: otherAddons.filter(i => addons[i.id]).map(i => i.id),
+                      addons: otherAddons
+                        .filter(i => (addons[i.id] ?? 0) > 0)
+                        .map(i => ({ id: i.id, quantity: addons[i.id] })),
                       challenge,
                       donation: Number(donation) || 0,
                       holeSponsor: holeSponsorActive,
@@ -452,12 +501,15 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                 <span className={styles.summaryAmt}>${challengePrices[challenge]}</span>
               </div>
             )}
-            {otherAddons.filter(i => addons[i.id]).map(i => (
-              <div key={i.id} className={styles.summaryLine}>
-                <span>{i.name}</span>
-                <span className={styles.summaryAmt}>${i.price}</span>
-              </div>
-            ))}
+            {otherAddons.filter(i => (addons[i.id] ?? 0) > 0).map(i => {
+              const qty = addons[i.id] ?? 0
+              return (
+                <div key={i.id} className={styles.summaryLine}>
+                  <span>{qty > 1 ? `${i.name} × ${qty}` : i.name}</span>
+                  <span className={styles.summaryAmt}>${i.price * qty}</span>
+                </div>
+              )
+            })}
             {holeSponsorActive && (
               <>
                 <div className={styles.summaryLine}>

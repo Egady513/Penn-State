@@ -11,12 +11,17 @@ export interface GolferData {
   dietary: string
 }
 
+export interface AddonSelection {
+  id: string
+  quantity: number
+}
+
 export interface RegisterPayload {
   teamName: string
   isSingle: boolean
   golfers: GolferData[]
-  /** Selected per-team add-on catalog_item ids (UUIDs from the catalog) */
-  addons: string[]
+  /** Selected per-team add-ons with quantity (defaults to 1 for non-multi items) */
+  addons: AddonSelection[]
   /**
    * Long-Drive + Closest-to-Pin challenge entry:
    *  'individual' = one golfer in both contests ($20)
@@ -134,12 +139,15 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     const purchases: PurchaseRow[] = []
 
     // Per-team add-ons (gimme rope, advantage cards) — selected by catalog id
-    for (const id of payload.addons ?? []) {
-      const item = findById(id)
+    // with quantity. The `amount` is per-unit; the webhook + computeTeamTotal
+    // multiply by quantity, so a multi-buy item rolls up correctly.
+    for (const sel of payload.addons ?? []) {
+      const item = findById(sel.id)
+      const qty = Math.max(1, Math.floor(Number(sel.quantity) || 1))
       if (item) {
         purchases.push({
           catalog_item_id: item.id, team_id: teamId, player_id: null,
-          quantity: 1, amount: item.price, paid_status: 'unpaid', channel: 'signup',
+          quantity: qty, amount: item.price, paid_status: 'unpaid', channel: 'signup',
         })
       }
     }
