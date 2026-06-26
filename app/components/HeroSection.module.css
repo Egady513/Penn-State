@@ -39,9 +39,9 @@
 }
 
 .heroImg {
-  border-radius: 50%;
+  border-radius: 20px;
   object-fit: cover;
-  box-shadow: 0 0 0 4px rgba(150,190,230,0.2), 0 24px 60px rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 4px rgba(150,190,230,0.15), 0 24px 60px rgba(0,0,0,0.4);
 }
 
 @media (max-width: 768px) {
