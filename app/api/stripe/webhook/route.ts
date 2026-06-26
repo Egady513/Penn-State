@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { computeTeamTotal } from '@/lib/teamTotal'
+import { sendRegistrationConfirmation } from '@/lib/registrationEmail'
 
 // Stripe SDK needs the Node runtime (not Edge).
 export const runtime = 'nodejs'
@@ -77,6 +78,16 @@ export async function POST(req: NextRequest) {
     //      Admin → Sponsors afterwards. Idempotent: skips if a sponsor with
     //      this team name already exists for the event.
     await maybeCreateHoleSponsor(supabase, teamId)
+
+    // 5 ── Send the confirmation email to every player on the team.
+    //      Wrapped in try/catch: a mail failure must NOT mark the payment
+    //      unsuccessful or cause Stripe to retry the webhook (the team is
+    //      already paid in the DB). Eddie can resend manually from admin.
+    try {
+      await sendRegistrationConfirmation(teamId)
+    } catch (err) {
+      console.error(`[stripe webhook] confirmation email failed for team ${teamId}:`, err)
+    }
   }
 
   return NextResponse.json({ received: true })
