@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Drive Out Hunger Golf Outing',
   description:
     'Greater Cincinnati Penn State Alumni Association — August 30, 2026 at Beckett Ridge Golf Club. Benefits Last Mile Food Rescue.',
-  metadataBase: new URL('https://psu-cincy-golf.vercel.app'),
+  metadataBase: new URL('https://penn-state-topaz.vercel.app'),
   openGraph: {
     title: 'Drive Out Hunger Golf Outing',
     description: 'August 30, 2026 · Beckett Ridge Golf Club · Benefits Last Mile Food Rescue',
