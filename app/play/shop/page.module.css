@@ -1,0 +1,199 @@
+.loading {
+  padding: 32px;
+  text-align: center;
+  color: var(--fg-subtle);
+  font-size: 14px;
+}
+
+.empty {
+  margin: 24px 16px;
+  padding: 28px 24px;
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--ink-200);
+  text-align: center;
+}
+.emptyTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+.emptySub {
+  font-size: 13px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+/* ── Item list ─────────────────────────────────────────────────── */
+.itemList {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.itemCard {
+  background: var(--psu-white);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 120ms, background 120ms;
+}
+.itemCardOn {
+  border-color: var(--psu-beaver);
+  background: rgba(30,64,124,0.04);
+}
+
+.itemInfo { flex: 1; min-width: 0; }
+.itemName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--fg);
+}
+.itemDesc {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.itemPrice {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--psu-beaver);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.itemActions { flex: none; }
+
+/* Quantity stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink-50);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.stepBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--psu-white);
+  border: 1px solid var(--ink-200);
+  color: var(--psu-navy);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-fast);
+}
+.stepBtn:disabled { opacity: 0.35; cursor: default; }
+.stepNum {
+  min-width: 22px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toggle (single-buy) */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  user-select: none;
+}
+.toggle input { width: 17px; height: 17px; accent-color: var(--psu-beaver); cursor: pointer; }
+
+/* ── Footer / buy CTA ──────────────────────────────────────────── */
+.footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--psu-white);
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+
+.orderSummary {
+  background: var(--ink-50);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.summaryLine {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.summaryAmt { font-variant-numeric: tabular-nums; }
+.summaryTotal {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.errorBar {
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #C0392B;
+}
+
+.buyBtn {
+  width: 100%;
+  height: 52px;
+  background: var(--psu-navy);
+  color: var(--psu-white);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 150ms;
+}
+.buyBtn:disabled { opacity: 0.6; cursor: default; }
+.buyBtn:not(:disabled):hover { background: var(--bg-deep); }
+
+.spinner { animation: spin 700ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.note {
+  font-size: 12px;
+  color: var(--fg-subtle);
+  text-align: center;
+  margin: 0;
+}

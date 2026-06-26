@@ -38,9 +38,12 @@ export async function POST(req: NextRequest) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const teamId = session.metadata?.team_id
+    // game-day checkout stores comma-separated purchase IDs in metadata
+    const purchaseIds = session.metadata?.purchase_ids
+      ? session.metadata.purchase_ids.split(',').filter(Boolean)
+      : null
 
     if (!teamId) {
-      // Nothing we can act on; ack so Stripe doesn't retry.
       return NextResponse.json({ received: true, skipped: 'no team_id in metadata' })
     }
 
@@ -50,43 +53,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, skipped: `payment_status=${session.payment_status}` })
     }
 
-    // 2 ── Amount actually collected must cover this team's authoritative total.
-    const expected = await computeTeamTotal(teamId)
-    const expectedCents = Math.round(expected * 100)
-    const paidCents = session.amount_total ?? 0
-    if (paidCents < expectedCents) {
-      // Underpaid (e.g. a tampered amount). Do NOT mark paid; flag for review.
-      console.error(
-        `[stripe webhook] AMOUNT MISMATCH team ${teamId}: collected ${paidCents}¢ < expected ${expectedCents}¢. NOT marking paid.`,
-      )
-      // Return 200 so Stripe stops retrying; this is a business mismatch, not a transient error.
-      return NextResponse.json({ received: true, error: 'amount mismatch', teamId }, { status: 200 })
-    }
-
-    // 3 ── Verified. Mark everything for this team paid. Idempotent on retries.
     const supabase = createAdminClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('team') as any).update({ payment_status: 'paid' }).eq('id', teamId)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('registration') as any).update({ payment_status: 'paid' }).eq('team_id', teamId)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId)
+    const paidCents = session.amount_total ?? 0
 
-    // 4 ── If this team bought a hole sponsorship, auto-list them under
-    //      "Hole Sponsors" on the public page. Uses the team name as the
-    //      sponsor name. Eddie can edit (add logo, assign hole number) from
-    //      Admin → Sponsors afterwards. Idempotent: skips if a sponsor with
-    //      this team name already exists for the event.
-    await maybeCreateHoleSponsor(supabase, teamId)
+    if (purchaseIds) {
+      // ── Game-day purchase ──────────────────────────────────────────────
+      // Verify collected amount matches the sum of the specific purchases.
+      type PRow = { id: string; amount: number; quantity: number }
+      const { data: purchRows } = await supabase
+        .from('purchase')
+        .select('id, amount, quantity')
+        .in('id', purchaseIds) as { data: PRow[] | null }
+      const expectedCents = Math.round(
+        (purchRows ?? []).reduce((s, r) => s + r.amount * r.quantity, 0) * 100
+      )
+      if (paidCents < expectedCents) {
+        console.error(`[stripe webhook] GAME-DAY AMOUNT MISMATCH team ${teamId}: ${paidCents}¢ < ${expectedCents}¢`)
+        return NextResponse.json({ received: true, error: 'amount mismatch', teamId }, { status: 200 })
+      }
+      // Mark only these purchases paid.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).in('id', purchaseIds)
+    } else {
+      // ── Initial registration checkout ──────────────────────────────────
+      // Amount must cover the full authoritative team total.
+      const expected = await computeTeamTotal(teamId)
+      const expectedCents = Math.round(expected * 100)
+      if (paidCents < expectedCents) {
+        console.error(
+          `[stripe webhook] AMOUNT MISMATCH team ${teamId}: collected ${paidCents}¢ < expected ${expectedCents}¢. NOT marking paid.`,
+        )
+        return NextResponse.json({ received: true, error: 'amount mismatch', teamId }, { status: 200 })
+      }
 
-    // 5 ── Send the confirmation email to every player on the team.
-    //      Wrapped in try/catch: a mail failure must NOT mark the payment
-    //      unsuccessful or cause Stripe to retry the webhook (the team is
-    //      already paid in the DB). Eddie can resend manually from admin.
-    try {
-      await sendRegistrationConfirmation(teamId)
-    } catch (err) {
-      console.error(`[stripe webhook] confirmation email failed for team ${teamId}:`, err)
+      // Verified. Mark everything for this team paid. Idempotent on retries.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('team') as any).update({ payment_status: 'paid' }).eq('id', teamId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('registration') as any).update({ payment_status: 'paid' }).eq('team_id', teamId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId)
+
+      // If this team bought a hole sponsorship, auto-list them on the public
+      // sponsors page using their chosen display name (hole_sponsor_name).
+      await maybeCreateHoleSponsor(supabase, teamId)
+
+      // Send confirmation email. Failure must not fail the webhook.
+      try {
+        await sendRegistrationConfirmation(teamId)
+      } catch (err) {
+        console.error(`[stripe webhook] confirmation email failed for team ${teamId}:`, err)
+      }
     }
   }
 
@@ -104,7 +121,7 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
   try {
     const { data: team } = await supabase
       .from('team')
-      .select('id, name, event_id')
+      .select('id, name, hole_sponsor_name, hole_sponsor_logo_url, event_id')
       .eq('id', teamId)
       .maybeSingle()
     if (!team) return
@@ -119,17 +136,21 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
     )
     if (!hasHoleSponsorship) return
 
+    // Prefer the explicit sponsor display name; fall back to team name.
+    const sponsorName: string = team.hole_sponsor_name ?? team.name
+
     const { data: existing } = await supabase
       .from('sponsor')
       .select('id')
       .eq('event_id', team.event_id)
-      .ilike('name', team.name)
+      .ilike('name', sponsorName)
       .limit(1)
     if (existing && existing.length > 0) return
 
     await supabase.from('sponsor').insert({
       event_id: team.event_id,
-      name: team.name,
+      name: sponsorName,
+      logo_url: team.hole_sponsor_logo_url ?? null,
       sponsorship_type: 'Hole',
       amount: 100,
       active: true,

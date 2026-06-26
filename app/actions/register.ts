@@ -33,6 +33,10 @@ export interface RegisterPayload {
   donation: number
   /** Hole sponsorship ($100 + a $15 team discount). Twosomes only. */
   holeSponsor?: boolean
+  /** Display name for the hole (business name, etc). Required if holeSponsor. */
+  holeSponsorName?: string
+  /** Public URL of the sponsor logo uploaded to Supabase storage. */
+  holeSponsorLogoUrl?: string
 }
 
 export interface RegisterResult {
@@ -86,11 +90,13 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     // 1 ── Insert team
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const teamInsert = await (supabase.from('team') as any).insert({
-      event_id:      EVENT_ID,
-      name:          payload.teamName.trim(),
+      event_id:               EVENT_ID,
+      name:                   payload.teamName.trim(),
       pin,
-      single_golfer: payload.isSingle,
-      payment_status: 'unpaid',
+      single_golfer:          payload.isSingle,
+      payment_status:         'unpaid',
+      hole_sponsor_name:      payload.holeSponsorName?.trim() || null,
+      hole_sponsor_logo_url:  payload.holeSponsorLogoUrl || null,
     }).select('id').single()
 
     if (teamInsert.error) {

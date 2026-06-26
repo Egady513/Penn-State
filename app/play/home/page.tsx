@@ -157,6 +157,12 @@ export default async function HomePage() {
             sub={`${mulliganTotal} used · $${mulliganTotal * 2}`}
           />
           <SubTile
+            href="/play/shop"
+            icon="shopping-cart"
+            label="Buy add-ons"
+            sub="Raffle tickets, extras"
+          />
+          <SubTile
             href="/play/sponsors"
             icon="users"
             label="Sponsors"

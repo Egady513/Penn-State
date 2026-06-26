@@ -108,6 +108,81 @@
   margin-left: 4px;
 }
 
+.golferBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.emailRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.emailText {
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.emailEditBtn {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 2px;
+  opacity: 0.5;
+  line-height: 1;
+}
+.emailEditBtn:hover { opacity: 1; color: var(--psu-beaver); }
+
+.emailEdit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.emailInput {
+  height: 28px;
+  border: 1px solid var(--psu-beaver);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--fg);
+  outline: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.emailSave {
+  height: 28px;
+  padding: 0 10px;
+  background: var(--psu-beaver);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.emailSave:disabled { opacity: 0.6; }
+
+.emailCancel {
+  height: 28px;
+  padding: 0 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+
 .donationTag {
   display: inline-block;
   font-size: 11px;

@@ -68,6 +68,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [donation, setDonation] = useState('')
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
+  const [holeSponsorName, setHoleSponsorName] = useState('')
+  const [holeSponsorLogoFile, setHoleSponsorLogoFile] = useState<File | null>(null)
+  const [step2Error, setStep2Error] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [step1Error, setStep1Error] = useState<string[]>([])
@@ -309,24 +312,50 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
 
               {/* Hole sponsorship — twosomes only */}
               {holeSponsorAvailable && (
-                <label className={`${styles.holeSponsorCard} ${holeSponsor ? styles.holeSponsorCardOn : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={holeSponsor}
-                    onChange={e => setHoleSponsor(e.target.checked)}
-                    className={styles.holeSponsorCheck}
-                  />
-                  <div className={styles.holeSponsorBody}>
-                    <div className={styles.holeSponsorTitle}>
-                      Sponsor a hole
-                      <span className={styles.holeSponsorPrice}>+${holeSponsorPrice}</span>
+                <>
+                  <label className={`${styles.holeSponsorCard} ${holeSponsor ? styles.holeSponsorCardOn : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={holeSponsor}
+                      onChange={e => { setHoleSponsor(e.target.checked); if (!e.target.checked) { setHoleSponsorName(''); setHoleSponsorLogoFile(null); } }}
+                      className={styles.holeSponsorCheck}
+                    />
+                    <div className={styles.holeSponsorBody}>
+                      <div className={styles.holeSponsorTitle}>
+                        Sponsor a hole
+                        <span className={styles.holeSponsorPrice}>+${holeSponsorPrice}</span>
+                      </div>
+                      <div className={styles.holeSponsorDesc}>
+                        Put your name on a hole and you&apos;re recognized at dinner — and take{' '}
+                        <strong>${Math.abs(holeDiscountPrice)} off</strong> your team registration.
+                      </div>
                     </div>
-                    <div className={styles.holeSponsorDesc}>
-                      Put your name on a hole and you&apos;re recognized at dinner — and take{' '}
-                      <strong>${Math.abs(holeDiscountPrice)} off</strong> your team registration.
+                  </label>
+
+                  {holeSponsor && (
+                    <div className={styles.holeSponsorFields}>
+                      <Field label="Name to display on the hole" required hint="Your business name, team name, or any display name">
+                        <Input
+                          placeholder="513Sips, Smith Family, Acme Co…"
+                          value={holeSponsorName}
+                          onChange={e => setHoleSponsorName(e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Logo (optional)" hint="PNG or JPG — we'll place it on the public sponsors page">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className={styles.logoFileInput}
+                          onChange={e => setHoleSponsorLogoFile(e.target.files?.[0] ?? null)}
+                        />
+                        {holeSponsorLogoFile && (
+                          <span className={styles.logoFileName}>{holeSponsorLogoFile.name}</span>
+                        )}
+                      </Field>
+                      {step2Error && <div className={styles.step2Error}>{step2Error}</div>}
                     </div>
-                  </div>
-                </label>
+                  )}
+                </>
               )}
 
               <div className={styles.addonList}>
@@ -395,7 +424,14 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                 <Button variant="secondary" size="lg" onClick={() => setStep(1)}>
                   <ArrowLeft size={18} /> Back
                 </Button>
-                <Button size="lg" onClick={() => setStep(3)}>
+                <Button size="lg" onClick={() => {
+                  if (holeSponsorActive && !holeSponsorName.trim()) {
+                    setStep2Error('Please enter the name to display on the hole.')
+                    return
+                  }
+                  setStep2Error('')
+                  setStep(3)
+                }}>
                   Review &amp; pay <ArrowRight size={18} />
                 </Button>
               </div>
@@ -408,6 +444,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
               <div className={styles.reviewCard}>
                 <div className={styles.reviewEyebrow}>Team</div>
                 <div className={styles.reviewTeam}>{teamName || (single ? 'Solo golfer' : 'Your team')}</div>
+                {holeSponsorActive && holeSponsorName && (
+                  <div className={styles.reviewSponsorNote}>Hole sponsor: <strong>{holeSponsorName}</strong></div>
+                )}
                 {golfers.slice(0, numGolfers).map((g, i) => (
                   <div key={i} className={styles.reviewGolfer}>
                     <div>
@@ -433,6 +472,24 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     submitGuard.current = true
                     setSubmitError('')
                     setSubmitting(true)
+
+                    // Upload hole sponsor logo to Supabase storage (optional).
+                    let logoUrl: string | undefined
+                    if (holeSponsorActive && holeSponsorLogoFile) {
+                      try {
+                        const supabase = createClient()
+                        const ext = holeSponsorLogoFile.name.split('.').pop()?.toLowerCase() ?? 'png'
+                        const path = `${EVENT_ID}/sponsors/${Date.now()}.${ext}`
+                        const { error: upErr } = await supabase.storage
+                          .from('event-assets')
+                          .upload(path, holeSponsorLogoFile, { upsert: true })
+                        if (!upErr) {
+                          const { data: pub } = supabase.storage.from('event-assets').getPublicUrl(path)
+                          logoUrl = pub.publicUrl
+                        }
+                      } catch { /* logo is optional — swallow upload errors */ }
+                    }
+
                     const result = await registerTeam({
                       teamName,
                       isSingle: single,
@@ -443,6 +500,8 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       challenge,
                       donation: Number(donation) || 0,
                       holeSponsor: holeSponsorActive,
+                      holeSponsorName: holeSponsorActive ? holeSponsorName.trim() : undefined,
+                      holeSponsorLogoUrl: logoUrl,
                     })
                     if (result.error || !result.pin || !result.teamId) {
                       setSubmitting(false)

@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
-type PlayerInfo = { name: string; skill: string | null };
+type PlayerInfo = { id: string; name: string; skill: string | null; email: string | null };
 type Row = {
   id: string;
   name: string;
@@ -28,6 +28,21 @@ export default function RegistrationsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Email inline edit
+  const [editingEmail, setEditingEmail] = useState<string | null>(null); // player id
+  const [emailDraft, setEmailDraft] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  async function saveEmail(playerId: string) {
+    setSavingEmail(true);
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('set_player_email', { p_player_id: playerId, p_email: emailDraft.trim() });
+    setSavingEmail(false);
+    setEditingEmail(null);
+    load();
+  }
+
   // Pair solos modal
   const [pairModal, setPairModal] = useState(false);
   const [pairA, setPairA] = useState('');
@@ -39,12 +54,12 @@ export default function RegistrationsPage() {
     const supabase = createClient();
     const [teamsRes, playersRes, regsRes] = await Promise.all([
       supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer').eq('event_id', EVENT_ID).order('created_at'),
-      supabase.from('player').select('team_id, name, skill_level'),
+      supabase.from('player').select('id, team_id, name, skill_level, email'),
       supabase.from('registration').select('team_id, payment_method, donation_amount'),
     ]);
 
     const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean }[];
-    const players = (playersRes.data ?? []) as { team_id: string; name: string; skill_level: string | null }[];
+    const players = (playersRes.data ?? []) as { id: string; team_id: string; name: string; skill_level: string | null; email: string | null }[];
     const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null; donation_amount: number | null }[];
 
     setRows(
@@ -55,7 +70,7 @@ export default function RegistrationsPage() {
         paid: t.payment_status === 'paid',
         method: regs.find((r) => r.team_id === t.id)?.payment_method ?? null,
         donation: Number(regs.find((r) => r.team_id === t.id)?.donation_amount ?? 0),
-        players: players.filter((p) => p.team_id === t.id).map((p) => ({ name: p.name, skill: p.skill_level })),
+        players: players.filter((p) => p.team_id === t.id).map((p) => ({ id: p.id, name: p.name, skill: p.skill_level, email: p.email ?? null })),
         pairing: t.pairing ?? '',
         startHole: t.start_hole != null ? String(t.start_hole) : '',
         single_golfer: t.single_golfer ?? false,
@@ -149,9 +164,31 @@ export default function RegistrationsPage() {
                     {team.single_golfer && <span className={styles.soloTag}>Solo</span>}
                   </div>
                   {team.players.map((p, j) => (
-                    <div key={j} className={styles.golfer}>
-                      <span className={styles.golferName}>{p.name}</span>
-                      {p.skill && <span className={styles.golferSkill}>{p.skill}</span>}
+                    <div key={j} className={styles.golferBlock}>
+                      <div className={styles.golfer}>
+                        <span className={styles.golferName}>{p.name}</span>
+                        {p.skill && <span className={styles.golferSkill}>{p.skill}</span>}
+                      </div>
+                      {editingEmail === p.id ? (
+                        <div className={styles.emailEdit}>
+                          <input
+                            className={styles.emailInput}
+                            value={emailDraft}
+                            onChange={e => setEmailDraft(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveEmail(p.id); if (e.key === 'Escape') setEditingEmail(null); }}
+                            autoFocus
+                          />
+                          <button className={styles.emailSave} onClick={() => saveEmail(p.id)} disabled={savingEmail}>
+                            {savingEmail ? '…' : 'Save'}
+                          </button>
+                          <button className={styles.emailCancel} onClick={() => setEditingEmail(null)}>✕</button>
+                        </div>
+                      ) : (
+                        <div className={styles.emailRow}>
+                          <span className={styles.emailText}>{p.email || <em>no email</em>}</span>
+                          <button className={styles.emailEditBtn} title="Edit email" onClick={() => { setEditingEmail(p.id); setEmailDraft(p.email ?? ''); }}>✎</button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {team.pin && (
