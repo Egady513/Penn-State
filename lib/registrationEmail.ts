@@ -175,9 +175,14 @@ function buildText(d: TemplateData): string {
     ? '\nThanks for stepping up as a hole sponsor! Your team name will appear on the public page under "Hole Sponsors." If you\'d like to upload a company logo or list a different name on the hole, just reply to this email.\n'
     : ''
 
+  const playerLines = d.players.map(p => `  • ${p.name}`).join('\n')
+
   return `Welcome to Drive Out Hunger 2026, ${d.teamName}!
 
 Your team is officially registered. Thanks for supporting Last Mile Food Rescue and helping put food on tables for families in need.
+
+REGISTERED GOLFERS
+${playerLines}
 
 ────────────────────────────────────
 YOUR TEAM PIN: ${d.pin}
@@ -254,9 +259,11 @@ function buildHtml(d: TemplateData): string {
 
         <tr><td style="padding:28px 28px 8px;">
           <p style="margin:0 0 12px;font-size:17px;font-weight:700;">Welcome to Drive Out Hunger 2026, ${escapeHtml(d.teamName)}!</p>
-          <p style="margin:0 0 20px;color:${FG_MUTED};font-size:14px;line-height:1.6;">
+          <p style="margin:0 0 16px;color:${FG_MUTED};font-size:14px;line-height:1.6;">
             Your team is officially registered. Thanks for supporting Last Mile Food Rescue and helping put food on tables for families in need.
           </p>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${FG_MUTED};margin-bottom:6px;">Registered golfers</div>
+          ${d.players.map(p => `<div style="font-size:14px;font-weight:600;color:${PSU_NAVY};margin-bottom:4px;">• ${escapeHtml(p.name)}</div>`).join('')}
         </td></tr>
 
         <tr><td style="padding:0 28px 24px;">
