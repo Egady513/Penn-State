@@ -9,9 +9,32 @@ import { LogoRibbon } from '@/components/ui/LogoRibbon'
 
 function ConfirmationContent() {
   const params = useSearchParams()
-  const pin = params.get('pin') ?? '4821'
-  const team = params.get('team') ?? 'Your Team'
+  const pin = params.get('pin')
+  const team = params.get('team')
   const method = params.get('method')
+
+  // No params → someone hit /confirmation directly or the redirect dropped them.
+  // NEVER fall back to a real PIN/team here (that would hand out another team's
+  // day-of credentials). Show a recovery message instead.
+  if (!pin || !team) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.card}>
+          <LogoRibbon height={40} className={styles.logo} />
+          <h1 className={styles.headline}>Looking for your confirmation?</h1>
+          <p className={styles.sub}>
+            We couldn&apos;t find your registration details on this page. If you just
+            paid, check your email for your team PIN. If you need a hand, email{' '}
+            <a href="mailto:egady513@gmail.com">egady513@gmail.com</a> and we&apos;ll
+            sort it out.
+          </p>
+          <div className={styles.actions}>
+            <Link href="/" className={styles.btnPrimary}>Back to the site</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.page}>

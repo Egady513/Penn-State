@@ -19,17 +19,12 @@ type Sponsor = {
 
 type DonorRow = { id: string; name: string; donated_item: string | null; logo_url: string | null }
 
-// Fallback if the sponsor query fails (e.g. before the sponsor migration runs).
-const FALLBACK: Sponsor[] = [
-  { id: 'a', name: 'Sponsor A', tier: 'eagle',  sponsorship_type: 'Hole', hole_number: 4, logo_url: null },
-  { id: 'b', name: 'Sponsor B', tier: 'eagle',  sponsorship_type: null, hole_number: null, logo_url: null },
-  { id: 'c', name: 'Sponsor C', tier: 'birdie', sponsorship_type: null, hole_number: null, logo_url: null },
-]
-
 const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hole')
 
 export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(_, ref) {
-  const [sponsors, setSponsors] = useState<Sponsor[]>(FALLBACK)
+  // Start empty and render only REAL sponsors from the DB. No placeholder
+  // "Sponsor A/B/C" — fake names must never show on the public page.
+  const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [donors, setDonors] = useState<DonorRow[]>([])
 
   useEffect(() => {
@@ -42,7 +37,7 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
       .order('sort_order')
       .then(({ data, error }) => {
         const rows = data as Sponsor[] | null
-        if (!error && rows && rows.length > 0) setSponsors(rows)
+        if (!error && rows) setSponsors(rows)
       })
 
     supabase

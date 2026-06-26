@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react'
 import styles from './RegisterSection.module.css'
@@ -66,6 +66,8 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const [showSoloModal, setShowSoloModal] = useState(false)
   const [showNameTaken, setShowNameTaken] = useState(false)
   const [checkingName, setCheckingName] = useState(false)
+  // Guards against a double-click on Pay creating two teams (state is async).
+  const submitGuard = useRef(false)
 
   // Load the registration add-ons from the catalog (admin-editable)
   useEffect(() => {
@@ -122,13 +124,16 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
     setStep1Error(missing)
     if (missing.length > 0) return
 
-    // Make sure the team name isn't already registered
+    // Make sure the team name isn't already taken by a PAID team. We only block
+    // on paid teams so an abandoned/unpaid registration never locks someone out
+    // of their own team name when they come back to finish.
     setCheckingName(true)
     const supabase = createClient()
     const { data } = await supabase
       .from('team')
       .select('id')
       .eq('event_id', EVENT_ID)
+      .eq('payment_status', 'paid')
       .ilike('name', teamName.trim())
       .limit(1)
     setCheckingName(false)
@@ -324,6 +329,10 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                   size="lg"
                   disabled={submitting}
                   onClick={async () => {
+                    // Hard guard against a double-click creating two teams: React
+                    // state is async, so the disabled flag alone isn't enough.
+                    if (submitGuard.current) return
+                    submitGuard.current = true
                     setSubmitError('')
                     setSubmitting(true)
                     const result = await registerTeam({
@@ -336,20 +345,22 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                     })
                     if (result.error || !result.pin || !result.teamId) {
                       setSubmitting(false)
+                      submitGuard.current = false
                       setSubmitError(result.error ?? 'Something went wrong. Please try again.')
                       return
                     }
 
-                    // Stripe Checkout; the webhook marks the team paid.
+                    // Stripe Checkout; the amount is recomputed server-side and
+                    // the webhook marks the team paid once Stripe confirms.
                     const checkout = await createCheckoutSession({
                       teamId: result.teamId,
-                      amount: total,
                       teamName,
                       pin: result.pin,
                       origin: window.location.origin,
                     })
                     if (checkout.error || !checkout.url) {
                       setSubmitting(false)
+                      submitGuard.current = false
                       setSubmitError(checkout.error ?? 'Could not start checkout. Please try again.')
                       return
                     }

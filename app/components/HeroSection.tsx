@@ -22,7 +22,9 @@ export function HeroSection({ onJump }: HeroSectionProps) {
   useEffect(() => {
     const supabase = createClient()
     Promise.all([
-      supabase.from('team').select('id', { count: 'exact', head: true }).eq('event_id', EVENT_ID),
+      // Count only PAID teams so abandoned/unpaid registrations don't inflate
+      // the "spots taken" number shown to the public.
+      supabase.from('team').select('id', { count: 'exact', head: true }).eq('event_id', EVENT_ID).eq('payment_status', 'paid'),
       supabase.from('event').select('hero_image_url').eq('id', EVENT_ID).maybeSingle(),
     ]).then(([teamsRes, eventRes]) => {
       setSpotsTaken(teamsRes.count ?? 0)
