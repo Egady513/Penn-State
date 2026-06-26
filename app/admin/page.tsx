@@ -17,6 +17,7 @@ const TOTAL_SPOTS = 36;
 const EVENT_DATE = new Date('2026-08-30');
 
 type RecentTeam = { id: string; name: string; payment_status: string; created_at: string };
+type SoloGolfer = { teamId: string; teamName: string; pairing: string | null; playerName: string; email: string; paid: boolean };
 type Stats = {
   teamsRegistered: number;
   teamsPaid: number;
@@ -30,6 +31,7 @@ type Stats = {
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentTeam[]>([]);
+  const [solos, setSolos] = useState<SoloGolfer[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -37,13 +39,15 @@ export default function AdminOverviewPage() {
     const daysOut = Math.max(0, Math.ceil((EVENT_DATE.getTime() - today.getTime()) / 86_400_000));
 
     Promise.all([
-      supabase.from('team').select('id, name, payment_status, created_at').eq('event_id', EVENT_ID).order('created_at', { ascending: false }),
+      supabase.from('team').select('id, name, payment_status, created_at, single_golfer, pairing').eq('event_id', EVENT_ID).order('created_at', { ascending: false }),
       supabase.from('sponsor').select('id, amount').eq('event_id', EVENT_ID).eq('active', true),
       supabase.from('registration').select('fee_amount, donation_amount'),
-    ]).then(([teamsRes, sponsorsRes, regsRes]) => {
-      const teams    = (teamsRes.data    ?? []) as { id: string; name: string; payment_status: string; created_at: string }[];
+      supabase.from('team').select('id, pairing').eq('event_id', EVENT_ID).eq('single_golfer', true),
+    ]).then(async ([teamsRes, sponsorsRes, regsRes, soloTeamsRes]) => {
+      const teams    = (teamsRes.data    ?? []) as { id: string; name: string; payment_status: string; created_at: string; single_golfer: boolean; pairing: string | null }[];
       const sponsors = (sponsorsRes.data ?? []) as { id: string; amount: number }[];
       const regs     = (regsRes.data     ?? []) as { fee_amount: number; donation_amount: number }[];
+      const soloTeams = (soloTeamsRes.data ?? []) as { id: string; pairing: string | null }[];
 
       const paid = teams.filter(t => t.payment_status === 'paid').length;
       const grossRaised = regs.reduce(
@@ -60,6 +64,31 @@ export default function AdminOverviewPage() {
         daysOut,
       });
       setRecent(teams.slice(0, 5));
+
+      // Fetch players for solo teams
+      if (soloTeams.length > 0) {
+        const soloTeamIds = soloTeams.map(t => t.id);
+        const { data: playersData } = await supabase
+          .from('player')
+          .select('team_id, name, email')
+          .in('team_id', soloTeamIds);
+        const players = (playersData ?? []) as { team_id: string; name: string; email: string }[];
+
+        const soloList: SoloGolfer[] = teams
+          .filter(t => t.single_golfer)
+          .map(t => {
+            const p = players.find(pl => pl.team_id === t.id);
+            return {
+              teamId: t.id,
+              teamName: t.name,
+              pairing: t.pairing,
+              playerName: p?.name ?? '—',
+              email: p?.email ?? '—',
+              paid: t.payment_status === 'paid',
+            };
+          });
+        setSolos(soloList);
+      }
     });
   }, []);
 
@@ -145,6 +174,44 @@ export default function AdminOverviewPage() {
             sub="Until Aug 30, 2026"
           />
         </div>
+
+        {/* ── Solo golfers needing a partner ───────────────────── */}
+        {solos.length > 0 && (
+          <AdminCard
+            title="Solo golfers"
+            action={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {solos.filter(s => !s.pairing).length > 0 && (
+                  <span className={styles.soloAlert}>
+                    {solos.filter(s => !s.pairing).length} need a partner
+                  </span>
+                )}
+                <Link href="/admin/registrations">
+                  <Button variant="ghost" size="sm">Pair on Teams page</Button>
+                </Link>
+              </div>
+            }
+            padding={0}
+          >
+            {solos.map((s, i) => (
+              <div key={s.teamId} className={`${styles.soloRow} ${i === 0 ? styles.soloRowFirst : ''}`}>
+                <div className={styles.soloInfo}>
+                  <div className={styles.soloName}>{s.playerName}</div>
+                  <div className={styles.soloMeta}>{s.email}</div>
+                </div>
+                <div className={styles.soloPairing}>
+                  {s.pairing
+                    ? <span className={styles.pairedChip}>Paired · {s.pairing}</span>
+                    : <span className={styles.unpaired}>Needs partner</span>
+                  }
+                </div>
+                <AdminPill tone={s.paid ? 'paid' : 'unpaid'}>
+                  {s.paid ? 'Paid' : 'Unpaid'}
+                </AdminPill>
+              </div>
+            ))}
+          </AdminCard>
+        )}
 
         {/* ── 2-col lower ───────────────────────────────────────── */}
         <div className={styles.lowerGrid}>

@@ -247,6 +247,77 @@
 
 .quickLink:hover { background: var(--ink-050); }
 
+/* ── Solo golfers ─────────────────────────────────────────────── */
+.soloAlert {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--warning, #D97706);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.soloRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--ink-100);
+  align-items: center;
+}
+
+.soloRowFirst {
+  border-top: none;
+}
+
+.soloInfo {
+  min-width: 0;
+}
+
+.soloName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soloMeta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soloPairing {
+  display: flex;
+  align-items: center;
+}
+
+.pairedChip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success, #1F8A5B);
+  background: #EDF7F2;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.unpaired {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning, #D97706);
+  background: #FEF3C7;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
 /* ── Empty state ──────────────────────────────────────────────── */
 .emptyRow {
   padding: 20px 18px;
