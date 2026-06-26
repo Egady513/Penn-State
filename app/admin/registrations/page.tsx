@@ -13,6 +13,7 @@ type PlayerInfo = { name: string; skill: string | null };
 type Row = {
   id: string;
   name: string;
+  pin: string;
   paid: boolean;
   method: string | null;
   players: PlayerInfo[];
@@ -36,12 +37,12 @@ export default function RegistrationsPage() {
   async function load() {
     const supabase = createClient();
     const [teamsRes, playersRes, regsRes] = await Promise.all([
-      supabase.from('team').select('id, name, payment_status, start_hole, pairing, created_at, single_golfer').eq('event_id', EVENT_ID).order('created_at'),
+      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer').eq('event_id', EVENT_ID).order('created_at'),
       supabase.from('player').select('team_id, name, skill_level'),
       supabase.from('registration').select('team_id, payment_method'),
     ]);
 
-    const teams = (teamsRes.data ?? []) as { id: string; name: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean }[];
+    const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean }[];
     const players = (playersRes.data ?? []) as { team_id: string; name: string; skill_level: string | null }[];
     const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null }[];
 
@@ -49,6 +50,7 @@ export default function RegistrationsPage() {
       teams.map((t) => ({
         id: t.id,
         name: t.name,
+        pin: t.pin ?? '',
         paid: t.payment_status === 'paid',
         method: regs.find((r) => r.team_id === t.id)?.payment_method ?? null,
         players: players.filter((p) => p.team_id === t.id).map((p) => ({ name: p.name, skill: p.skill_level })),
@@ -150,6 +152,11 @@ export default function RegistrationsPage() {
                       {p.skill && <span className={styles.golferSkill}>{p.skill}</span>}
                     </div>
                   ))}
+                  {team.pin && (
+                    <div className={styles.pinRow}>
+                      PIN <span className={styles.pinCode}>{team.pin}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pairing */}
