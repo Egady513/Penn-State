@@ -143,13 +143,13 @@
 
 .photoImgContainer {
   position: relative;
-  height: 280px;
+  aspect-ratio: 3 / 1;
   border-radius: 18px;
   overflow: hidden;
 }
 
 .photoPlaceholder {
-  height: 280px;
+  aspect-ratio: 3 / 1;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(150,190,230,0.12), rgba(255,255,255,0.04));
   border: 1px dashed rgba(255,255,255,0.18);
