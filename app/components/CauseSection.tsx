@@ -13,7 +13,7 @@ export const CauseSection = forwardRef<HTMLElement>(function CauseSection(_, ref
         {!logoMissing && (
           <div className={styles.logoWrap}>
             <Image
-              src="/lastmile-logo.png"
+              src="/lastmile-hero.png"
               alt="Last Mile Food Rescue"
               width={160}
               height={60}

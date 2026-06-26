@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { ArrowRight, Heart, Calendar, MapPin, Flag } from 'lucide-react'
 import styles from './HeroSection.module.css'
 import { Button } from '@/components/ui/Button'
@@ -32,41 +33,54 @@ export function HeroSection({ onJump }: HeroSectionProps) {
       <div className={styles.glowOrb} aria-hidden />
 
       <div className={styles.inner}>
-        <div className={styles.causeBadge}>
-          <Heart size={14} strokeWidth={2} />
-          Benefits Last Mile Food Rescue
-        </div>
-
-        <h1 className={styles.headline}>
-          Drive Out<br />Hunger 2026
-        </h1>
-
-        <p className={styles.sub}>
-          Grab a partner. Play 18 at Beckett Ridge. Help us put two
-          trucks' worth of food on Cincinnati tables this fall.
-        </p>
-
-        <div className={styles.facts}>
-          <Fact icon={<Calendar size={20} />} label="Date"   value="Aug 30, 2026" />
-          <Fact icon={<MapPin  size={20} />} label="Course" value="Beckett Ridge" />
-          <Fact icon={<Flag   size={20} />} label="Format" value="2-person scramble" />
-        </div>
-
-        <div className={styles.ctas}>
-          <Button size="lg" variant="pugh" onClick={() => onJump('register')}>
-            Register your team <ArrowRight size={18} />
-          </Button>
-          <Button size="lg" variant="secondaryLight" onClick={() => onJump('details')}>
-            See what&apos;s included
-          </Button>
-        </div>
-
-        <div className={styles.chipRow}>
-          <div className={styles.spotsChip}>
-            <span className={styles.spotsNum}>{spotsTaken ?? '—'}/{SPOTS_TOTAL}</span>
-            team spots taken
+        <div className={styles.content}>
+          <div className={styles.causeBadge}>
+            <Heart size={14} strokeWidth={2} />
+            Benefits Last Mile Food Rescue
           </div>
-          <MoneyRaised variant="chip" />
+
+          <h1 className={styles.headline}>
+            Drive Out<br />Hunger 2026
+          </h1>
+
+          <p className={styles.sub}>
+            Grab a partner. Play 18 at Beckett Ridge. Help us put two
+            trucks' worth of food on Cincinnati tables this fall.
+          </p>
+
+          <div className={styles.facts}>
+            <Fact icon={<Calendar size={20} />} label="Date"   value="Aug 30, 2026" />
+            <Fact icon={<MapPin  size={20} />} label="Course" value="Beckett Ridge" />
+            <Fact icon={<Flag   size={20} />} label="Format" value="2-person scramble" />
+          </div>
+
+          <div className={styles.ctas}>
+            <Button size="lg" variant="pugh" onClick={() => onJump('register')}>
+              Register your team <ArrowRight size={18} />
+            </Button>
+            <Button size="lg" variant="secondaryLight" onClick={() => onJump('details')}>
+              See what&apos;s included
+            </Button>
+          </div>
+
+          <div className={styles.chipRow}>
+            <div className={styles.spotsChip}>
+              <span className={styles.spotsNum}>{spotsTaken ?? '—'}/{SPOTS_TOTAL}</span>
+              team spots taken
+            </div>
+            <MoneyRaised variant="chip" />
+          </div>
+        </div>
+
+        <div className={styles.imageRight} aria-hidden>
+          <Image
+            src="/lastmile-hero.png"
+            alt="Last Mile Food Rescue"
+            width={380}
+            height={380}
+            className={styles.heroImg}
+            priority
+          />
         </div>
       </div>
 

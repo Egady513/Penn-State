@@ -21,6 +21,36 @@
   margin: 0 auto;
   padding: var(--space-10) var(--space-6) 0;
   position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-10);
+}
+
+.content {
+  min-width: 0;
+}
+
+.imageRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroImg {
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 4px rgba(150,190,230,0.2), 0 24px 60px rgba(0,0,0,0.35);
+}
+
+@media (max-width: 768px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+  .imageRight {
+    display: none;
+  }
 }
 
 .causeBadge {
