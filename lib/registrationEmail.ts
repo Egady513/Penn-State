@@ -177,7 +177,7 @@ function buildText(d: TemplateData): string {
 
   return `Welcome to Drive Out Hunger 2026, ${d.teamName}!
 
-Your team is officially registered. Thanks for helping put food on Cincinnati tables for families in need.
+Your team is officially registered. Thanks for supporting Last Mile Food Rescue and helping put food on tables for families in need.
 
 ────────────────────────────────────
 YOUR TEAM PIN: ${d.pin}
@@ -255,7 +255,7 @@ function buildHtml(d: TemplateData): string {
         <tr><td style="padding:28px 28px 8px;">
           <p style="margin:0 0 12px;font-size:17px;font-weight:700;">Welcome to Drive Out Hunger 2026, ${escapeHtml(d.teamName)}!</p>
           <p style="margin:0 0 20px;color:${FG_MUTED};font-size:14px;line-height:1.6;">
-            Your team is officially registered. Thanks for helping put food on Cincinnati tables for families in need.
+            Your team is officially registered. Thanks for supporting Last Mile Food Rescue and helping put food on tables for families in need.
           </p>
         </td></tr>
 
