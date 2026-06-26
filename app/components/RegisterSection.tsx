@@ -50,13 +50,20 @@ interface GolferData {
 
 const blankGolfer = (): GolferData => ({ name: '', email: '', phone: '', shirt: 'M', skill: '', dietary: '' })
 
-export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(_, ref) {
+interface RegisterSectionProps {
+  /** Incrementing trigger from the public "Become a hole sponsor" button.
+   *  Each bump pre-selects the hole sponsorship and switches to a twosome. */
+  holeSponsorIntent?: number
+}
+
+export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(function RegisterSection({ holeSponsorIntent }, ref) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [teamName, setTeamName] = useState('')
   const [single, setSingle] = useState(false)
   const [golfers, setGolfers] = useState<GolferData[]>([blankGolfer(), blankGolfer()])
   const [addons, setAddons] = useState<Record<string, boolean>>({})
+  const [holeSponsor, setHoleSponsor] = useState(false)
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [donation, setDonation] = useState('')
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
@@ -97,19 +104,41 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
   const ld = items.find(i => i.tag === 'ld')
   const challengeUnit = (ctp?.price ?? DEFAULT_CHALLENGE_UNIT) + (ld?.price ?? DEFAULT_CHALLENGE_UNIT)
   const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
-  // Exclude the contest items (shown as the combined challenge) and the base
-  // registration fee (tag 'base') — only real add-ons become checkboxes.
+
+  // Hole sponsorship offer (twosomes only). Only available if the catalog has
+  // the items — so it never shows a price we can't actually charge.
+  const holeSponsorItem = items.find(i => i.tag === 'hole_sponsor')
+  const holeDiscountItem = items.find(i => i.tag === 'hole_sponsor_discount')
+  const holeSponsorAvailable = !!holeSponsorItem && !single
+  const holeSponsorPrice = holeSponsorItem?.price ?? 100
+  const holeDiscountPrice = holeDiscountItem?.price ?? -15 // negative
+  const holeSponsorActive = holeSponsor && holeSponsorAvailable
+  const holeSponsorTotal = holeSponsorActive ? holeSponsorPrice + holeDiscountPrice : 0
+
+  // Exclude the contest items (shown as the combined challenge), the base
+  // registration fee (tag 'base'), and the hole-sponsor items (their own UI) —
+  // only real add-ons become checkboxes.
   // For solo golfers, also hide team-level (non per-golfer) add-ons like gimme
   // ropes and advantage cards — those get bought once by the full team after
   // pairing, so a solo buying one would create a duplicate.
+  const HIDDEN_TAGS = ['ctp', 'ld', 'base', 'hole_sponsor', 'hole_sponsor_discount']
   const otherAddons = items.filter(
-    i => i.tag !== 'ctp' && i.tag !== 'ld' && i.tag !== 'base' && (!single || i.per_person)
+    i => !HIDDEN_TAGS.includes(i.tag ?? '') && (!single || i.per_person)
   )
 
   const addonTotal = otherAddons.filter(i => addons[i.id]).reduce((s, i) => s + i.price, 0)
   const challengeTotal = challenge ? challengePrices[challenge] : 0
   const baseFee = single ? 100 : 200
-  const total = baseFee + addonTotal + challengeTotal + (Number(donation) || 0)
+  const total = baseFee + addonTotal + challengeTotal + holeSponsorTotal + (Number(donation) || 0)
+
+  // Coming from the public "Become a hole sponsor" button: switch to a twosome
+  // and pre-select the hole sponsorship.
+  useEffect(() => {
+    if (holeSponsorIntent) {
+      setSingle(false)
+      setHoleSponsor(true)
+    }
+  }, [holeSponsorIntent])
 
   // Validate step 1 on click (instead of a silently-disabled button) so we can
   // tell the user exactly what's missing.
@@ -266,6 +295,28 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                 </div>
               </div>
 
+              {/* Hole sponsorship — twosomes only */}
+              {holeSponsorAvailable && (
+                <label className={`${styles.holeSponsorCard} ${holeSponsor ? styles.holeSponsorCardOn : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={holeSponsor}
+                    onChange={e => setHoleSponsor(e.target.checked)}
+                    className={styles.holeSponsorCheck}
+                  />
+                  <div className={styles.holeSponsorBody}>
+                    <div className={styles.holeSponsorTitle}>
+                      Sponsor a hole
+                      <span className={styles.holeSponsorPrice}>+${holeSponsorPrice}</span>
+                    </div>
+                    <div className={styles.holeSponsorDesc}>
+                      Put your name on a hole and you&apos;re recognized at dinner — and take{' '}
+                      <strong>${Math.abs(holeDiscountPrice)} off</strong> your team registration.
+                    </div>
+                  </div>
+                </label>
+              )}
+
               <div className={styles.addonList}>
                 {otherAddons.map(a => (
                   <Checkbox
@@ -342,6 +393,7 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                       addons: otherAddons.filter(i => addons[i.id]).map(i => i.id),
                       challenge,
                       donation: Number(donation) || 0,
+                      holeSponsor: holeSponsorActive,
                     })
                     if (result.error || !result.pin || !result.teamId) {
                       setSubmitting(false)
@@ -406,6 +458,20 @@ export const RegisterSection = forwardRef<HTMLElement>(function RegisterSection(
                 <span className={styles.summaryAmt}>${i.price}</span>
               </div>
             ))}
+            {holeSponsorActive && (
+              <>
+                <div className={styles.summaryLine}>
+                  <span>Hole sponsorship</span>
+                  <span className={styles.summaryAmt}>${holeSponsorPrice}</span>
+                </div>
+                <div className={styles.summaryLine}>
+                  <span className={styles.summaryDiscount}>Hole-sponsor discount</span>
+                  <span className={`${styles.summaryAmt} ${styles.summaryDiscount}`}>
+                    −${Math.abs(holeDiscountPrice)}
+                  </span>
+                </div>
+              </>
+            )}
             {Number(donation) > 0 && (
               <div className={styles.summaryLine}>
                 <span>Donation to Last Mile</span>

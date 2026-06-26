@@ -216,6 +216,57 @@
 
 .addonList { display: flex; flex-direction: column; gap: var(--space-3); }
 
+/* Hole sponsorship card */
+.holeSponsorCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border: 1px solid var(--psu-bronze);
+  background: rgba(176, 141, 87, 0.06);
+  border-radius: 12px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  cursor: pointer;
+  transition: background 120ms, box-shadow 120ms;
+}
+.holeSponsorCardOn {
+  background: rgba(176, 141, 87, 0.12);
+  box-shadow: 0 0 0 1px var(--psu-bronze);
+}
+.holeSponsorCheck {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--psu-bronze);
+  cursor: pointer;
+  flex: none;
+}
+.holeSponsorBody { min-width: 0; }
+.holeSponsorTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--fg);
+}
+.holeSponsorPrice {
+  font-weight: 700;
+  color: var(--psu-bronze);
+  font-variant-numeric: tabular-nums;
+}
+.holeSponsorDesc {
+  font-size: 13px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  margin-top: 3px;
+}
+.holeSponsorDesc strong { color: var(--psu-bronze); }
+
+/* Discount line in the order summary */
+.summaryDiscount { color: var(--psu-bronze); font-weight: 600; }
+
 .soloAddonNote {
   font-size: 13px;
   line-height: 1.5;

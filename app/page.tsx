@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import styles from './page.module.css'
 import { SiteHeader } from './components/SiteHeader'
 import { HeroSection } from './components/HeroSection'
@@ -17,6 +17,9 @@ export default function RegistrationPage() {
     cause: useRef<HTMLElement>(null),
     register: useRef<HTMLElement>(null),
   }
+  // Bumped by the "Become a hole sponsor" button to pre-select the offer in the
+  // registration form.
+  const [holeSponsorIntent, setHoleSponsorIntent] = useState(0)
 
   function jumpTo(id: string) {
     const el = sectionRefs[id as keyof typeof sectionRefs]?.current
@@ -29,9 +32,12 @@ export default function RegistrationPage() {
       <main>
         <HeroSection onJump={jumpTo} />
         <DetailsSection ref={sectionRefs.details} />
-        <SponsorsSection ref={sectionRefs.sponsors} />
+        <SponsorsSection
+          ref={sectionRefs.sponsors}
+          onBecomeHoleSponsor={() => { setHoleSponsorIntent(n => n + 1); jumpTo('register') }}
+        />
         <CauseSection ref={sectionRefs.cause} />
-        <RegisterSection ref={sectionRefs.register} />
+        <RegisterSection ref={sectionRefs.register} holeSponsorIntent={holeSponsorIntent} />
       </main>
       <SiteFooter />
     </div>

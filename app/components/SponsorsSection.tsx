@@ -4,9 +4,14 @@ import { forwardRef, useEffect, useState } from 'react'
 import styles from './SponsorsSection.module.css'
 import { SponsorLogo } from '@/components/ui/SponsorLogo'
 import { Button } from '@/components/ui/Button'
-import { ExternalLink } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
+
+interface SponsorsSectionProps {
+  /** Triggers the registration flow with the hole sponsorship pre-selected. */
+  onBecomeHoleSponsor?: () => void
+}
 
 type Sponsor = {
   id: string
@@ -21,7 +26,7 @@ type DonorRow = { id: string; name: string; donated_item: string | null; logo_ur
 
 const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hole')
 
-export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(_, ref) {
+export const SponsorsSection = forwardRef<HTMLElement, SponsorsSectionProps>(function SponsorsSection({ onBecomeHoleSponsor }, ref) {
   // Start empty and render only REAL sponsors from the DB. No placeholder
   // "Sponsor A/B/C" — fake names must never show on the public page.
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
@@ -122,16 +127,17 @@ export const SponsorsSection = forwardRef<HTMLElement>(function SponsorsSection(
 
         <div className={styles.becomeSponsor}>
           <div>
-            <div className={styles.bronzeEyebrow}>Become a sponsor</div>
+            <div className={styles.bronzeEyebrow}>Become a hole sponsor</div>
             <h3 className={styles.becomeHead}>
-              Put your name on a hole — and on a few thousand meals.
+              Put your name on a hole — $100.
             </h3>
             <p className={styles.becomeSub}>
-              Hole, cart, and challenge sponsorships available, with recognition at dinner. We&apos;ll send the one-pager.
+              Sponsor a hole for $100 and take <strong>$15 off</strong> registering a twosome.
+              Your name goes on the hole and you&apos;re recognized at dinner.
             </p>
           </div>
-          <Button variant="bronze" size="lg" as="a" href="mailto:egady513@gmail.com?subject=Golf Outing Sponsorship">
-            Get the one-pager <ExternalLink size={16} />
+          <Button variant="bronze" size="lg" onClick={onBecomeHoleSponsor}>
+            Become a hole sponsor <ArrowRight size={16} />
           </Button>
         </div>
       </div>

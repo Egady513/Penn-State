@@ -41,18 +41,20 @@ export default function AdminOverviewPage() {
     Promise.all([
       supabase.from('team').select('id, name, payment_status, created_at, single_golfer, pairing').eq('event_id', EVENT_ID).order('created_at', { ascending: false }),
       supabase.from('sponsor').select('id, amount').eq('event_id', EVENT_ID).eq('active', true),
-      supabase.from('registration').select('fee_amount, donation_amount'),
+      // Single source of truth for money raised — same paid-only RPC the public
+      // hero chip and the player app use. (Reading the registration table
+      // directly returns $0 for an unauthed client because of RLS.)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('total_raised'),
       supabase.from('team').select('id, pairing').eq('event_id', EVENT_ID).eq('single_golfer', true),
-    ]).then(async ([teamsRes, sponsorsRes, regsRes, soloTeamsRes]) => {
+    ]).then(async ([teamsRes, sponsorsRes, raisedRes, soloTeamsRes]) => {
       const teams    = (teamsRes.data    ?? []) as { id: string; name: string; payment_status: string; created_at: string; single_golfer: boolean; pairing: string | null }[];
       const sponsors = (sponsorsRes.data ?? []) as { id: string; amount: number }[];
-      const regs     = (regsRes.data     ?? []) as { fee_amount: number; donation_amount: number }[];
       const soloTeams = (soloTeamsRes.data ?? []) as { id: string; pairing: string | null }[];
 
       const paid = teams.filter(t => t.payment_status === 'paid').length;
-      const grossRaised = regs.reduce(
-        (s, r) => s + (Number(r.fee_amount) || 0) + (Number(r.donation_amount) || 0), 0,
-      );
+      const raisedVal = (raisedRes as { data: number | null }).data;
+      const grossRaised = raisedVal != null && !Number.isNaN(Number(raisedVal)) ? Number(raisedVal) : 0;
 
       setStats({
         teamsRegistered: teams.length,
