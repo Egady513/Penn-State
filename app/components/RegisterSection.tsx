@@ -111,15 +111,14 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const challengeUnit = (ctp?.price ?? DEFAULT_CHALLENGE_UNIT) + (ld?.price ?? DEFAULT_CHALLENGE_UNIT)
   const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
 
-  // Hole sponsorship offer (twosomes only). Only available if the catalog has
-  // the items — so it never shows a price we can't actually charge.
+  // Hole sponsorship — open to anyone; the -$15 twosome discount only applies for twosomes.
   const holeSponsorItem = items.find(i => i.tag === 'hole_sponsor')
   const holeDiscountItem = items.find(i => i.tag === 'hole_sponsor_discount')
-  const holeSponsorAvailable = !!holeSponsorItem && !single
+  const holeSponsorAvailable = !!holeSponsorItem
   const holeSponsorPrice = holeSponsorItem?.price ?? 100
-  const holeDiscountPrice = holeDiscountItem?.price ?? -15 // negative
+  const holeDiscountPrice = holeDiscountItem?.price ?? -15 // negative; twosomes only
   const holeSponsorActive = holeSponsor && holeSponsorAvailable
-  const holeSponsorTotal = holeSponsorActive ? holeSponsorPrice + holeDiscountPrice : 0
+  const holeSponsorTotal = holeSponsorActive ? holeSponsorPrice + (single ? 0 : holeDiscountPrice) : 0
 
   // Exclude the contest items (shown as the combined challenge), the base
   // registration fee (tag 'base'), and the hole-sponsor items (their own UI) —
@@ -154,11 +153,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const baseFee = single ? 100 : 200
   const total = baseFee + addonTotal + challengeTotal + holeSponsorTotal + (Number(donation) || 0)
 
-  // Coming from the public "Become a hole sponsor" button: switch to a twosome
-  // and pre-select the hole sponsorship.
+  // Coming from the public "Become a hole sponsor" button: pre-select hole sponsorship.
   useEffect(() => {
     if (holeSponsorIntent) {
-      setSingle(false)
       setHoleSponsor(true)
     }
   }, [holeSponsorIntent])
@@ -360,8 +357,11 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                         <span className={styles.holeSponsorPrice}>+${holeSponsorPrice}</span>
                       </div>
                       <div className={styles.holeSponsorDesc}>
-                        Put your name on a hole and you&apos;re recognized at dinner — and take{' '}
-                        <strong>${Math.abs(holeDiscountPrice)} off</strong> your team registration.
+                        Put your name on a hole and you&apos;re recognized at dinner.
+                        {!single && (
+                          <> Twosome registrations also take{' '}
+                          <strong>${Math.abs(holeDiscountPrice)} off</strong> the team entry fee.</>
+                        )}
                       </div>
                     </div>
                   </label>
@@ -610,12 +610,14 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                   <span>Hole sponsorship</span>
                   <span className={styles.summaryAmt}>${holeSponsorPrice}</span>
                 </div>
-                <div className={styles.summaryLine}>
-                  <span className={styles.summaryDiscount}>Hole-sponsor discount</span>
-                  <span className={`${styles.summaryAmt} ${styles.summaryDiscount}`}>
-                    −${Math.abs(holeDiscountPrice)}
-                  </span>
-                </div>
+                {!single && (
+                  <div className={styles.summaryLine}>
+                    <span className={styles.summaryDiscount}>Hole-sponsor discount (twosome)</span>
+                    <span className={`${styles.summaryAmt} ${styles.summaryDiscount}`}>
+                      −${Math.abs(holeDiscountPrice)}
+                    </span>
+                  </div>
+                )}
               </>
             )}
             {Number(donation) > 0 && (

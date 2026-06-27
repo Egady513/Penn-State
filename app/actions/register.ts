@@ -160,17 +160,21 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
       }
     }
 
-    // Hole sponsorship (twosomes only): +$100 sponsorship and -$15 discount,
-    // both as itemized signup purchases so they show on the receipt and feed
-    // the server-side total.
-    if (payload.holeSponsor && !payload.isSingle) {
+    // Hole sponsorship: +$100 for anyone; the -$15 twosome discount only for twosomes.
+    if (payload.holeSponsor) {
       const holeItem = findByTag('hole_sponsor')
-      const discountItem = findByTag('hole_sponsor_discount')
-      for (const item of [holeItem, discountItem]) {
-        if (item) {
+      if (holeItem) {
+        purchases.push({
+          catalog_item_id: holeItem.id, team_id: teamId, player_id: null,
+          quantity: 1, amount: holeItem.price, paid_status: 'unpaid', channel: 'signup',
+        })
+      }
+      if (!payload.isSingle) {
+        const discountItem = findByTag('hole_sponsor_discount')
+        if (discountItem) {
           purchases.push({
-            catalog_item_id: item.id, team_id: teamId, player_id: null,
-            quantity: 1, amount: item.price, paid_status: 'unpaid', channel: 'signup',
+            catalog_item_id: discountItem.id, team_id: teamId, player_id: null,
+            quantity: 1, amount: discountItem.price, paid_status: 'unpaid', channel: 'signup',
           })
         }
       }
