@@ -127,9 +127,15 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   // ropes and advantage cards — those get bought once by the full team after
   // pairing, so a solo buying one would create a duplicate.
   const HIDDEN_TAGS = ['ctp', 'ld', 'base', 'hole_sponsor', 'hole_sponsor_discount']
-  const otherAddons = items.filter(
-    i => !HIDDEN_TAGS.includes(i.tag ?? '') && (!single || i.per_person)
-  )
+  const otherAddons = items
+    .filter(i => !HIDDEN_TAGS.includes(i.tag ?? '') && (!single || i.per_person))
+    .sort((a, b) => {
+      const aRaffle = a.name.toLowerCase().includes('raffle')
+      const bRaffle = b.name.toLowerCase().includes('raffle')
+      if (aRaffle && !bRaffle) return 1
+      if (!aRaffle && bRaffle) return -1
+      return 0
+    })
 
   const addonTotal = otherAddons.reduce((s, i) => s + i.price * (addons[i.id] ?? 0), 0)
 

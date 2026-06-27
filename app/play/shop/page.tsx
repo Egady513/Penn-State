@@ -77,9 +77,15 @@ export default function ShopPage() {
   const challengeTotal = challenge ? challengePrices[challenge] : 0
 
   // ── Regular add-ons (exclude special tags + single-buys already owned) ──
-  const shopItems = allItems.filter(
-    i => !SKIP_TAGS.has(i.tag ?? '') && (i.allow_multiple || !ownedIds.has(i.id))
-  )
+  const shopItems = allItems
+    .filter(i => !SKIP_TAGS.has(i.tag ?? '') && (i.allow_multiple || !ownedIds.has(i.id)))
+    .sort((a, b) => {
+      const aR = a.name.toLowerCase().includes('raffle')
+      const bR = b.name.toLowerCase().includes('raffle')
+      if (aR && !bR) return 1
+      if (!aR && bR) return -1
+      return 0
+    })
   const selectedItems = shopItems.filter(i => (qtys[i.id] ?? 0) > 0)
   const itemsTotal = selectedItems.reduce((s, i) => s + i.price * (qtys[i.id] ?? 0), 0)
 
