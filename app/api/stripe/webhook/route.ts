@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
     const purchaseIds = session.metadata?.purchase_ids
       ? session.metadata.purchase_ids.split(',').filter(Boolean)
       : null
+    // owe-page "pay your balance" checkout
+    const settleBalance = session.metadata?.settle_balance === 'true'
 
     if (!teamId) {
       return NextResponse.json({ received: true, skipped: 'no team_id in metadata' })
@@ -56,7 +58,21 @@ export async function POST(req: NextRequest) {
     const supabase = createAdminClient()
     const paidCents = session.amount_total ?? 0
 
-    if (purchaseIds) {
+    if (settleBalance) {
+      // ── Owe-page balance settlement ────────────────────────────────────
+      // Amount was computed server-side at checkout time and stored in
+      // metadata; verify the collected amount covers it, then mark the
+      // team's unpaid mulligans + unpaid purchases paid.
+      const expectedCents = Number(session.metadata?.expected_total_cents ?? '0')
+      if (paidCents < expectedCents) {
+        console.error(`[stripe webhook] SETTLE MISMATCH team ${teamId}: ${paidCents}¢ < ${expectedCents}¢`)
+        return NextResponse.json({ received: true, error: 'amount mismatch', teamId }, { status: 200 })
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('mulligan') as any).update({ paid: true }).eq('team_id', teamId).eq('paid', false)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId).eq('paid_status', 'unpaid')
+    } else if (purchaseIds) {
       // ── Game-day purchase ──────────────────────────────────────────────
       // Verify collected amount matches the sum of the specific purchases.
       type PRow = { id: string; amount: number; quantity: number }

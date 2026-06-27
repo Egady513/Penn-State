@@ -36,7 +36,7 @@ BEGIN
     (item->>'quantity')::int,
     (item->>'amount')::numeric,
     'unpaid',
-    'game_day',
+    'during_round',   -- valid purchase_channel enum value for game-day buys
     NULL
   FROM jsonb_array_elements(p_items) AS item
   RETURNING purchase.id;

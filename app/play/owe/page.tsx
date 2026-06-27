@@ -5,6 +5,7 @@ import { PlayerShell } from '@/components/player/PlayerShell'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
 import { FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { SettleButton } from './SettleButton'
 
 type OweItem = {
   id: string
@@ -22,7 +23,7 @@ export default async function OwePage() {
 
   type RegRow      = { fee_amount: number; payment_status: string; payment_method: string | null }
   type PurchaseRow = { id: string; amount: number; paid_status: string; payment_method: string | null; catalog_item: { name: string } | null; quantity: number }
-  type MullRow     = { count: number }
+  type MullRow     = { count: number; paid: boolean }
 
   const [regRes, purchRes, mullRes] = await Promise.all([
     supabase
@@ -36,13 +37,16 @@ export default async function OwePage() {
       .eq('team_id', teamId),
     supabase
       .from('mulligan')
-      .select('count')
+      .select('count, paid')
       .eq('team_id', teamId),
   ])
 
   const registration = regRes.data    as RegRow | null
   const purchases    = purchRes.data  as PurchaseRow[] | null
-  const mulligans    = mullRes.data   as MullRow[] | null
+  // `paid` column may not exist before the migration runs — treat as unpaid.
+  const mulligans    = (mullRes.error ? [] : (mullRes.data ?? [])).map(
+    (m: { count: number; paid?: boolean }) => ({ count: m.count, paid: m.paid ?? false }),
+  ) as MullRow[]
 
   const items: OweItem[] = []
 
@@ -60,15 +64,14 @@ export default async function OwePage() {
     items.push({ id: 'reg', label: 'Registration · 2 golfers', total: 200, paid: true, via: 'Zeffy' })
   }
 
-  // Mulligans line
-  const mullTotal = mulligans?.reduce((a, m) => a + m.count, 0) ?? 0
-  if (mullTotal > 0) {
-    items.push({
-      id: 'mull',
-      label: `Mulligans · ${mullTotal} used`,
-      total: mullTotal * 2,
-      paid: false,
-    })
+  // Mulligan lines — split paid vs unpaid so a partial settlement reads right
+  const unpaidMull = mulligans.filter(m => !m.paid).reduce((a, m) => a + m.count, 0)
+  const paidMull   = mulligans.filter(m =>  m.paid).reduce((a, m) => a + m.count, 0)
+  if (unpaidMull > 0) {
+    items.push({ id: 'mull-u', label: `Mulligans · ${unpaidMull} used`, total: unpaidMull * 2, paid: false })
+  }
+  if (paidMull > 0) {
+    items.push({ id: 'mull-p', label: `Mulligans · ${paidMull} used`, total: paidMull * 2, paid: true })
   }
 
   // Purchase lines
@@ -105,9 +108,12 @@ export default async function OwePage() {
           ${paidTotal} already paid · {items.length} line items
         </div>
         {unpaidTotal > 0 && (
-          <div className={styles.settleNote}>
-            Settle at the registration tent or with Eddie.
-          </div>
+          <>
+            <div className={styles.settleNote}>
+              Pay now by card, or settle at the registration tent with Eddie.
+            </div>
+            <SettleButton teamId={teamId} amount={unpaidTotal} />
+          </>
         )}
       </div>
 

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { registerTeam } from '@/app/actions/register'
 import { createCheckoutSession } from '@/app/actions/checkout'
+import { uploadSponsorLogo } from '@/app/actions/upload-logo'
 import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 
@@ -473,21 +474,17 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     setSubmitError('')
                     setSubmitting(true)
 
-                    // Upload hole sponsor logo to Supabase storage (optional).
+                    // Upload hole sponsor logo via a server action (service-role,
+                    // bypasses storage RLS so it can't silently fail like the old
+                    // client-side upload did). Optional — a failure here must not
+                    // block the paid registration.
                     let logoUrl: string | undefined
                     if (holeSponsorActive && holeSponsorLogoFile) {
-                      try {
-                        const supabase = createClient()
-                        const ext = holeSponsorLogoFile.name.split('.').pop()?.toLowerCase() ?? 'png'
-                        const path = `${EVENT_ID}/sponsors/${Date.now()}.${ext}`
-                        const { error: upErr } = await supabase.storage
-                          .from('event-assets')
-                          .upload(path, holeSponsorLogoFile, { upsert: true })
-                        if (!upErr) {
-                          const { data: pub } = supabase.storage.from('event-assets').getPublicUrl(path)
-                          logoUrl = pub.publicUrl
-                        }
-                      } catch { /* logo is optional — swallow upload errors */ }
+                      const fd = new FormData()
+                      fd.append('file', holeSponsorLogoFile)
+                      const up = await uploadSponsorLogo(fd)
+                      if (up.url) logoUrl = up.url
+                      else console.error('Hole sponsor logo upload failed:', up.error)
                     }
 
                     const result = await registerTeam({

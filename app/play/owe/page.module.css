@@ -44,24 +44,38 @@
   font-weight: 600;
 }
 
-.zeffyBtn {
+.payBtn {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  width: 100%;
   margin-top: var(--space-3);
   height: var(--hit-tall);
+  border: none;
   border-radius: var(--radius-lg);
   background: var(--psu-navy);
   color: var(--psu-white);
   font-family: var(--font-sans);
   font-weight: 800;
   font-size: var(--fs-body-sm);
-  text-decoration: none;
   letter-spacing: 0.01em;
+  cursor: pointer;
   transition: background var(--dur-fast);
 }
 
-.zeffyBtn:hover { background: var(--psu-beaver); }
+.payBtn:not(:disabled):hover { background: var(--psu-beaver); }
+.payBtn:disabled { opacity: 0.65; cursor: default; }
+
+.payError {
+  margin-top: var(--space-2);
+  font-size: var(--fs-caption);
+  color: var(--score-bogey);
+  text-align: center;
+}
+
+.spinner { animation: spin 700ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .itemsSection {
   padding: 20px 16px;

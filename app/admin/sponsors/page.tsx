@@ -6,6 +6,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { createClient } from '@/lib/supabase/client';
+import { uploadSponsorLogo } from '@/app/actions/upload-logo';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
@@ -97,13 +98,12 @@ export default function SponsorsPage() {
   async function handleLogoUpload(i: number, file: File) {
     setUploadingIdx(i);
     setError('');
-    const supabase = createClient();
-    const ext = file.name.split('.').pop();
-    const path = `${EVENT_ID}/sponsors/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from('event-assets').upload(path, file, { upsert: true });
-    if (upErr) { setError('Logo upload failed: ' + upErr.message); setUploadingIdx(null); return; }
-    const { data: urlData } = supabase.storage.from('event-assets').getPublicUrl(path);
-    update(i, { logo_url: urlData.publicUrl });
+    // Server-side upload (service-role) so it can't be blocked by storage RLS.
+    const fd = new FormData();
+    fd.append('file', file);
+    const up = await uploadSponsorLogo(fd);
+    if (up.error || !up.url) { setError('Logo upload failed: ' + (up.error ?? 'unknown error')); setUploadingIdx(null); return; }
+    update(i, { logo_url: up.url });
     setUploadingIdx(null);
   }
 
