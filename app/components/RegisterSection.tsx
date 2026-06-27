@@ -67,6 +67,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [addons, setAddons] = useState<Record<string, number>>({})
   const [holeSponsor, setHoleSponsor] = useState(false)
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
+  const [challengeGolfer, setChallengeGolfer] = useState(0) // 0 = primary, 1 = second
   const [donation, setDonation] = useState('')
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
   const [holeSponsorName, setHoleSponsorName] = useState('')
@@ -306,7 +307,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                   <button
                     type="button"
                     className={`${styles.pill} ${challenge === 'individual' ? styles.pillActive : ''}`}
-                    onClick={() => setChallenge(c => (c === 'individual' ? null : 'individual'))}
+                    onClick={() => { setChallenge(c => (c === 'individual' ? null : 'individual')); setChallengeGolfer(0) }}
                   >
                     Individual <span className={styles.pillPrice}>${challengePrices.individual}</span>
                   </button>
@@ -320,6 +321,27 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     </button>
                   )}
                 </div>
+
+                {/* Golfer picker — only for individual on a 2-person team */}
+                {challenge === 'individual' && !single && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 6 }}>
+                      Who&apos;s entering?
+                    </div>
+                    <div className={styles.pillRow}>
+                      {golfers.slice(0, numGolfers).map((g, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`${styles.pill} ${challengeGolfer === i ? styles.pillActive : ''}`}
+                          onClick={() => setChallengeGolfer(i)}
+                        >
+                          {g.name.trim() || (i === 0 ? 'Primary contact' : `Golfer ${i + 1}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Hole sponsorship — twosomes only */}
@@ -506,6 +528,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                         .filter(i => (addons[i.id] ?? 0) > 0)
                         .map(i => ({ id: i.id, quantity: addons[i.id] })),
                       challenge,
+                      challengeGolferIndex: challenge === 'individual' ? challengeGolfer : 0,
                       donation: Number(donation) || 0,
                       holeSponsor: holeSponsorActive,
                       holeSponsorName: holeSponsorActive ? holeSponsorName.trim() : undefined,
@@ -564,7 +587,11 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
             </div>
             {challenge && (
               <div className={styles.summaryLine}>
-                <span>LD &amp; CTP Challenge ({challenge === 'individual' ? 'Individual' : 'Team'})</span>
+                <span>
+                  LD &amp; CTP Challenge · {challenge === 'team'
+                    ? 'Both golfers'
+                    : (golfers[challengeGolfer]?.name?.trim() || 'Primary contact')}
+                </span>
                 <span className={styles.summaryAmt}>${challengePrices[challenge]}</span>
               </div>
             )}

@@ -9,7 +9,7 @@ import { EVENT_ID } from '@/lib/eventId'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
 type Purchase = { id: string; label: string; amount: number; paid: boolean }
-type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number } }
+type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[] }
 type CatalogItem = { id: string; name: string; price: number }
 
 export default function CheckinPage() {
@@ -29,19 +29,21 @@ export default function CheckinPage() {
     const [teamsRes, playersRes, purchasesRes, catalogRes, mullRes] = await Promise.all([
       supabase.from('team').select('id, name, pin, payment_status').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at'),
-      supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id'),
-      supabase.from('catalog_item').select('id, name, price').eq('event_id', EVENT_ID).eq('active', true).order('name'),
+      supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id'),
+      supabase.from('catalog_item').select('id, name, price, tag').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
     const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string }[]
     const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
-    const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string }[]
-    const rawCatalog   = (catalogRes.data  ?? []) as CatalogItem[]
+    const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string; player_id: string | null }[]
+    const rawCatalog   = (catalogRes.data  ?? []) as (CatalogItem & { tag: string | null })[]
     const rawMulls     = (mullRes.error ? [] : (mullRes.data ?? [])) as { team_id: string; count: number; paid: boolean }[]
 
     const catalogById: Record<string, string> = {}
     rawCatalog.forEach(c => { catalogById[c.id] = c.name })
+
+    const ctpLdIds = new Set(rawCatalog.filter(c => c.tag === 'ctp' || c.tag === 'ld').map(c => c.id))
 
     setTeams(rawTeams.map(t => {
       const teamMulls = rawMulls.filter(m => m.team_id === t.id)
@@ -63,6 +65,12 @@ export default function CheckinPage() {
           unpaid: teamMulls.filter(m => !m.paid).reduce((s, m) => s + m.count, 0),
           paid:   teamMulls.filter(m =>  m.paid).reduce((s, m) => s + m.count, 0),
         },
+        challengeNames: (() => {
+          const challengePurchases = rawPurchases.filter(p => p.team_id === t.id && ctpLdIds.has(p.catalog_item_id) && p.paid_status === 'paid')
+          const uniquePlayerIds = [...new Set(challengePurchases.map(p => p.player_id).filter(Boolean) as string[])]
+          if (uniquePlayerIds.length > 0) return uniquePlayerIds.map(pid => rawPlayers.find(p => p.id === pid)?.name ?? 'Unknown')
+          return challengePurchases.length > 0 ? ['Whole team'] : []
+        })(),
       }
     }))
     setCatalog(rawCatalog)
@@ -223,6 +231,18 @@ export default function CheckinPage() {
                           >
                             {p.paid ? 'Paid ✓' : 'Mark paid'}
                           </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {team.challengeNames.length > 0 && (
+                    <div className={styles.addons}>
+                      <div className={styles.addonsLabel}>LD &amp; CTP Challenge</div>
+                      {team.challengeNames.map((name, i) => (
+                        <div key={i} className={styles.golferRow}>
+                          <span className={styles.golferName} style={{ fontSize: 14 }}>{name}</span>
+                          <span className={styles.golferStatus} style={{ color: 'var(--success)', fontWeight: 600 }}>Entered ✓</span>
                         </div>
                       ))}
                     </div>

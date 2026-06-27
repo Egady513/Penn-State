@@ -29,6 +29,8 @@ export interface RegisterPayload {
    *  null         = not entered
    */
   challenge: 'individual' | 'team' | null
+  /** For individual challenge entries: which golfer index (0 = primary, 1 = second). Ignored for team. */
+  challengeGolferIndex?: number
   /** Optional donation in dollars */
   donation: number
   /** Hole sponsorship ($100 + a $15 team discount). Twosomes only. */
@@ -178,7 +180,8 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     if (payload.challenge) {
       const ctp = findByTag('ctp')
       const ld = findByTag('ld')
-      const entered = payload.challenge === 'team' ? playerIds : playerIds.slice(0, 1)
+      const idx = Math.min(payload.challengeGolferIndex ?? 0, playerIds.length - 1)
+      const entered = payload.challenge === 'team' ? playerIds : playerIds.slice(idx, idx + 1)
       for (const pid of entered) {
         for (const item of [ctp, ld]) {
           if (item) {
