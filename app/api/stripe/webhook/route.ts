@@ -110,6 +110,27 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId)
 
+      // Auto-log greens fee expense: $75 per golfer, categorized for Revenue tab.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: teamData } = await (supabase.from('team') as any)
+          .select('single_golfer, event_id')
+          .eq('id', teamId)
+          .maybeSingle()
+        if (teamData) {
+          const count = teamData.single_golfer ? 1 : 2
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('expense') as any).insert({
+            event_id:    teamData.event_id,
+            description: `Greens fees — ${count === 1 ? 'single golfer' : 'team of 2'}`,
+            amount:      count * 75,
+            category:    'greens_fees',
+          })
+        }
+      } catch (err) {
+        console.error(`[webhook] greens fee expense insert failed for team ${teamId}:`, err)
+      }
+
       // If this team bought a hole sponsorship, auto-list them on the public
       // sponsors page using their chosen display name (hole_sponsor_name).
       await maybeCreateHoleSponsor(supabase, teamId)
