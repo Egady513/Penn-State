@@ -3,6 +3,16 @@
 .title { font-family: var(--font-display); font-size: 28px; font-weight: 800; margin: 0 0 4px; }
 .sub   { font-size: 14px; color: var(--fg-muted); margin: 0 0 var(--space-6); }
 
+.errorBar {
+  background: #FDECEC;
+  border: 1px solid #F5C2C2;
+  color: #C0392B;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: var(--space-4);
+}
+
 .composer {
   background: var(--bg);
   border: 1px solid var(--border);

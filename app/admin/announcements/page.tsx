@@ -1,65 +1,89 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Pin, Send, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { createClient } from '@/lib/supabase/client'
+import { EVENT_ID } from '@/lib/eventId'
 import styles from './page.module.css'
 
 interface Announcement {
   id: string
   message: string
-  postedAt: string
+  posted_at: string
   pinned: boolean
 }
 
-const INITIAL: Announcement[] = [
-  {
-    id: 'a1',
-    message: 'Welcome to Drive Out Hunger Golf Outing! Check-in is open at the main tent.',
-    postedAt: '8:02 AM',
-    pinned: true,
-  },
-  {
-    id: 'a2',
-    message: 'Shotgun start in 15 minutes. Please head to your starting hole.',
-    postedAt: '8:45 AM',
-    pinned: false,
-  },
-]
-
 export default function AnnouncementsPage() {
-  const [items, setItems] = useState<Announcement[]>(INITIAL)
+  const [items, setItems] = useState<Announcement[]>([])
   const [draft, setDraft] = useState('')
   const [shouldPin, setShouldPin] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-  function handlePost() {
-    if (!draft.trim()) return
-    const newItem: Announcement = {
-      id: String(Date.now()),
-      message: draft.trim(),
-      postedAt: new Date().toLocaleTimeString('en-US'),
-      pinned: shouldPin,
-    }
-    setItems((prev) => [newItem, ...prev])
+  async function load() {
+    const supabase = createClient()
+    const { data, error: loadErr } = await supabase
+      .from('announcement')
+      .select('id, message, pinned, posted_at')
+      .eq('event_id', EVENT_ID)
+      .order('posted_at', { ascending: false })
+    if (loadErr) setError(loadErr.message)
+    setItems((data ?? []) as Announcement[])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handlePost() {
+    const message = draft.trim()
+    if (!message || busy) return
+    setBusy(true)
+    setError('')
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: postErr } = await (supabase.rpc as any)('post_announcement', {
+      p_event_id: EVENT_ID, p_message: message, p_pinned: shouldPin,
+    })
+    setBusy(false)
+    if (postErr) { setError(postErr.message); return }
     setDraft('')
     setShouldPin(false)
+    load()
   }
 
-  function handleDelete(id: string) {
-    setItems((prev) => prev.filter((a) => a.id !== id))
+  async function handleDelete(id: string) {
+    setError('')
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: delErr } = await (supabase.rpc as any)('delete_announcement', { p_id: id })
+    if (delErr) { setError(delErr.message); return }
+    setItems(prev => prev.filter(a => a.id !== id))
   }
 
-  function handleTogglePin(id: string) {
-    setItems((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, pinned: !a.pinned } : a))
-    )
+  async function handleTogglePin(id: string, pinned: boolean) {
+    setError('')
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: pinErr } = await (supabase.rpc as any)('set_announcement_pinned', { p_id: id, p_pinned: !pinned })
+    if (pinErr) { setError(pinErr.message); return }
+    setItems(prev => prev.map(a => (a.id === id ? { ...a, pinned: !pinned } : a)))
   }
+
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Announcements</h1>
-      <p className={styles.sub}>Post a message that appears as a banner in the player app.</p>
+      <p className={styles.sub}>
+        Post a message that appears as a banner in the player app. Only a <strong>pinned</strong> message
+        shows on players&apos; home screens, so pin the one you want everyone to see.
+      </p>
+
+      {error && <div className={styles.errorBar}>{error}</div>}
 
       <div className={styles.composer}>
         <div className={styles.composerHeader}>
@@ -82,8 +106,8 @@ export default function AnnouncementsPage() {
             />
             Pin to top of player app
           </label>
-          <Button onClick={handlePost} disabled={!draft.trim()}>
-            <Send size={16} /> Post announcement
+          <Button onClick={handlePost} disabled={!draft.trim() || busy}>
+            <Send size={16} /> {busy ? 'Posting…' : 'Post announcement'}
           </Button>
         </div>
       </div>
@@ -91,7 +115,8 @@ export default function AnnouncementsPage() {
       <div className={styles.listHeader}>Posted</div>
 
       <div className={styles.list}>
-        {items.length === 0 && (
+        {loading && <div className={styles.empty}>Loading…</div>}
+        {!loading && items.length === 0 && (
           <div className={styles.empty}>No announcements yet.</div>
         )}
         {items.map((item) => (
@@ -100,7 +125,7 @@ export default function AnnouncementsPage() {
             <div className={styles.itemBody}>
               <div className={styles.itemMessage}>{item.message}</div>
               <div className={styles.itemMeta}>
-                <span className={styles.itemTime}>{item.postedAt}</span>
+                <span className={styles.itemTime}>{fmtTime(item.posted_at)}</span>
                 {item.pinned && (
                   <Badge tone="info" size="sm">
                     <Pin size={10} /> Pinned
@@ -111,7 +136,7 @@ export default function AnnouncementsPage() {
             <div className={styles.itemActions}>
               <button
                 className={styles.actionBtn}
-                onClick={() => handleTogglePin(item.id)}
+                onClick={() => handleTogglePin(item.id, item.pinned)}
                 title={item.pinned ? 'Unpin' : 'Pin'}
               >
                 <Pin size={15} />

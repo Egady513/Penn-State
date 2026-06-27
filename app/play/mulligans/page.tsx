@@ -46,9 +46,11 @@ export default function MulligansPage() {
 
     // Persist to Supabase
     if (clamped > 0) {
+      // Reset paid=false on any change so mulligans added after a card
+      // settlement get re-billed (the webhook only marks existing unpaid ones).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase.from('mulligan') as any).upsert(
-        { team_id: teamId, hole_number: hole, count: clamped },
+        { team_id: teamId, hole_number: hole, count: clamped, paid: false },
         { onConflict: 'team_id,hole_number' }
       )
     } else {

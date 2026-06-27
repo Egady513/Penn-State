@@ -99,7 +99,6 @@ export default async function LeaderboardPage() {
                     <span className={styles.teamName}>{t.name}</span>
                     {isYou && <Badge tone="pugh" size="sm">YOU</Badge>}
                   </div>
-                  <div className={styles.players}>thru {t.thru}</div>
                 </div>
                 <div className={styles.thru}>thru {t.thru}</div>
                 <div

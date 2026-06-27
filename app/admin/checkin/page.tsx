@@ -21,6 +21,7 @@ export default function CheckinPage() {
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState('')
   const [busyPurchase, setBusyPurchase] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
 
   async function load() {
     const supabase = createClient()
@@ -61,6 +62,7 @@ export default function CheckinPage() {
   useEffect(() => { load() }, [])
 
   async function toggleArrived(teamId: string, golferId: string, arrived: boolean) {
+    setActionError('')
     setTeams(prev => prev.map(t =>
       t.id === teamId
         ? { ...t, golfers: t.golfers.map(g => g.id === golferId ? { ...g, arrived: !arrived } : g) }
@@ -68,10 +70,13 @@ export default function CheckinPage() {
     ))
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)('set_player_arrived', { p_player_id: golferId, p_arrived: !arrived })
+    const { error } = await (supabase.rpc as any)('set_player_arrived', { p_player_id: golferId, p_arrived: !arrived })
+    // On failure, re-load from the DB so the UI can't show a state that didn't save.
+    if (error) { setActionError(`Couldn't update arrival: ${error.message}`); load() }
   }
 
   async function togglePurchasePaid(teamId: string, purchaseId: string, paid: boolean) {
+    setActionError('')
     setBusyPurchase(purchaseId)
     setTeams(prev => prev.map(t =>
       t.id === teamId
@@ -80,15 +85,18 @@ export default function CheckinPage() {
     ))
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid })
+    const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid })
     setBusyPurchase(null)
+    if (error) { setActionError(`Couldn't update payment: ${error.message}`); load() }
   }
 
   async function addItem(teamId: string) {
     if (!selectedItem) return
+    setActionError('')
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)('add_checkin_purchase', { p_team_id: teamId, p_catalog_item_id: selectedItem })
+    const { error } = await (supabase.rpc as any)('add_checkin_purchase', { p_team_id: teamId, p_catalog_item_id: selectedItem })
+    if (error) { setActionError(`Couldn't add item: ${error.message}`); return }
     setAddingTo(null)
     setSelectedItem('')
     load()
@@ -112,6 +120,8 @@ export default function CheckinPage() {
           </p>
         </div>
       </div>
+
+      {actionError && <div className={styles.actionError}>{actionError}</div>}
 
       <div className={styles.searchWrap}>
         <Search size={18} className={styles.searchIcon} />

@@ -34,14 +34,14 @@ export default function ScorecardPage() {
         supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
-        supabase.from('sponsor').select('name, amount, hole_id').eq('event_id', EVENT_ID).not('hole_id', 'is', null),
+        supabase.from('sponsor').select('name, amount, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
         supabase.from('purchase').select('catalog_item:catalog_item_id(name)').eq('team_id', teamId),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
-      const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_id: string | null }[] | null
+      const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null }[] | null
       const purchRows   = purchRes.data   as { catalog_item: { name: string } | null }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
@@ -58,22 +58,11 @@ export default function ScorecardPage() {
       const mullMap: Record<number, number> = {}
       mullRows?.forEach(m => { mullMap[m.hole_number] = m.count })
 
-      // Build hole_id → hole_number map to join sponsors
-      const holeIdToNum: Record<string, number> = {}
-      holeRows?.forEach(h => { if ((h as any).id) holeIdToNum[(h as any).id] = h.number })
-
-      // Re-fetch holes with id for sponsor join
-      const holesWithIdRes = await supabase
-        .from('hole')
-        .select('id, number')
-        .eq('event_id', EVENT_ID)
-      const holesWithId = holesWithIdRes.data as { id: string; number: number }[] | null
-      holesWithId?.forEach(h => { holeIdToNum[h.id] = h.number })
-
+      // Sponsors are assigned to a hole by hole_number (set on the admin
+      // Sponsors page). Map them directly — no hole_id join needed.
       const sponsMap: SponsorMap = {}
       sponsorRows?.forEach(s => {
-        const num = holeIdToNum[s.hole_id!]
-        if (num) sponsMap[num] = { name: s.name, amount: s.amount }
+        if (s.hole_number) sponsMap[s.hole_number] = { name: s.name, amount: s.amount }
       })
 
       // Build contest entry flags from purchases

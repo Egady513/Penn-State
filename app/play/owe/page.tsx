@@ -21,14 +21,14 @@ export default async function OwePage() {
 
   const supabase = await createClient()
 
-  type RegRow      = { fee_amount: number; payment_status: string; payment_method: string | null }
+  type RegRow      = { fee_amount: number; donation_amount: number | null; payment_status: string; payment_method: string | null }
   type PurchaseRow = { id: string; amount: number; paid_status: string; payment_method: string | null; catalog_item: { name: string } | null; quantity: number }
   type MullRow     = { count: number; paid: boolean }
 
   const [regRes, purchRes, mullRes] = await Promise.all([
     supabase
       .from('registration')
-      .select('fee_amount, payment_status, payment_method')
+      .select('fee_amount, donation_amount, payment_status, payment_method')
       .eq('team_id', teamId)
       .maybeSingle(),
     supabase
@@ -50,18 +50,26 @@ export default async function OwePage() {
 
   const items: OweItem[] = []
 
-  // Registration line
+  // Registration line (+ a separate donation line if they gave one). No
+  // fabricated fallback — if there's no registration row, we show no line
+  // rather than inventing a paid amount.
   if (registration) {
+    const regPaid = registration.payment_status === 'paid'
     items.push({
       id: 'reg',
       label: `Registration · ${registration.fee_amount === 100 ? '1 golfer' : '2 golfers'}`,
       total: registration.fee_amount,
-      paid: registration.payment_status === 'paid',
+      paid: regPaid,
       via: registration.payment_method ?? undefined,
     })
-  } else {
-    // Fallback if no registration row (shouldn't happen with seed data)
-    items.push({ id: 'reg', label: 'Registration · 2 golfers', total: 200, paid: true, via: 'Zeffy' })
+    if ((registration.donation_amount ?? 0) > 0) {
+      items.push({
+        id: 'donation',
+        label: 'Donation to Last Mile Food Rescue',
+        total: Number(registration.donation_amount),
+        paid: regPaid,
+      })
+    }
   }
 
   // Mulligan lines — split paid vs unpaid so a partial settlement reads right
