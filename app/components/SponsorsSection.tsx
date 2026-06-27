@@ -89,8 +89,11 @@ export const SponsorsSection = forwardRef<HTMLElement, SponsorsSectionProps>(fun
               {g.sponsors.map(s => (
                 <div key={s.id} data-testid="sponsor-card">
                   {s.logo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.logo_url} alt={s.name} className={styles.sponsorImg} title={s.name} />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.logo_url} alt={s.name} className={styles.sponsorImg} title={s.name} />
+                      <div className={styles.sponsorName}>{s.name}</div>
+                    </>
                   ) : (
                     <SponsorLogo name={s.name} size="md" />
                   )}

@@ -8,11 +8,13 @@ import { createClient } from '@/lib/supabase/client'
 import { loginWithPin } from './actions'
 import { EVENT_ID } from '@/lib/eventId'
 
-type Team = { id: string; name: string }
+type Team = { id: string; name: string; pin: string }
+type PlayerOpt = { id: string; name: string; team_id: string }
 
 export default function PlayerEntryPage() {
   const router = useRouter()
   const [teams, setTeams] = useState<Team[]>([])
+  const [players, setPlayers] = useState<PlayerOpt[]>([])
   const [team, setTeam] = useState('')
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
@@ -20,19 +22,27 @@ export default function PlayerEntryPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase
-      .from('team')
-      .select('id, name')
-      .eq('event_id', EVENT_ID)
-      .order('name')
-      .then(({ data }) => {
-        const rows = data as Team[] | null
-        if (rows && rows.length > 0) {
-          setTeams(rows)
-          setTeam(rows[0].id)
-        }
-      })
+    Promise.all([
+      supabase.from('team').select('id, name, pin').eq('event_id', EVENT_ID).order('name'),
+      supabase.from('player').select('id, name, team_id'),
+    ]).then(([teamsRes, playersRes]) => {
+      const rows = (teamsRes.data ?? []) as Team[]
+      const pls = (playersRes.data ?? []) as PlayerOpt[]
+      setPlayers([...pls].sort((a, b) => a.name.localeCompare(b.name)))
+      if (rows.length > 0) {
+        setTeams(rows)
+        setTeam(rows[0].id)
+        setPin(rows[0].pin ?? '')
+      }
+    })
   }, [])
+
+  // Selecting a team — directly or via a player's name — fills in its PIN.
+  function selectTeam(teamId: string, teamList: Team[] = teams) {
+    setTeam(teamId)
+    setPin(teamList.find(t => t.id === teamId)?.pin ?? '')
+    setError('')
+  }
 
   const allFilled = pin.length === 4
 
@@ -63,12 +73,29 @@ export default function PlayerEntryPage() {
       <label className={styles.fieldLabel}>Pick your team</label>
       <select
         value={team}
-        onChange={e => setTeam(e.target.value)}
+        onChange={e => selectTeam(e.target.value)}
         className={styles.teamSelect}
       >
         {teams.map(t => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
+      </select>
+
+      <label className={styles.fieldLabel} style={{ marginTop: 16 }}>…or find your team by your name</label>
+      <select
+        value=""
+        onChange={e => { if (e.target.value) selectTeam(e.target.value) }}
+        className={styles.teamSelect}
+      >
+        <option value="">Select your name…</option>
+        {players.map(p => {
+          const tname = teams.find(t => t.id === p.team_id)?.name
+          return (
+            <option key={p.id} value={p.team_id}>
+              {p.name}{tname ? ` — ${tname}` : ''}
+            </option>
+          )
+        })}
       </select>
 
       <label className={styles.fieldLabel} style={{ marginTop: 22 }}>Team PIN</label>
@@ -89,7 +116,7 @@ export default function PlayerEntryPage() {
         <div className={styles.pinHint} style={{ color: 'var(--score-bogey)' }}>{error}</div>
       ) : (
         <div className={styles.pinHint}>
-          From your registration confirmation. Try <span className={styles.pinSample}>4821</span>.
+          Filled in for your team — or type the 4-digit PIN from your confirmation email.
         </div>
       )}
 

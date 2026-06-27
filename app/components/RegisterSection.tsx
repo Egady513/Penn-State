@@ -162,9 +162,11 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
     const missing: string[] = []
     if (!teamName.trim()) missing.push('Team name')
     golfers.slice(0, numGolfers).forEach((g, i) => {
-      const who = single ? 'Golfer' : `Golfer ${i + 1}`
+      const who = single ? 'Golfer' : (i === 0 ? 'Primary contact' : `Golfer ${i + 1}`)
       if (!g.name.trim()) missing.push(`${who} name`)
       if (!g.email.trim()) missing.push(`${who} email`)
+      // The primary contact's phone is required so we can reach the team.
+      if (i === 0 && !g.phone.trim()) missing.push(`${who} phone`)
     })
     setStep1Error(missing)
     if (missing.length > 0) return
@@ -234,7 +236,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                 <div key={i} className={styles.golferBlock}>
                   <div className={styles.golferLabel}>
                     <div className={styles.golferNum}>{i + 1}</div>
-                    <span className={styles.golferTitle}>{single ? 'Golfer' : `Golfer ${i + 1}`}</span>
+                    <span className={styles.golferTitle}>
+                      {single ? 'Golfer' : (i === 0 ? 'Golfer 1 · Primary contact' : `Golfer ${i + 1}`)}
+                    </span>
                   </div>
                   <div className={styles.golferFields}>
                     <Field label="Full name" required>
@@ -245,7 +249,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       <Input type="email" placeholder="jane@example.com" value={g.email}
                         onChange={e => setGolfer(i, { email: e.target.value })} />
                     </Field>
-                    <Field label="Phone">
+                    <Field label="Phone" required={i === 0} hint={i === 0 ? 'We\'ll use this to reach your team' : undefined}>
                       <Input type="tel" placeholder="(513) 555-0100" value={g.phone}
                         onChange={e => setGolfer(i, { phone: e.target.value })} />
                     </Field>

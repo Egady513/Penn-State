@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
-type PlayerInfo = { id: string; name: string; skill: string | null; email: string | null; dietary: string | null };
+type PlayerInfo = { id: string; name: string; skill: string | null; email: string | null; dietary: string | null; phone: string | null };
 type Row = {
   id: string;
   name: string;
@@ -21,12 +21,25 @@ type Row = {
   pairing: string;
   startHole: string;
   single_golfer: boolean;
+  holeSponsorName: string | null;
 };
 
 export default function RegistrationsPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+
+  async function deleteTeam(id: string, name: string) {
+    if (!confirm(`Delete "${name}"?\n\nThis permanently removes the team, its golfers, and any purchases. Use this for abandoned / never-paid registrations. This cannot be undone.`)) return;
+    setBusy(id);
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('delete_team', { p_team_id: id });
+    setBusy(null);
+    if (error) { alert('Could not delete: ' + error.message); return; }
+    setRows((prev) => prev.filter((r) => r.id !== id));
+  }
 
   // Email inline edit
   const [editingEmail, setEditingEmail] = useState<string | null>(null); // player id
@@ -53,13 +66,13 @@ export default function RegistrationsPage() {
   async function load() {
     const supabase = createClient();
     const [teamsRes, playersRes, regsRes] = await Promise.all([
-      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer').eq('event_id', EVENT_ID).order('created_at'),
-      supabase.from('player').select('id, team_id, name, skill_level, email, dietary_notes'),
+      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer, hole_sponsor_name').eq('event_id', EVENT_ID).order('created_at'),
+      supabase.from('player').select('id, team_id, name, skill_level, email, dietary_notes, phone'),
       supabase.from('registration').select('team_id, payment_method, donation_amount'),
     ]);
 
-    const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean }[];
-    const players = (playersRes.data ?? []) as { id: string; team_id: string; name: string; skill_level: string | null; email: string | null; dietary_notes: string | null }[];
+    const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean; hole_sponsor_name: string | null }[];
+    const players = (playersRes.data ?? []) as { id: string; team_id: string; name: string; skill_level: string | null; email: string | null; dietary_notes: string | null; phone: string | null }[];
     const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null; donation_amount: number | null }[];
 
     setRows(
@@ -70,10 +83,11 @@ export default function RegistrationsPage() {
         paid: t.payment_status === 'paid',
         method: regs.find((r) => r.team_id === t.id)?.payment_method ?? null,
         donation: Number(regs.find((r) => r.team_id === t.id)?.donation_amount ?? 0),
-        players: players.filter((p) => p.team_id === t.id).map((p) => ({ id: p.id, name: p.name, skill: p.skill_level, email: p.email ?? null, dietary: p.dietary_notes ?? null })),
+        players: players.filter((p) => p.team_id === t.id).map((p) => ({ id: p.id, name: p.name, skill: p.skill_level, email: p.email ?? null, dietary: p.dietary_notes ?? null, phone: p.phone ?? null })),
         pairing: t.pairing ?? '',
         startHole: t.start_hole != null ? String(t.start_hole) : '',
         single_golfer: t.single_golfer ?? false,
+        holeSponsorName: t.hole_sponsor_name ?? null,
       }))
     );
     setLoading(false);
@@ -121,6 +135,7 @@ export default function RegistrationsPage() {
   const solos = rows.filter(r => r.single_golfer);
   const paid = rows.filter((r) => r.paid).length;
   const unpaid = rows.length - paid;
+  const visibleRows = rows.filter((r) => filter === 'all' || (filter === 'paid' ? r.paid : !r.paid));
 
   return (
     <div>
@@ -144,6 +159,19 @@ export default function RegistrationsPage() {
           {unpaid > 0 && <AdminPill tone="unpaid">{unpaid} unpaid</AdminPill>}
         </div>
 
+        <div className={styles.filterRow}>
+          {(['all', 'paid', 'unpaid'] as const).map((f) => (
+            <button
+              key={f}
+              className={`${styles.filterBtn} ${filter === f ? styles.filterBtnOn : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === 'all' ? 'All' : f === 'paid' ? 'Paid' : 'Unpaid'}
+              {f === 'unpaid' && unpaid > 0 ? ` (${unpaid})` : ''}
+            </button>
+          ))}
+        </div>
+
         <p className={styles.hint}>
           Type a <strong>Pairing</strong> label (e.g. A, B, 1) to group teams that play
           together, and a <strong>Hole</strong> if you have placements. Both save automatically.
@@ -152,10 +180,10 @@ export default function RegistrationsPage() {
         <AdminCard padding={0}>
           {loading ? (
             <div className={styles.loadingRow}>Loading teams…</div>
-          ) : rows.length === 0 ? (
-            <div className={styles.loadingRow}>No teams registered yet.</div>
+          ) : visibleRows.length === 0 ? (
+            <div className={styles.loadingRow}>{rows.length === 0 ? 'No teams registered yet.' : `No ${filter} teams.`}</div>
           ) : (
-            rows.map((team, i) => (
+            visibleRows.map((team, i) => (
               <div key={team.id} className={`${styles.row} ${i === 0 ? styles.rowFirst : ''} ${team.single_golfer ? styles.rowSolo : ''}`}>
                 {/* Team + both golfers */}
                 <div className={styles.teamCol}>
@@ -189,6 +217,9 @@ export default function RegistrationsPage() {
                           <button className={styles.emailEditBtn} title="Edit email" onClick={() => { setEditingEmail(p.id); setEmailDraft(p.email ?? ''); }}>✎</button>
                         </div>
                       )}
+                      {p.phone && (
+                        <div className={styles.phoneRow}>{j === 0 && <span className={styles.primaryTag}>Primary</span>}{p.phone}</div>
+                      )}
                       {p.dietary && (
                         <div className={styles.dietaryTag} title="Dietary needs">🍽 {p.dietary}</div>
                       )}
@@ -197,6 +228,11 @@ export default function RegistrationsPage() {
                   {team.pin && (
                     <div className={styles.pinRow}>
                       PIN <span className={styles.pinCode}>{team.pin}</span>
+                    </div>
+                  )}
+                  {team.holeSponsorName && (
+                    <div className={styles.holeSponsorBadge} title="This team sponsored a hole">
+                      ⛳ Hole sponsor: {team.holeSponsorName}
                     </div>
                   )}
                   {team.donation > 0 && (
@@ -246,6 +282,14 @@ export default function RegistrationsPage() {
                   >
                     {team.paid ? 'Mark unpaid' : 'Mark paid'}
                   </Button>
+                  <button
+                    className={styles.deleteTeamBtn}
+                    title="Delete team"
+                    onClick={() => deleteTeam(team.id, team.name)}
+                    disabled={busy === team.id}
+                  >
+                    🗑
+                  </button>
                 </div>
               </div>
             ))

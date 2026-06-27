@@ -183,6 +183,74 @@
   color: var(--fg-muted);
 }
 
+.filterRow {
+  display: flex;
+  gap: 6px;
+}
+
+.filterBtn {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.filterBtnOn {
+  background: var(--psu-navy);
+  border-color: var(--psu-navy);
+  color: #fff;
+}
+
+.phoneRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.primaryTag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--psu-beaver);
+  background: var(--psu-pugh-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.holeSponsorBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5B3A00;
+  background: #FCEFD6;
+  border: 1px solid #E8C98F;
+  padding: 2px 7px;
+  border-radius: 5px;
+  margin-top: 5px;
+  width: fit-content;
+}
+
+.deleteTeamBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  opacity: 0.45;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.deleteTeamBtn:hover { opacity: 1; background: #FDECEC; }
+.deleteTeamBtn:disabled { opacity: 0.2; cursor: default; }
+
 .dietaryTag {
   display: inline-block;
   font-size: 11px;
