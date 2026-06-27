@@ -36,7 +36,7 @@ export default function OwePage() {
       <div className={sheet.head}>
         <div>
           <h1 className={sheet.title}>Who owes what</h1>
-          <p className={sheet.sub}>Outstanding balances to settle at the tent · {rows.length} team{rows.length === 1 ? '' : 's'}</p>
+          <p className={sheet.sub}>End-of-round settlement — make sure everyone&apos;s paid up · {rows.length} team{rows.length === 1 ? ' still owes' : 's still owe'}</p>
         </div>
         <button className={sheet.printBtn} onClick={() => window.print()}>Print</button>
       </div>
