@@ -10,7 +10,7 @@ import { EVENT_ID } from '@/lib/eventId'
 type Golfer   = { id: string; name: string; arrived: boolean }
 type Purchase = { id: string; label: string; amount: number; paid: boolean }
 type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
-type CatalogItem = { id: string; name: string; price: number }
+type CatalogItem = { id: string; name: string; price: number; tag: string | null }
 
 export default function CheckinPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -22,6 +22,7 @@ export default function CheckinPage() {
   const [selectedItem, setSelectedItem] = useState('')
   const [busyPurchase, setBusyPurchase] = useState<string | null>(null)
   const [busyMulls, setBusyMulls] = useState<string | null>(null)
+  const [busyChallenge, setBusyChallenge] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
 
   async function load() {
@@ -78,7 +79,7 @@ export default function CheckinPage() {
           .map(p => ({ name: catalogById[p.catalog_item_id] ?? 'Raffle tickets', qty: Number(p.quantity) || 1 })),
       }
     }))
-    setCatalog(rawCatalog)
+    setCatalog(rawCatalog as CatalogItem[])
     setLoading(false)
   }
 
@@ -137,6 +138,26 @@ export default function CheckinPage() {
     if (error) { setActionError(`Couldn't add item: ${error.message}`); return }
     setAddingTo(null)
     setSelectedItem('')
+    load()
+  }
+
+  async function addChallenge(teamId: string, type: 'individual' | 'team') {
+    const ctpItem = catalog.find(c => c.tag === 'ctp')
+    const ldItem  = catalog.find(c => c.tag === 'ld')
+    if (!ctpItem || !ldItem) { setActionError('Challenge catalog items not found.'); return }
+    setBusyChallenge(teamId)
+    setActionError('')
+    const supabase = createClient()
+    const entries = type === 'team' ? 2 : 1
+    for (let i = 0; i < entries; i++) {
+      for (const item of [ctpItem, ldItem]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.rpc as any)('add_checkin_purchase', { p_team_id: teamId, p_catalog_item_id: item.id })
+        if (error) { setActionError(`Couldn't add challenge: ${error.message}`); setBusyChallenge(null); return }
+      }
+    }
+    setBusyChallenge(null)
+    setAddingTo(null)
     load()
   }
 
@@ -337,20 +358,47 @@ export default function CheckinPage() {
                   )}
 
                   {isAdding ? (
-                    <div className={styles.addItemRow}>
-                      <select
-                        className={styles.addItemSelect}
-                        value={selectedItem}
-                        onChange={e => setSelectedItem(e.target.value)}
-                        autoFocus
-                      >
-                        <option value="">— Select item —</option>
-                        {catalog.map(c => (
-                          <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
-                        ))}
-                      </select>
-                      <button className={styles.addBtn} onClick={() => addItem(team.id)} disabled={!selectedItem}>Add</button>
-                      <button className={styles.cancelAddBtn} onClick={() => { setAddingTo(null); setSelectedItem(''); }}>Cancel</button>
+                    <div>
+                      {/* Challenge shortcut — adds both CTP + LD at once */}
+                      {catalog.some(c => c.tag === 'ctp') && (
+                        <div className={styles.addItemRow} style={{ marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>LD &amp; CTP:</span>
+                          <button
+                            className={styles.addBtn}
+                            onClick={() => addChallenge(team.id, 'individual')}
+                            disabled={busyChallenge === team.id}
+                            style={{ flex: 1 }}
+                          >
+                            {busyChallenge === team.id ? '…' : `Individual · $${(catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)}`}
+                          </button>
+                          {team.golfers.length > 1 && (
+                            <button
+                              className={styles.addBtn}
+                              onClick={() => addChallenge(team.id, 'team')}
+                              disabled={busyChallenge === team.id}
+                              style={{ flex: 1 }}
+                            >
+                              {busyChallenge === team.id ? '…' : `Both golfers · $${((catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)) * 2}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {/* Regular items — CTP/LD excluded (handled above) */}
+                      <div className={styles.addItemRow}>
+                        <select
+                          className={styles.addItemSelect}
+                          value={selectedItem}
+                          onChange={e => setSelectedItem(e.target.value)}
+                          autoFocus
+                        >
+                          <option value="">— Other item —</option>
+                          {catalog.filter(c => c.tag !== 'ctp' && c.tag !== 'ld').map(c => (
+                            <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
+                          ))}
+                        </select>
+                        <button className={styles.addBtn} onClick={() => addItem(team.id)} disabled={!selectedItem}>Add</button>
+                        <button className={styles.cancelAddBtn} onClick={() => { setAddingTo(null); setSelectedItem(''); }}>Cancel</button>
+                      </div>
                     </div>
                   ) : (
                     <button className={styles.addItemTrigger} onClick={() => { setAddingTo(team.id); setSelectedItem(''); }}>
