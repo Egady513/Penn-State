@@ -18,6 +18,7 @@ const EVENT_DATE = new Date('2026-08-30');
 
 type RecentTeam = { id: string; name: string; payment_status: string; created_at: string };
 type SoloGolfer = { teamId: string; teamName: string; pairing: string | null; playerName: string; email: string; paid: boolean };
+type Participant = { key: string; name: string; teamName: string; ctp: boolean; ld: boolean };
 type Stats = {
   teamsRegistered: number;
   teamsPaid: number;
@@ -32,6 +33,7 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentTeam[]>([]);
   const [solos, setSolos] = useState<SoloGolfer[]>([]);
+  const [challenge, setChallenge] = useState<Participant[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -47,7 +49,9 @@ export default function AdminOverviewPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('total_raised'),
       supabase.from('team').select('id, pairing').eq('event_id', EVENT_ID).eq('single_golfer', true),
-    ]).then(async ([teamsRes, sponsorsRes, raisedRes, soloTeamsRes]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('challenge_participants'),
+    ]).then(async ([teamsRes, sponsorsRes, raisedRes, soloTeamsRes, challengeRes]) => {
       const teams    = (teamsRes.data    ?? []) as { id: string; name: string; payment_status: string; created_at: string; single_golfer: boolean; pairing: string | null }[];
       const sponsors = (sponsorsRes.data ?? []) as { id: string; amount: number }[];
       const soloTeams = (soloTeamsRes.data ?? []) as { id: string; pairing: string | null }[];
@@ -66,6 +70,20 @@ export default function AdminOverviewPage() {
         daysOut,
       });
       setRecent(teams.slice(0, 5));
+
+      // LD & CTP challenge participants (paid entries, grouped per golfer/team)
+      const rawChallenge = ((challengeRes as { data: { player_name: string; team_name: string; contest: string }[] | null }).data) ?? [];
+      const partMap = new Map<string, Participant>();
+      for (const r of rawChallenge) {
+        const key = `${r.team_name}|${r.player_name}`;
+        const existing = partMap.get(key) ?? { key, name: r.player_name, teamName: r.team_name, ctp: false, ld: false };
+        if (r.contest === 'ctp') existing.ctp = true;
+        if (r.contest === 'ld') existing.ld = true;
+        partMap.set(key, existing);
+      }
+      setChallenge(
+        Array.from(partMap.values()).sort((a, b) => a.teamName.localeCompare(b.teamName) || a.name.localeCompare(b.name))
+      );
 
       // Fetch players for solo teams
       if (soloTeams.length > 0) {
@@ -210,6 +228,24 @@ export default function AdminOverviewPage() {
                 <AdminPill tone={s.paid ? 'paid' : 'unpaid'}>
                   {s.paid ? 'Paid' : 'Unpaid'}
                 </AdminPill>
+              </div>
+            ))}
+          </AdminCard>
+        )}
+
+        {/* ── LD & CTP Challenge participants ───────────────────── */}
+        {challenge.length > 0 && (
+          <AdminCard title={`LD & CTP Challenge · ${challenge.length} entered`} padding={0}>
+            {challenge.map((p, i) => (
+              <div key={p.key} className={`${styles.soloRow} ${i === 0 ? styles.soloRowFirst : ''}`}>
+                <div className={styles.soloInfo}>
+                  <div className={styles.soloName}>{p.name}</div>
+                  <div className={styles.soloMeta}>{p.teamName}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {p.ld && <AdminPill tone="neutral">Long Drive</AdminPill>}
+                  {p.ctp && <AdminPill tone="neutral">Closest to Pin</AdminPill>}
+                </div>
               </div>
             ))}
           </AdminCard>
