@@ -44,8 +44,9 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           </h1>
 
           <p className={styles.sub}>
-            Grab a partner. Play 18 at Beckett Ridge. Help us put
-            trucks' worth of food on Cincinnati tables this fall.
+            Registration for the annual Drive Out Hunger Charity Golf Outing
+            supporting Last Mile Food Rescue. Help us raise money to provide
+            food for families in need here in Cincinnati
           </p>
 
           <div className={styles.facts}>
