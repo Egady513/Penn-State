@@ -7,6 +7,17 @@
   overflow: hidden;
 }
 
+/* When printing a day-of sheet, drop all the admin chrome so only the
+   page content lands on paper. */
+@media print {
+  .sidebar,
+  .mobileTopBar,
+  .mobileTabBar { display: none !important; }
+  .shell { display: block; height: auto; overflow: visible; }
+  .main { overflow: visible; }
+  .pageContent { padding: 0 !important; overflow: visible; }
+}
+
 /* ── Sidebar ──────────────────────────────────────────────────── */
 .sidebar {
   width: 240px;
