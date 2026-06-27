@@ -9,7 +9,7 @@ import { EVENT_ID } from '@/lib/eventId'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
 type Purchase = { id: string; label: string; amount: number; paid: boolean }
-type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[] }
+type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
 type CatalogItem = { id: string; name: string; price: number }
 
 export default function CheckinPage() {
@@ -29,21 +29,22 @@ export default function CheckinPage() {
     const [teamsRes, playersRes, purchasesRes, catalogRes, mullRes] = await Promise.all([
       supabase.from('team').select('id, name, pin, payment_status').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at'),
-      supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id'),
+      supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id, quantity'),
       supabase.from('catalog_item').select('id, name, price, tag').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
     const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string }[]
     const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
-    const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string; player_id: string | null }[]
+    const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string; player_id: string | null; quantity: number }[]
     const rawCatalog   = (catalogRes.data  ?? []) as (CatalogItem & { tag: string | null })[]
     const rawMulls     = (mullRes.error ? [] : (mullRes.data ?? [])) as { team_id: string; count: number; paid: boolean }[]
 
     const catalogById: Record<string, string> = {}
     rawCatalog.forEach(c => { catalogById[c.id] = c.name })
 
-    const ctpLdIds = new Set(rawCatalog.filter(c => c.tag === 'ctp' || c.tag === 'ld').map(c => c.id))
+    const ctpLdIds  = new Set(rawCatalog.filter(c => c.tag === 'ctp' || c.tag === 'ld').map(c => c.id))
+    const raffleIds = new Set(rawCatalog.filter(c => c.name.toLowerCase().includes('raffle')).map(c => c.id))
 
     setTeams(rawTeams.map(t => {
       const teamMulls = rawMulls.filter(m => m.team_id === t.id)
@@ -71,6 +72,9 @@ export default function CheckinPage() {
           if (uniquePlayerIds.length > 0) return uniquePlayerIds.map(pid => rawPlayers.find(p => p.id === pid)?.name ?? 'Unknown')
           return challengePurchases.length > 0 ? ['Whole team'] : []
         })(),
+        raffleItems: rawPurchases
+          .filter(p => p.team_id === t.id && raffleIds.has(p.catalog_item_id) && p.paid_status === 'paid')
+          .map(p => ({ name: catalogById[p.catalog_item_id] ?? 'Raffle tickets', qty: Number(p.quantity) || 1 })),
       }
     }))
     setCatalog(rawCatalog)
@@ -243,6 +247,20 @@ export default function CheckinPage() {
                         <div key={i} className={styles.golferRow}>
                           <span className={styles.golferName} style={{ fontSize: 14 }}>{name}</span>
                           <span className={styles.golferStatus} style={{ color: 'var(--success)', fontWeight: 600 }}>Entered ✓</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {team.raffleItems.length > 0 && (
+                    <div className={styles.addons}>
+                      <div className={styles.addonsLabel}>
+                        Raffle Tickets · Give to {team.golfers[0]?.name ?? 'primary contact'}
+                      </div>
+                      {team.raffleItems.map((r, i) => (
+                        <div key={i} className={styles.addonRow}>
+                          <span>{r.qty > 1 ? `${r.name} × ${r.qty}` : r.name}</span>
+                          <span className={styles.addonPrice} style={{ color: 'var(--success)', fontWeight: 600, marginLeft: 'auto' }}>Paid ✓</span>
                         </div>
                       ))}
                     </div>
