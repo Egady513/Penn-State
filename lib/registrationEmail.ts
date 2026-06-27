@@ -29,6 +29,7 @@ interface TemplateData {
   purchases: PurchaseRow[]
   schedule: ScheduleItem[]
   hasHoleSponsor: boolean
+  holeSponsorName: string | null
   totalCents: number
 }
 
@@ -68,7 +69,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
   const [teamRes, playersRes, regRes, purchaseRes, eventRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('team') as any)
-      .select('name, pin, single_golfer')
+      .select('name, pin, single_golfer, hole_sponsor_name')
       .eq('id', teamId)
       .maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +93,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
   ])
 
   if (!teamRes.data) throw new Error(`Team ${teamId} not found`)
-  const team = teamRes.data as { name: string; pin: string; single_golfer: boolean }
+  const team = teamRes.data as { name: string; pin: string; single_golfer: boolean; hole_sponsor_name: string | null }
   const players = (playersRes.data ?? []) as PlayerRow[]
   const reg = (regRes.data ?? { fee_amount: 0, donation_amount: 0 }) as {
     fee_amount: number; donation_amount: number
@@ -124,6 +125,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     purchases,
     schedule,
     hasHoleSponsor,
+    holeSponsorName: team.hole_sponsor_name ?? null,
     totalCents,
   }
 }
@@ -171,8 +173,9 @@ function buildText(d: TemplateData): string {
     ? '\nSolo golfer? We\'ll pair you with another single golfer to form a two-person team. You\'ll get a second email once we\'ve matched you up, with your partner\'s name and your shared team info.\n'
     : ''
 
+  const sponsorDisplayName = d.holeSponsorName || d.teamName
   const sponsorBlock = d.hasHoleSponsor
-    ? '\nThanks for stepping up as a hole sponsor! Your team name will appear on the public page under "Hole Sponsors." If you\'d like to upload a company logo or list a different name on the hole, just reply to this email.\n'
+    ? `\nThanks for stepping up as a hole sponsor! "${sponsorDisplayName}" will appear on the public page under "Hole Sponsors." If you'd like to upload a logo or update the display name, just reply to this email.\n`
     : ''
 
   const playerLines = d.players.map(p => `  • ${p.name}`).join('\n')
@@ -242,10 +245,11 @@ function buildHtml(d: TemplateData): string {
       <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">We'll pair you with another single golfer to form a two-person team. You'll get a second email once we've matched you up, with your partner's name and your shared team info.</div>
     </div>` : ''
 
+  const sponsorDisplayName = d.holeSponsorName || d.teamName
   const sponsorBlock = d.hasHoleSponsor ? `
     <div style="margin-top:12px;padding:14px 16px;border-left:3px solid ${PSU_BRONZE};background:${BG_SOFT};border-radius:0 8px 8px 0;">
       <div style="font-weight:700;color:${PSU_NAVY};font-size:14px;margin-bottom:4px;">Thanks for sponsoring a hole!</div>
-      <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">Your team name will appear on the public page under "Hole Sponsors." If you'd like to upload a company logo or list a different name on the hole, just reply to this email and we'll set it up.</div>
+      <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">&ldquo;${escapeHtml(sponsorDisplayName)}&rdquo; will appear on the public page under &ldquo;Hole Sponsors.&rdquo; If you&rsquo;d like to upload a logo or update the display name, just reply to this email and we&rsquo;ll set it up.</div>
     </div>` : ''
 
   return `<!doctype html>
