@@ -165,6 +165,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
       const who = single ? 'Golfer' : (i === 0 ? 'Primary contact' : `Golfer ${i + 1}`)
       if (!g.name.trim()) missing.push(`${who} name`)
       if (!g.email.trim()) missing.push(`${who} email`)
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.email.trim())) missing.push(`${who} email (invalid format)`)
       // The primary contact's phone is required so we can reach the team.
       if (i === 0 && !g.phone.trim()) missing.push(`${who} phone`)
     })
