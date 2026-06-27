@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { loginWithPin } from './actions'
 import { EVENT_ID } from '@/lib/eventId'
 
-type Team = { id: string; name: string; pin: string }
+type Team = { id: string; name: string }
 type PlayerOpt = { id: string; name: string; team_id: string }
 
 export default function PlayerEntryPage() {
@@ -23,7 +23,7 @@ export default function PlayerEntryPage() {
   useEffect(() => {
     const supabase = createClient()
     Promise.all([
-      supabase.from('team').select('id, name, pin').eq('event_id', EVENT_ID).order('name'),
+      supabase.from('team').select('id, name').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, name, team_id'),
     ]).then(([teamsRes, playersRes]) => {
       const rows = (teamsRes.data ?? []) as Team[]
@@ -32,15 +32,13 @@ export default function PlayerEntryPage() {
       if (rows.length > 0) {
         setTeams(rows)
         setTeam(rows[0].id)
-        setPin(rows[0].pin ?? '')
       }
     })
   }, [])
 
-  // Selecting a team — directly or via a player's name — fills in its PIN.
-  function selectTeam(teamId: string, teamList: Team[] = teams) {
+  function selectTeam(teamId: string) {
     setTeam(teamId)
-    setPin(teamList.find(t => t.id === teamId)?.pin ?? '')
+    setPin('')
     setError('')
   }
 
@@ -73,7 +71,7 @@ export default function PlayerEntryPage() {
       <label className={styles.fieldLabel}>Pick your team</label>
       <select
         value={team}
-        onChange={e => selectTeam(e.target.value)}
+        onChange={e => { if (e.target.value) selectTeam(e.target.value) }}
         className={styles.teamSelect}
       >
         {teams.map(t => (
@@ -116,7 +114,7 @@ export default function PlayerEntryPage() {
         <div className={styles.pinHint} style={{ color: 'var(--score-bogey)' }}>{error}</div>
       ) : (
         <div className={styles.pinHint}>
-          Filled in for your team — or type the 4-digit PIN from your confirmation email.
+          Enter the 4-digit PIN from your confirmation email.
         </div>
       )}
 
