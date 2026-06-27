@@ -33,6 +33,65 @@
   gap: 10px;
 }
 
+/* LD + CTP challenge — mirrors the registration page's combined card */
+.challengeCard {
+  background: var(--psu-white);
+  border: 1.5px solid var(--psu-pugh);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.challengeTitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--psu-navy);
+}
+.challengeDesc {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 3px;
+  margin-bottom: 12px;
+}
+.pillRow { display: flex; gap: 8px; }
+.pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 46px;
+  border: 1.5px solid var(--ink-200);
+  border-radius: var(--radius-md);
+  background: var(--psu-white);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.pillActive {
+  border-color: var(--psu-navy);
+  background: var(--psu-navy);
+  color: var(--psu-white);
+}
+.pillPrice { font-variant-numeric: tabular-nums; opacity: 0.92; }
+
+/* Already-entered confirmation */
+.enteredCard {
+  background: rgba(30,64,124,0.06);
+  border: 1px solid var(--psu-pugh);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.enteredTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--psu-navy);
+}
+.enteredSub { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+
 .itemCard {
   background: var(--psu-white);
   border-radius: var(--radius-lg);

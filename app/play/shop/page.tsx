@@ -18,13 +18,16 @@ type CatalogItem = {
   tag: string | null
 }
 
-// Tags that should never show in the game-day shop
+// Tags handled specially (ctp/ld → the combined challenge card) or hidden.
 const SKIP_TAGS = new Set(['base', 'hole_sponsor', 'hole_sponsor_discount', 'ctp', 'ld'])
 
+type Challenge = 'individual' | 'team' | null
+
 export default function ShopPage() {
-  const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [allItems, setAllItems] = useState<CatalogItem[]>([])
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set())
   const [qtys, setQtys] = useState<Record<string, number>>({})
+  const [challenge, setChallenge] = useState<Challenge>(null)
   const [loaded, setLoaded] = useState(false)
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState('')
@@ -46,11 +49,7 @@ export default function ShopPage() {
         .eq('team_id', teamId)
         .eq('paid_status', 'paid'),
     ]).then(([catRes, purchRes]) => {
-      const rows = (catRes.data as CatalogItem[] | null) ?? []
-      setCatalog(rows.filter(i => !SKIP_TAGS.has(i.tag ?? '')))
-
-      // Track which catalog items the team already has (paid) so we can
-      // hide single-purchase items they've already bought.
+      setAllItems((catRes.data as CatalogItem[] | null) ?? [])
       const ids = new Set((purchRes.data ?? []).map((p: { catalog_item_id: string }) => p.catalog_item_id))
       setOwnedIds(ids)
       setLoaded(true)
@@ -67,20 +66,42 @@ export default function ShopPage() {
     })
   }
 
-  const selectedItems = catalog.filter(i => (qtys[i.id] ?? 0) > 0)
-  const total = selectedItems.reduce((s, i) => s + i.price * (qtys[i.id] ?? 0), 0)
+  // ── LD + CTP challenge (same combined format as the registration page) ──
+  const ctpItem = allItems.find(i => i.tag === 'ctp')
+  const ldItem = allItems.find(i => i.tag === 'ld')
+  const challengeAvailable = !!ctpItem && !!ldItem
+  const alreadyEntered =
+    (!!ctpItem && ownedIds.has(ctpItem.id)) || (!!ldItem && ownedIds.has(ldItem.id))
+  const challengeUnit = (ctpItem?.price ?? 0) + (ldItem?.price ?? 0)
+  const challengePrices = { individual: challengeUnit, team: challengeUnit * 2 }
+  const challengeTotal = challenge ? challengePrices[challenge] : 0
+
+  // ── Regular add-ons (exclude special tags + single-buys already owned) ──
+  const shopItems = allItems.filter(
+    i => !SKIP_TAGS.has(i.tag ?? '') && (i.allow_multiple || !ownedIds.has(i.id))
+  )
+  const selectedItems = shopItems.filter(i => (qtys[i.id] ?? 0) > 0)
+  const itemsTotal = selectedItems.reduce((s, i) => s + i.price * (qtys[i.id] ?? 0), 0)
+
+  const total = itemsTotal + challengeTotal
+  const hasSelection = selectedItems.length > 0 || challenge !== null
 
   async function handleBuy() {
-    if (!selectedItems.length) return
+    if (!hasSelection) return
     setBuying(true)
     setError('')
 
     const items = selectedItems.map(i => ({
-      catalogItemId: i.id,
-      name: i.name,
-      price: i.price,
-      quantity: qtys[i.id] ?? 1,
+      catalogItemId: i.id, name: i.name, price: i.price, quantity: qtys[i.id] ?? 1,
     }))
+
+    // Challenge = CTP + LD entries. Individual = 1 of each, Team = 2 of each —
+    // mirrors the registration page (one golfer vs both golfers).
+    if (challenge && ctpItem && ldItem) {
+      const q = challenge === 'team' ? 2 : 1
+      items.push({ catalogItemId: ctpItem.id, name: ctpItem.name, price: ctpItem.price, quantity: q })
+      items.push({ catalogItemId: ldItem.id, name: ldItem.name, price: ldItem.price, quantity: q })
+    }
 
     const result = await createGameDayCheckout(teamId, items, window.location.origin)
     if (result.error || !result.url) {
@@ -99,13 +120,13 @@ export default function ShopPage() {
     )
   }
 
-  const shopItems = catalog.filter(item => item.allow_multiple || !ownedIds.has(item.id))
-  if (shopItems.length === 0) {
+  const nothingToSell = shopItems.length === 0 && !(challengeAvailable && !alreadyEntered)
+  if (nothingToSell) {
     return (
       <PlayerShell title="Buy add-ons" subtitle="Game day purchases" syncStatus="synced" liftBar>
         <div className={styles.empty}>
           <div className={styles.emptyTitle}>Nothing here yet</div>
-          <div className={styles.emptySub}>Eddie will add items (raffle tickets, etc.) when they're available.</div>
+          <div className={styles.emptySub}>Eddie will add items (raffle tickets, etc.) when they&apos;re available.</div>
         </div>
       </PlayerShell>
     )
@@ -114,6 +135,37 @@ export default function ShopPage() {
   return (
     <PlayerShell title="Buy add-ons" subtitle="Game day purchases · card only" syncStatus="synced" liftBar>
       <div className={styles.itemList}>
+        {/* LD + CTP challenge — combined card, same as registration */}
+        {challengeAvailable && (
+          alreadyEntered ? (
+            <div className={styles.enteredCard}>
+              <div className={styles.enteredTitle}>You&apos;re in the LD &amp; CTP Challenge ✓</div>
+              <div className={styles.enteredSub}>Your team is already entered in both contests.</div>
+            </div>
+          ) : (
+            <div className={styles.challengeCard}>
+              <div className={styles.challengeTitle}>Long-Drive &amp; Closest-to-Pin Challenge</div>
+              <div className={styles.challengeDesc}>Pay once — you&apos;re entered in both contests.</div>
+              <div className={styles.pillRow}>
+                <button
+                  type="button"
+                  className={`${styles.pill} ${challenge === 'individual' ? styles.pillActive : ''}`}
+                  onClick={() => setChallenge(c => (c === 'individual' ? null : 'individual'))}
+                >
+                  Individual <span className={styles.pillPrice}>${challengePrices.individual}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.pill} ${challenge === 'team' ? styles.pillActive : ''}`}
+                  onClick={() => setChallenge(c => (c === 'team' ? null : 'team'))}
+                >
+                  Team <span className={styles.pillPrice}>${challengePrices.team}</span>
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
         {shopItems.map(item => {
           const qty = qtys[item.id] ?? 0
           const selected = qty > 0
@@ -158,12 +210,18 @@ export default function ShopPage() {
         })}
       </div>
 
-      {selectedItems.length > 0 && (
+      {hasSelection && (
         <div className={styles.footer}>
           <div className={styles.orderSummary}>
+            {challenge && (
+              <div className={styles.summaryLine}>
+                <span>LD &amp; CTP Challenge ({challenge === 'individual' ? 'Individual' : 'Team'})</span>
+                <span className={styles.summaryAmt}>${challengePrices[challenge]}</span>
+              </div>
+            )}
             {selectedItems.map(i => (
               <div key={i.id} className={styles.summaryLine}>
-                <span>{qtys[i.id] > 1 ? `${i.name} × ${qtys[i.id]}` : i.name}</span>
+                <span>{(qtys[i.id] ?? 0) > 1 ? `${i.name} × ${qtys[i.id]}` : i.name}</span>
                 <span className={styles.summaryAmt}>${i.price * (qtys[i.id] ?? 1)}</span>
               </div>
             ))}
