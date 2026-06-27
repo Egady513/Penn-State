@@ -22,6 +22,21 @@ type Sp = {
 
 const TYPE_SUGGESTIONS = ['Hole', 'Cart', 'Putting Green Challenge', 'Beverage Cart', 'Dinner', 'General'];
 
+function exportHoleSponsorsCsv(items: Sp[]) {
+  const holes = items.filter(s => s.active && s.sponsorship_type?.toLowerCase().includes('hole'));
+  if (!holes.length) { alert('No active hole sponsors to export.'); return; }
+  const rows = [
+    ['Hole Number', 'Display Name', 'Logo URL'],
+    ...holes.map(s => [String(s.hole_number ?? ''), s.name, s.logo_url ?? '']),
+  ];
+  const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'hole-sponsors.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
 const isHole = (t: string) => t.toLowerCase().includes('hole');
 
 export default function SponsorsPage() {
@@ -129,6 +144,9 @@ export default function SponsorsPage() {
         action={
           <div className={styles.topActions}>
             {savedAt && !saving && <span className={styles.savedHint}>Saved {savedAt}</span>}
+            <Button variant="secondary" size="sm" onClick={() => exportHoleSponsorsCsv(items)}>
+              Export hole sponsors
+            </Button>
             <Button variant="secondary" size="sm" onClick={add}>
               <Icon name="plus" size={14} /> Add sponsor
             </Button>

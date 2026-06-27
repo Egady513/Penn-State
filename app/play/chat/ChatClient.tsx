@@ -149,24 +149,21 @@ export default function ChatClient({
     if (isAdmin) setPinToggle(false)
 
     const supabase = createClient()
+    // Use SECURITY DEFINER RPC so RLS on messages doesn't block player inserts.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
-      .from('messages')
-      .insert({
-        event_id: EVENT_ID,
-        team_id: isAdmin ? null : teamId,
-        sender_name: name,
-        role: isAdmin ? 'admin' : 'player',
-        body,
-        is_pinned: isPinned,
-      })
-      .select('id')
-      .single() as { data: { id: string } | null }
+    const { data } = await (supabase.rpc as any)('send_chat_message', {
+      p_event_id:    EVENT_ID,
+      p_team_id:     isAdmin ? null : teamId,
+      p_sender_name: name,
+      p_role:        isAdmin ? 'admin' : 'player',
+      p_body:        body,
+      p_is_pinned:   isPinned,
+    }) as { data: string | null }
 
     // Replace optimistic id with real DB id so Realtime dedup works
-    if (data?.id) {
+    if (data) {
       setMessages(prev =>
-        prev.map(m => m.id === optimisticId ? { ...m, id: data.id } : m)
+        prev.map(m => m.id === optimisticId ? { ...m, id: data as string } : m)
       )
     }
 

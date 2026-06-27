@@ -188,8 +188,7 @@ export default function ScorecardPage() {
       title="Scorecard"
       subtitle={`Through ${through} of 18`}
       syncStatus="synced"
-      liftBar
-    >
+         >
       {/* Stat strip */}
       <div className={styles.statStrip}>
         <StatCell label="Total" value={totalScore || '—'} testId="stat-total" />

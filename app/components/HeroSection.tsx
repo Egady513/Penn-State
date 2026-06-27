@@ -44,7 +44,7 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           </h1>
 
           <p className={styles.sub}>
-            Grab a partner. Play 18 at Beckett Ridge. Help us put two
+            Grab a partner. Play 18 at Beckett Ridge. Help us put
             trucks' worth of food on Cincinnati tables this fall.
           </p>
 

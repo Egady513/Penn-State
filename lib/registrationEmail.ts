@@ -189,6 +189,9 @@ YOUR TEAM PIN: ${d.pin}
 ────────────────────────────────────
 You'll need this PIN on game day to open the player app — scorecard, leaderboard, mulligans, chat, and your running tab. Save this email or screenshot the PIN.
 
+  Open the app: https://penn-state-topaz.vercel.app/play
+  Select your team, enter your PIN, and you're in.
+
 WHAT YOU SIGNED UP FOR
 ${itemLines}
 
@@ -272,6 +275,7 @@ function buildHtml(d: TemplateData): string {
               <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${FG_MUTED};">Your team PIN</div>
               <div style="font-size:36px;font-weight:800;letter-spacing:0.1em;color:${PSU_NAVY};margin-top:6px;font-variant-numeric:tabular-nums;">${escapeHtml(d.pin)}</div>
               <div style="font-size:12px;color:${FG_MUTED};margin-top:6px;">You'll need this on game day to open the player app</div>
+              <a href="https://penn-state-topaz.vercel.app/play" style="display:inline-block;margin-top:12px;padding:10px 22px;background:${PSU_NAVY};color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.02em;">Open the day-of app →</a>
             </td></tr>
           </table>
         </td></tr>

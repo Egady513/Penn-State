@@ -77,7 +77,7 @@ export default async function OwePage() {
     items.push({
       id: p.id,
       label: p.quantity > 1 ? `${itemName} · ${p.quantity}` : itemName,
-      total: p.amount,
+      total: p.amount * (p.quantity || 1),
       paid: p.paid_status === 'paid',
       via: p.payment_method ?? undefined,
     })
@@ -91,7 +91,6 @@ export default async function OwePage() {
       title="What you owe"
       subtitle={unpaidTotal > 0 ? 'Settle at the tent' : 'All settled'}
       syncStatus="synced"
-      liftBar
     >
       {/* Total due */}
       <div className={styles.totalCard}>
@@ -106,19 +105,9 @@ export default async function OwePage() {
           ${paidTotal} already paid · {items.length} line items
         </div>
         {unpaidTotal > 0 && (
-          <>
-            <div className={styles.settleNote}>
-              Settle at the registration tent or with Eddie.
-            </div>
-            <a
-              href="https://www.zeffy.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.zeffyBtn}
-            >
-              Pay with Zeffy
-            </a>
-          </>
+          <div className={styles.settleNote}>
+            Settle at the registration tent or with Eddie.
+          </div>
         )}
       </div>
 

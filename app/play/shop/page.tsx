@@ -18,10 +18,12 @@ type CatalogItem = {
   tag: string | null
 }
 
-const SKIP_TAGS = ['base', 'hole_sponsor', 'hole_sponsor_discount']
+// Tags that should never show in the game-day shop
+const SKIP_TAGS = new Set(['base', 'hole_sponsor', 'hole_sponsor_discount', 'ctp', 'ld'])
 
 export default function ShopPage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set())
   const [qtys, setQtys] = useState<Record<string, number>>({})
   const [loaded, setLoaded] = useState(false)
   const [buying, setBuying] = useState(false)
@@ -31,17 +33,28 @@ export default function ShopPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase
-      .from('catalog_item')
-      .select('id, name, price, description, allow_multiple, tag')
-      .eq('event_id', EVENT_ID)
-      .eq('active', true)
-      .order('sort_order')
-      .then(({ data }) => {
-        const rows = (data as CatalogItem[] | null) ?? []
-        setCatalog(rows.filter(i => !SKIP_TAGS.includes(i.tag ?? '')))
-        setLoaded(true)
-      })
+    Promise.all([
+      supabase
+        .from('catalog_item')
+        .select('id, name, price, description, allow_multiple, tag')
+        .eq('event_id', EVENT_ID)
+        .eq('active', true)
+        .order('sort_order'),
+      supabase
+        .from('purchase')
+        .select('catalog_item_id')
+        .eq('team_id', teamId)
+        .eq('paid_status', 'paid'),
+    ]).then(([catRes, purchRes]) => {
+      const rows = (catRes.data as CatalogItem[] | null) ?? []
+      setCatalog(rows.filter(i => !SKIP_TAGS.has(i.tag ?? '')))
+
+      // Track which catalog items the team already has (paid) so we can
+      // hide single-purchase items they've already bought.
+      const ids = new Set((purchRes.data ?? []).map((p: { catalog_item_id: string }) => p.catalog_item_id))
+      setOwnedIds(ids)
+      setLoaded(true)
+    })
   }, [])
 
   function setQty(id: string, qty: number) {
@@ -86,7 +99,8 @@ export default function ShopPage() {
     )
   }
 
-  if (catalog.length === 0) {
+  const shopItems = catalog.filter(item => item.allow_multiple || !ownedIds.has(item.id))
+  if (shopItems.length === 0) {
     return (
       <PlayerShell title="Buy add-ons" subtitle="Game day purchases" syncStatus="synced" liftBar>
         <div className={styles.empty}>
@@ -100,7 +114,7 @@ export default function ShopPage() {
   return (
     <PlayerShell title="Buy add-ons" subtitle="Game day purchases · card only" syncStatus="synced" liftBar>
       <div className={styles.itemList}>
-        {catalog.map(item => {
+        {shopItems.map(item => {
           const qty = qtys[item.id] ?? 0
           const selected = qty > 0
           return (
