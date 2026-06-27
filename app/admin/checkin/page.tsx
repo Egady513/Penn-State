@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/Badge'
 import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 
-type Golfer = { id: string; name: string; arrived: boolean }
+type Golfer   = { id: string; name: string; arrived: boolean }
 type Purchase = { id: string; label: string; amount: number; paid: boolean }
-type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[] }
+type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number } }
 type CatalogItem = { id: string; name: string; price: number }
 
 export default function CheckinPage() {
@@ -21,40 +21,50 @@ export default function CheckinPage() {
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState('')
   const [busyPurchase, setBusyPurchase] = useState<string | null>(null)
+  const [busyMulls, setBusyMulls] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
 
   async function load() {
     const supabase = createClient()
-    const [teamsRes, playersRes, purchasesRes, catalogRes] = await Promise.all([
+    const [teamsRes, playersRes, purchasesRes, catalogRes, mullRes] = await Promise.all([
       supabase.from('team').select('id, name, pin, payment_status').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at'),
       supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id'),
       supabase.from('catalog_item').select('id, name, price').eq('event_id', EVENT_ID).eq('active', true).order('name'),
+      supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
     const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string }[]
     const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
     const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string }[]
     const rawCatalog   = (catalogRes.data  ?? []) as CatalogItem[]
+    const rawMulls     = (mullRes.error ? [] : (mullRes.data ?? [])) as { team_id: string; count: number; paid: boolean }[]
 
     const catalogById: Record<string, string> = {}
     rawCatalog.forEach(c => { catalogById[c.id] = c.name })
 
-    setTeams(rawTeams.map(t => ({
-      id: t.id,
-      name: t.name,
-      pin: t.pin,
-      paid: t.payment_status === 'paid',
-      golfers: rawPlayers.filter(p => p.team_id === t.id).map(p => ({
-        id: p.id, name: p.name, arrived: !!p.arrived_at,
-      })),
-      purchases: rawPurchases.filter(p => p.team_id === t.id).map(p => ({
-        id: p.id,
-        label: catalogById[p.catalog_item_id] ?? 'Item',
-        amount: Number(p.amount),
-        paid: p.paid_status === 'paid',
-      })),
-    })))
+    setTeams(rawTeams.map(t => {
+      const teamMulls = rawMulls.filter(m => m.team_id === t.id)
+      return {
+        id: t.id,
+        name: t.name,
+        pin: t.pin,
+        paid: t.payment_status === 'paid',
+        golfers: rawPlayers.filter(p => p.team_id === t.id).map(p => ({
+          id: p.id, name: p.name, arrived: !!p.arrived_at,
+        })),
+        purchases: rawPurchases.filter(p => p.team_id === t.id).map(p => ({
+          id: p.id,
+          label: catalogById[p.catalog_item_id] ?? 'Item',
+          amount: Number(p.amount),
+          paid: p.paid_status === 'paid',
+        })),
+        mulligans: {
+          unpaid: teamMulls.filter(m => !m.paid).reduce((s, m) => s + m.count, 0),
+          paid:   teamMulls.filter(m =>  m.paid).reduce((s, m) => s + m.count, 0),
+        },
+      }
+    }))
     setCatalog(rawCatalog)
     setLoading(false)
   }
@@ -88,6 +98,21 @@ export default function CheckinPage() {
     const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid })
     setBusyPurchase(null)
     if (error) { setActionError(`Couldn't update payment: ${error.message}`); load() }
+  }
+
+  async function markMulligansPaid(teamId: string) {
+    setActionError('')
+    setBusyMulls(teamId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('mark_mulligans_paid', { p_team_id: teamId })
+    setBusyMulls(null)
+    if (error) { setActionError(`Couldn't mark mulligans paid: ${error.message}`); return }
+    setTeams(prev => prev.map(t =>
+      t.id === teamId
+        ? { ...t, mulligans: { unpaid: 0, paid: t.mulligans.unpaid + t.mulligans.paid } }
+        : t
+    ))
   }
 
   async function addItem(teamId: string) {
@@ -137,7 +162,9 @@ export default function CheckinPage() {
       <div className={styles.list}>
         {filtered.map(team => {
           const allArrived = team.golfers.length > 0 && team.golfers.every(g => g.arrived)
-          const outstanding = team.purchases.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0)
+          const purchaseOwed = team.purchases.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0)
+          const mulliganOwed = team.mulligans.unpaid * 2
+          const outstanding  = purchaseOwed + mulliganOwed
           const isOpen = expanded === team.id
           const isAdding = addingTo === team.id
 
@@ -198,6 +225,34 @@ export default function CheckinPage() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {(team.mulligans.unpaid > 0 || team.mulligans.paid > 0) && (
+                    <div className={styles.addons}>
+                      <div className={styles.addonsLabel}>Mulligans</div>
+                      <div className={styles.addonRow}>
+                        <span>
+                          {team.mulligans.unpaid > 0
+                            ? `${team.mulligans.unpaid} used · $${team.mulligans.unpaid * 2} owed`
+                            : `${team.mulligans.paid} used · all paid`}
+                        </span>
+                        {team.mulligans.unpaid > 0 && (
+                          <>
+                            <span className={styles.addonPrice}>${team.mulligans.unpaid * 2}</span>
+                            <button
+                              className={`${styles.paidToggle} ${busyMulls === team.id ? '' : ''}`}
+                              onClick={() => markMulligansPaid(team.id)}
+                              disabled={busyMulls === team.id}
+                            >
+                              {busyMulls === team.id ? 'Saving…' : 'Mark paid'}
+                            </button>
+                          </>
+                        )}
+                        {team.mulligans.unpaid === 0 && team.mulligans.paid > 0 && (
+                          <span className={styles.paidToggleOn} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>Paid ✓</span>
+                        )}
+                      </div>
                     </div>
                   )}
 

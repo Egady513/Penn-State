@@ -77,7 +77,10 @@ export default function RevenuePage() {
           <h1 className={sheet.title}>Revenue</h1>
           <p className={sheet.sub}>Internal only — never shown publicly. Sponsor dollars are gross; expenses subtract for net to Last Mile.</p>
         </div>
-        <button className={sheet.printBtn} onClick={() => window.print()}>Print</button>
+        <div style={{ display: 'flex', gap: 8 }} className={sheet.noPrint}>
+          <button onClick={load} style={{ height: 38, padding: '0 14px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', color: 'var(--fg)', fontSize: 14, cursor: 'pointer' }}>↻ Refresh</button>
+          <button className={sheet.printBtn} onClick={() => window.print()}>Print</button>
+        </div>
       </div>
 
       {loading ? <div className={sheet.empty}>Loading…</div> : (
