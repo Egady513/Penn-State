@@ -203,6 +203,35 @@
   cursor: pointer;
 }
 
+/* ── Owes callout ───────────────────────────────────────────── */
+.owesBox {
+  background: #FFF8EB;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: var(--space-4);
+}
+
+.owesTitle {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #92400E;
+  margin-bottom: 8px;
+}
+
+.owesRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  padding: 3px 0;
+}
+
+.owesLabel { flex: 1; color: var(--fg); }
+.owesAmt { font-weight: 700; color: #92400E; white-space: nowrap; }
+
 /* ── Paid toggle on individual purchases ───────────────────── */
 .paidToggle {
   height: 28px;

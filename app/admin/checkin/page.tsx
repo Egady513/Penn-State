@@ -9,7 +9,7 @@ import { EVENT_ID } from '@/lib/eventId'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
 type Purchase = { id: string; label: string; amount: number; paid: boolean }
-type Team = { id: string; name: string; pin: string; paid: boolean; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
+type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
 type CatalogItem = { id: string; name: string; price: number }
 
 export default function CheckinPage() {
@@ -27,14 +27,14 @@ export default function CheckinPage() {
   async function load() {
     const supabase = createClient()
     const [teamsRes, playersRes, purchasesRes, catalogRes, mullRes] = await Promise.all([
-      supabase.from('team').select('id, name, pin, payment_status').eq('event_id', EVENT_ID).order('name'),
+      supabase.from('team').select('id, name, pin, payment_status, start_hole').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at'),
       supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id, quantity'),
       supabase.from('catalog_item').select('id, name, price, tag').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
-    const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string }[]
+    const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null }[]
     const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
     const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string; player_id: string | null; quantity: number }[]
     const rawCatalog   = (catalogRes.data  ?? []) as (CatalogItem & { tag: string | null })[]
@@ -53,6 +53,7 @@ export default function CheckinPage() {
         name: t.name,
         pin: t.pin,
         paid: t.payment_status === 'paid',
+        startHole: t.start_hole ?? null,
         golfers: rawPlayers.filter(p => p.team_id === t.id).map(p => ({
           id: p.id, name: p.name, arrived: !!p.arrived_at,
         })),
@@ -142,6 +143,7 @@ export default function CheckinPage() {
   const q = query.toLowerCase()
   const filtered = teams.filter(t =>
     !q || t.name.toLowerCase().includes(q) || t.pin.includes(q) ||
+    (t.startHole != null && String(t.startHole).includes(q)) ||
     t.golfers.some(g => g.name.toLowerCase().includes(q))
   )
 
@@ -187,6 +189,7 @@ export default function CheckinPage() {
                   <div className={styles.teamName}>{team.name}</div>
                   <div className={styles.teamMeta}>
                     PIN {team.pin} ·{' '}
+                    {team.startHole != null && <span>Hole {team.startHole} · </span>}
                     <Badge tone={team.paid ? 'paid' : 'unpaid'} size="sm">
                       {team.paid ? 'Paid' : 'Unpaid'}
                     </Badge>
@@ -205,6 +208,38 @@ export default function CheckinPage() {
 
               {isOpen && (
                 <div className={styles.cardBody}>
+                  {outstanding > 0 && (
+                    <div className={styles.owesBox}>
+                      <div className={styles.owesTitle}>Owes ${outstanding.toFixed(0)}</div>
+                      {team.purchases.filter(p => !p.paid).map(p => (
+                        <div key={p.id} className={styles.owesRow}>
+                          <span className={styles.owesLabel}>{p.label}</span>
+                          <span className={styles.owesAmt}>${p.amount.toFixed(0)}</span>
+                          <button
+                            className={styles.paidToggle}
+                            onClick={() => togglePurchasePaid(team.id, p.id, p.paid)}
+                            disabled={busyPurchase === p.id}
+                          >
+                            {busyPurchase === p.id ? '…' : 'Mark paid'}
+                          </button>
+                        </div>
+                      ))}
+                      {team.mulligans.unpaid > 0 && (
+                        <div className={styles.owesRow}>
+                          <span className={styles.owesLabel}>Mulligans ({team.mulligans.unpaid} used)</span>
+                          <span className={styles.owesAmt}>${team.mulligans.unpaid * 2}</span>
+                          <button
+                            className={styles.paidToggle}
+                            onClick={() => markMulligansPaid(team.id)}
+                            disabled={busyMulls === team.id}
+                          >
+                            {busyMulls === team.id ? '…' : 'Mark paid'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className={styles.golferList}>
                     {team.golfers.map(g => (
                       <div key={g.id} className={styles.golferRow}>
