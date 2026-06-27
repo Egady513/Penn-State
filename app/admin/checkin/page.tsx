@@ -8,9 +8,9 @@ import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
-type Purchase = { id: string; label: string; amount: number; paid: boolean }
+type Purchase = { id: string; label: string; amount: number; paid: boolean; catalogItemId: string }
 type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
-type CatalogItem = { id: string; name: string; price: number; tag: string | null }
+type CatalogItem = { id: string; name: string; price: number; tag: string | null; allow_multiple: boolean }
 
 export default function CheckinPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -31,7 +31,7 @@ export default function CheckinPage() {
       supabase.from('team').select('id, name, pin, payment_status, start_hole').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at'),
       supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id, quantity'),
-      supabase.from('catalog_item').select('id, name, price, tag').eq('event_id', EVENT_ID).eq('active', true).order('name'),
+      supabase.from('catalog_item').select('id, name, price, tag, allow_multiple').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
@@ -63,6 +63,7 @@ export default function CheckinPage() {
           label: catalogById[p.catalog_item_id] ?? 'Item',
           amount: Number(p.amount),
           paid: p.paid_status === 'paid',
+          catalogItemId: p.catalog_item_id,
         })),
         mulligans: {
           unpaid: teamMulls.filter(m => !m.paid).reduce((s, m) => s + m.count, 0),
@@ -383,22 +384,33 @@ export default function CheckinPage() {
                           )}
                         </div>
                       )}
-                      {/* Regular items — CTP/LD excluded (handled above) */}
-                      <div className={styles.addItemRow}>
-                        <select
-                          className={styles.addItemSelect}
-                          value={selectedItem}
-                          onChange={e => setSelectedItem(e.target.value)}
-                          autoFocus
-                        >
-                          <option value="">— Other item —</option>
-                          {catalog.filter(c => c.tag !== 'ctp' && c.tag !== 'ld').map(c => (
-                            <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
-                          ))}
-                        </select>
+                      {/* Regular items — CTP/LD excluded; already-bought single-buy items hidden */}
+                      {(() => {
+                        const purchasedIds = new Set(team.purchases.map(p => p.catalogItemId))
+                        const available = catalog.filter(c =>
+                          c.tag !== 'ctp' && c.tag !== 'ld' &&
+                          (c.allow_multiple || !purchasedIds.has(c.id))
+                        )
+                        return (
+                        <div className={styles.addItemRow}>
+                          <select
+                            className={styles.addItemSelect}
+                            value={selectedItem}
+                            onChange={e => setSelectedItem(e.target.value)}
+                            autoFocus
+                          >
+                            <option value="">
+                              {available.length === 0 ? '— Nothing left to add —' : '— Add item —'}
+                            </option>
+                            {available.map(c => (
+                              <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
+                            ))}
+                          </select>
                         <button className={styles.addBtn} onClick={() => addItem(team.id)} disabled={!selectedItem}>Add</button>
                         <button className={styles.cancelAddBtn} onClick={() => { setAddingTo(null); setSelectedItem(''); }}>Cancel</button>
                       </div>
+                        )
+                      })()}
                     </div>
                   ) : (
                     <button className={styles.addItemTrigger} onClick={() => { setAddingTo(team.id); setSelectedItem(''); }}>
