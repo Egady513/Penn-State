@@ -89,10 +89,20 @@ export default function SponsorsPage() {
   const update = (i: number, patch: Partial<Sp>) =>
     setItems((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
 
+  // New rows go to the TOP so they're immediately visible (the list can be long).
   const add = () =>
     setItems((prev) => [
-      ...prev,
       { id: null, name: '', tier: '', sponsorship_type: '', hole_number: null, amount: 0, active: true, logo_url: null },
+      ...prev,
+    ]);
+
+  // Dedicated "Add hole sponsor" — pre-fills it as a Hole sponsor ($100) so the
+  // hole-number field shows right away and it lands in the public "Hole Sponsors"
+  // group without you having to know to type "Hole".
+  const addHole = () =>
+    setItems((prev) => [
+      { id: null, name: '', tier: '', sponsorship_type: 'Hole', hole_number: null, amount: 100, active: true, logo_url: null },
+      ...prev,
     ]);
 
   async function handleLogoUpload(i: number, file: File) {
@@ -146,6 +156,9 @@ export default function SponsorsPage() {
             {savedAt && !saving && <span className={styles.savedHint}>Saved {savedAt}</span>}
             <Button variant="secondary" size="sm" onClick={() => exportHoleSponsorsCsv(items)}>
               Export hole sponsors
+            </Button>
+            <Button variant="secondary" size="sm" onClick={addHole}>
+              <Icon name="plus" size={14} /> Add hole sponsor
             </Button>
             <Button variant="secondary" size="sm" onClick={add}>
               <Icon name="plus" size={14} /> Add sponsor
