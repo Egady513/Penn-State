@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { ArrowRight, Heart, Calendar, MapPin, Flag } from 'lucide-react'
+import { ArrowRight, Heart, Calendar, MapPin, Flag, Ticket } from 'lucide-react'
 import styles from './HeroSection.module.css'
 import { Button } from '@/components/ui/Button'
 import { MoneyRaised } from './MoneyRaised'
@@ -52,7 +52,8 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           <div className={styles.facts}>
             <Fact icon={<Calendar size={20} />} label="Date"   value="Aug 30, 2026" />
             <Fact icon={<MapPin  size={20} />} label="Course" value="Beckett Ridge" />
-            <Fact icon={<Flag   size={20} />} label="Format" value="2-person scramble" />
+            <Fact icon={<Flag    size={20} />} label="Format" value="2-person scramble" />
+            <Fact icon={<Ticket  size={20} />} label="Entry"  value="$200/team" />
           </div>
 
           <div className={styles.ctas}>
