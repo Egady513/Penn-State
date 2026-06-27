@@ -207,7 +207,7 @@ EVENT DETAILS
 ${scheduleLines}
 ${soloBlock}${sponsorBlock}
 ABOUT LAST MILE FOOD RESCUE
-Last Mile uses volunteer drivers to rescue surplus food from grocers, restaurants, and kitchens — and delivers it the same day, before it's wasted, to the pantries and shelters that get it to families in need. Every dollar from this outing helps cover that last mile.
+Last Mile rescues surplus food from grocers, restaurants, and kitchens and delivers it to the pantries and shelters that get it to families in need. Every dollar from this outing helps cover that last mile.
 Learn more: https://lastmilefood.org
 
 Need to make a change? Just reply to this email.
@@ -310,7 +310,7 @@ function buildHtml(d: TemplateData): string {
         <tr><td style="padding:24px 28px;">
           <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${FG_MUTED};margin-bottom:8px;">About Last Mile Food Rescue</div>
           <p style="margin:0;color:${PSU_NAVY};font-size:13px;line-height:1.6;">
-            Last Mile uses volunteer drivers to rescue surplus food from grocers, restaurants, and kitchens — and delivers it the same day, before it's wasted, to the pantries and shelters that get it to families in need. Every dollar from this outing helps cover that last mile.
+            Last Mile rescues surplus food from grocers, restaurants, and kitchens and delivers it to the pantries and shelters that get it to families in need. Every dollar from this outing helps cover that last mile.
           </p>
           <p style="margin:10px 0 0;font-size:13px;">
             <a href="https://lastmilefood.org" style="color:${PSU_NAVY};font-weight:600;">Learn more about Last Mile →</a>

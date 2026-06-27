@@ -10,11 +10,9 @@ export const CauseSection = forwardRef<HTMLElement>(function CauseSection(_, ref
         <div className={styles.eyebrow}>The cause</div>
         <h2 className={styles.heading}>Last Mile Food Rescue</h2>
         <p className={styles.body}>
-          Using volunteer drivers and a dispatch app, Last Mile rescues
-          surplus food from grocers, restaurants, and kitchens and delivers it
-          the same day — before it&apos;s wasted — to the food pantries, shelters,
-          and partner agencies (like La Soupe) that get it to neighbors in need.
-          Every dollar you spend on this outing helps cover that last mile.
+          Last Mile rescues surplus food from grocers, restaurants, and kitchens
+          and delivers it to the pantries and shelters that get it to families in need.
+          Every dollar from this outing helps cover that last mile.
         </p>
         <div className={styles.ctas}>
           <Button
