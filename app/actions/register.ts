@@ -33,6 +33,8 @@ export interface RegisterPayload {
   challengeGolferIndex?: number
   /** Optional donation in dollars */
   donation: number
+  /** Optional amount the registrant chose to add to cover card processing fees. */
+  feeCoverage?: number
   /** Hole sponsorship ($100 + a $15 team discount). Twosomes only. */
   holeSponsor?: boolean
   /** Display name for the hole (business name, etc). Required if holeSponsor. */
@@ -76,7 +78,8 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
   const supabase = await createClient()
 
   const baseFee = payload.isSingle ? 100 : 200
-  const donation = Number(payload.donation) || 0
+  const donation = Math.max(0, Number(payload.donation) || 0)
+  const feeCoverage = Math.max(0, Number(payload.feeCoverage) || 0)
 
   // Look up the catalog items once so we can itemize.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,11 +138,12 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
     // 3 ── Insert registration (base fee + donation)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: regError } = await (supabase.from('registration') as any).insert({
-      team_id:         teamId,
-      fee_amount:      baseFee,
-      donation_amount: donation,
-      payment_method:  null, // Stripe is the only method; webhook confirms payment
-      payment_status:  'unpaid',
+      team_id:             teamId,
+      fee_amount:          baseFee,
+      donation_amount:     donation,
+      fee_coverage_amount: feeCoverage,
+      payment_method:      null, // Stripe is the only method; webhook confirms payment
+      payment_status:      'unpaid',
     })
     if (regError) {
       await rollback()

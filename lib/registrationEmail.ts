@@ -26,6 +26,7 @@ interface TemplateData {
   players: PlayerRow[]
   feeAmount: number
   donationAmount: number
+  feeCoverageAmount: number
   purchases: PurchaseRow[]
   schedule: ScheduleItem[]
   hasHoleSponsor: boolean
@@ -78,7 +79,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
       .eq('team_id', teamId),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('registration') as any)
-      .select('fee_amount, donation_amount')
+      .select('fee_amount, donation_amount, fee_coverage_amount')
       .eq('team_id', teamId)
       .maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,8 +96,8 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
   if (!teamRes.data) throw new Error(`Team ${teamId} not found`)
   const team = teamRes.data as { name: string; pin: string; single_golfer: boolean; hole_sponsor_name: string | null }
   const players = (playersRes.data ?? []) as PlayerRow[]
-  const reg = (regRes.data ?? { fee_amount: 0, donation_amount: 0 }) as {
-    fee_amount: number; donation_amount: number
+  const reg = (regRes.data ?? { fee_amount: 0, donation_amount: 0, fee_coverage_amount: 0 }) as {
+    fee_amount: number; donation_amount: number; fee_coverage_amount: number
   }
   const allPurchases = (purchaseRes.data ?? []) as (PurchaseRow & { channel: string })[]
   // Only signup-channel purchases belong on the confirmation; check-in
@@ -112,7 +113,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     0,
   )
   const totalCents = Math.round(
-    (Number(reg.fee_amount) + Number(reg.donation_amount) + purchaseTotal) * 100,
+    (Number(reg.fee_amount) + Number(reg.donation_amount) + Number(reg.fee_coverage_amount) + purchaseTotal) * 100,
   )
 
   return {
@@ -122,6 +123,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     players,
     feeAmount: Number(reg.fee_amount) || 0,
     donationAmount: Number(reg.donation_amount) || 0,
+    feeCoverageAmount: Number(reg.fee_coverage_amount) || 0,
     purchases,
     schedule,
     hasHoleSponsor,
@@ -155,6 +157,9 @@ function formatLineItems(d: TemplateData) {
   }
   if (d.donationAmount > 0) {
     lines.push({ label: 'Donation to Last Mile Food Rescue', amount: money(d.donationAmount) })
+  }
+  if (d.feeCoverageAmount > 0) {
+    lines.push({ label: 'Processing fee coverage', amount: money(d.feeCoverageAmount) })
   }
   return lines
 }

@@ -16,7 +16,7 @@ export async function computeTeamTotal(teamId: string): Promise<number> {
   const [regRes, purchaseRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('registration') as any)
-      .select('fee_amount, donation_amount')
+      .select('fee_amount, donation_amount, fee_coverage_amount')
       .eq('team_id', teamId),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('purchase') as any)
@@ -24,11 +24,11 @@ export async function computeTeamTotal(teamId: string): Promise<number> {
       .eq('team_id', teamId),
   ])
 
-  const regs = (regRes.data ?? []) as { fee_amount: number; donation_amount: number }[]
+  const regs = (regRes.data ?? []) as { fee_amount: number; donation_amount: number; fee_coverage_amount: number }[]
   const purchases = (purchaseRes.data ?? []) as { amount: number; quantity: number; channel: string }[]
 
   const regTotal = regs.reduce(
-    (s, r) => s + (Number(r.fee_amount) || 0) + (Number(r.donation_amount) || 0),
+    (s, r) => s + (Number(r.fee_amount) || 0) + (Number(r.donation_amount) || 0) + (Number(r.fee_coverage_amount) || 0),
     0,
   )
 

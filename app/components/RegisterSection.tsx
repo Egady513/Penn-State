@@ -29,6 +29,15 @@ type CatalogAddon = {
 const DEFAULT_CHALLENGE_UNIT = 10
 type ChallengeChoice = 'individual' | 'team' | null
 
+// Card-processing gross-up so the chapter nets the full registration when a
+// registrant opts to cover fees. Standard Stripe pricing (2.9% + $0.30).
+const CC_RATE = 0.029
+const CC_FIXED = 0.30
+function feeCoverageFor(subtotal: number): number {
+  if (subtotal <= 0) return 0
+  return Math.max(0, Math.round((subtotal + CC_FIXED) / (1 - CC_RATE) - subtotal))
+}
+
 // Shown if the catalog query fails (e.g. before the catalog migration is run),
 // so registration never shows an empty add-ons step.
 const FALLBACK_ADDONS: CatalogAddon[] = [
@@ -72,6 +81,8 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [challengeGolfer, setChallengeGolfer] = useState(0) // 0 = primary, 1 = second
   const [donation, setDonation] = useState('')
+  // Optional: cover card processing fees so the chapter nets the full amount. Pre-checked.
+  const [coverFees, setCoverFees] = useState(true)
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
   // "Play with another twosome" pairing request
   const [pairWanted, setPairWanted] = useState(false)
@@ -174,7 +185,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   }
   const challengeTotal = challenge ? challengePrices[challenge] : 0
   const baseFee = single ? 100 : 200
-  const total = baseFee + addonTotal + challengeTotal + holeSponsorTotal + (Number(donation) || 0)
+  const subtotal = baseFee + addonTotal + challengeTotal + holeSponsorTotal + (Number(donation) || 0)
+  const feeCoverageAmount = coverFees ? feeCoverageFor(subtotal) : 0
+  const total = subtotal + feeCoverageAmount
 
   // Coming from the public "Become a hole sponsor" button: pre-select hole sponsorship.
   useEffect(() => {
@@ -301,6 +314,44 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                   </div>
                 </div>
               ))}
+
+              {/* Play with an already-registered twosome */}
+              {!single && (
+                <div className={styles.pairBlock}>
+                  <label className={`${styles.singleCheck} ${pairWanted ? styles.singleCheckOn : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={pairWanted}
+                      onChange={e => { setPairWanted(e.target.checked); if (!e.target.checked) setPairTeamId('') }}
+                      className={styles.singleCheckInput}
+                    />
+                    <div>
+                      <div className={styles.singleCheckTitle}>Have you already registered a twosome you want to play with?</div>
+                      <div className={styles.singleCheckSub}>We&apos;ll group you into the same foursome. This doesn&apos;t change your price.</div>
+                    </div>
+                  </label>
+
+                  {pairWanted && (
+                    pairTeams.length > 0 ? (
+                      <Field label="Their team" hint="Pick the twosome you want to be paired with">
+                        <Select value={pairTeamId} onChange={e => setPairTeamId(e.target.value)}>
+                          <option value="">— Select their team —</option>
+                          {pairTeams.map(t => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}{t.contact ? ` — ${t.contact}` : ''}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    ) : (
+                      <p className={styles.pairNote}>
+                        No other paid teams have registered yet. No problem — have them point to your
+                        team when they register, or just tell us at check-in.
+                      </p>
+                    )
+                  )}
+                </div>
+              )}
 
               <div className={styles.stepFooter}>
                 {step1Error.length > 0 && (
@@ -478,42 +529,6 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                 </Field>
               </div>
 
-              {/* Play with an already-registered twosome */}
-              <div className={styles.pairBlock}>
-                <label className={`${styles.singleCheck} ${pairWanted ? styles.singleCheckOn : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={pairWanted}
-                    onChange={e => { setPairWanted(e.target.checked); if (!e.target.checked) setPairTeamId('') }}
-                    className={styles.singleCheckInput}
-                  />
-                  <div>
-                    <div className={styles.singleCheckTitle}>Have you already registered a twosome you want to play with?</div>
-                    <div className={styles.singleCheckSub}>We&apos;ll group you into the same foursome. This doesn&apos;t change your price.</div>
-                  </div>
-                </label>
-
-                {pairWanted && (
-                  pairTeams.length > 0 ? (
-                    <Field label="Their team" hint="Pick the twosome you want to be paired with">
-                      <Select value={pairTeamId} onChange={e => setPairTeamId(e.target.value)}>
-                        <option value="">— Select their team —</option>
-                        {pairTeams.map(t => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}{t.contact ? ` — ${t.contact}` : ''}
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
-                  ) : (
-                    <p className={styles.pairNote}>
-                      No other paid teams have registered yet. No problem — have them point to your
-                      team when they register, or just tell us at check-in.
-                    </p>
-                  )
-                )}
-              </div>
-
               <div className={styles.stepFooterTwo}>
                 <Button variant="secondary" size="lg" onClick={() => setStep(1)}>
                   <ArrowLeft size={18} /> Back
@@ -551,6 +566,23 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                   </div>
                 ))}
               </div>
+
+              {feeCoverageFor(subtotal) > 0 && (
+                <label className={`${styles.singleCheck} ${coverFees ? styles.singleCheckOn : ''}`} style={{ marginBottom: 16 }}>
+                  <input
+                    type="checkbox"
+                    checked={coverFees}
+                    onChange={e => setCoverFees(e.target.checked)}
+                    className={styles.singleCheckInput}
+                  />
+                  <div>
+                    <div className={styles.singleCheckTitle}>Cover the card processing fee (+${feeCoverageFor(subtotal)})</div>
+                    <div className={styles.singleCheckSub}>
+                      Add ${feeCoverageFor(subtotal)} so 100% of your registration reaches Last Mile Food Rescue. Totally optional — uncheck to skip.
+                    </div>
+                  </div>
+                </label>
+              )}
 
               <div className={styles.zeffyBlock}>
                 {submitError && (
@@ -590,6 +622,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       challenge,
                       challengeGolferIndex: challenge === 'individual' ? challengeGolfer : 0,
                       donation: Number(donation) || 0,
+                      feeCoverage: feeCoverageAmount,
                       holeSponsor: holeSponsorActive,
                       holeSponsorName: holeSponsorActive ? holeSponsorName.trim() : undefined,
                       holeSponsorLogoUrl: logoUrl,
@@ -685,6 +718,12 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
               <div className={styles.summaryLine}>
                 <span>Donation to Last Mile</span>
                 <span className={styles.summaryAmt}>${Number(donation)}</span>
+              </div>
+            )}
+            {feeCoverageAmount > 0 && (
+              <div className={styles.summaryLine}>
+                <span>Processing fee coverage</span>
+                <span className={styles.summaryAmt}>${feeCoverageAmount}</span>
               </div>
             )}
             <div className={styles.summaryTotal}>
