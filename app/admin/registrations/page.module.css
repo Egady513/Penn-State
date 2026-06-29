@@ -275,6 +275,31 @@
   margin-top: 5px;
 }
 
+.resendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.resendBtn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--psu-beaver);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resendBtn:hover { background: var(--psu-pugh-soft); border-color: var(--psu-beaver); }
+.resendBtn:disabled { opacity: 0.5; cursor: default; }
+
+.resendOk  { font-size: 11px; font-weight: 600; color: #065F46; }
+.resendErr { font-size: 11px; font-weight: 600; color: #C0392B; }
+
 .golferSkill {
   font-size: 11px;
   font-weight: 700;

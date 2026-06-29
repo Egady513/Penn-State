@@ -6,6 +6,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { AdminPill } from '@/components/admin/AdminPill';
 import { Button } from '@/components/ui/Button';
 import { createClient } from '@/lib/supabase/client';
+import { resendConfirmation } from '@/app/actions/resendConfirmation';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
@@ -45,6 +46,28 @@ export default function RegistrationsPage() {
   const [editingEmail, setEditingEmail] = useState<string | null>(null); // player id
   const [emailDraft, setEmailDraft] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
+
+  // Resend confirmation email
+  const [busyEmail, setBusyEmail] = useState<string | null>(null); // team id
+  const [emailNote, setEmailNote] = useState<{ id: string; msg: string; ok: boolean } | null>(null);
+
+  async function resendEmail(team: Row) {
+    const recipients = team.players.filter((p) => p.email && p.email.includes('@'));
+    if (recipients.length === 0) {
+      setEmailNote({ id: team.id, msg: "No golfer emails on file — add one above first.", ok: false });
+      return;
+    }
+    if (!confirm(`Resend the confirmation email (with team PIN) to:\n\n${recipients.map((p) => `• ${p.name}: ${p.email}`).join('\n')}`)) return;
+    setBusyEmail(team.id);
+    setEmailNote(null);
+    const res = await resendConfirmation(team.id);
+    setBusyEmail(null);
+    if (res.ok) {
+      setEmailNote({ id: team.id, msg: `Sent to ${res.count} golfer${res.count === 1 ? '' : 's'}.`, ok: true });
+    } else {
+      setEmailNote({ id: team.id, msg: `Couldn't send: ${res.error}`, ok: false });
+    }
+  }
 
   async function saveEmail(playerId: string) {
     setSavingEmail(true);
@@ -240,6 +263,20 @@ export default function RegistrationsPage() {
                       +${team.donation} donation — thank them!
                     </div>
                   )}
+
+                  <div className={styles.resendRow}>
+                    <button
+                      className={styles.resendBtn}
+                      onClick={() => resendEmail(team)}
+                      disabled={busyEmail === team.id}
+                      title="Re-send the confirmation email + PIN to every golfer on this team"
+                    >
+                      {busyEmail === team.id ? 'Sending…' : '✉ Resend confirmation'}
+                    </button>
+                    {emailNote?.id === team.id && (
+                      <span className={emailNote.ok ? styles.resendOk : styles.resendErr}>{emailNote.msg}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Pairing */}
