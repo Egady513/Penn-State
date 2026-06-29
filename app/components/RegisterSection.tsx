@@ -81,8 +81,9 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [challenge, setChallenge] = useState<ChallengeChoice>(null)
   const [challengeGolfer, setChallengeGolfer] = useState(0) // 0 = primary, 1 = second
   const [donation, setDonation] = useState('')
-  // Optional: cover card processing fees so the chapter nets the full amount. Pre-checked.
-  const [coverFees, setCoverFees] = useState(true)
+  // Optional: cover card processing fees so the chapter nets the full amount.
+  // Unchecked by default — the registrant opts in on the Review step before paying.
+  const [coverFees, setCoverFees] = useState(false)
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
   // "Play with another twosome" pairing request
   const [pairWanted, setPairWanted] = useState(false)
@@ -578,7 +579,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                   <div>
                     <div className={styles.singleCheckTitle}>Cover the card processing fee (+${feeCoverageFor(subtotal)})</div>
                     <div className={styles.singleCheckSub}>
-                      Add ${feeCoverageFor(subtotal)} so 100% of your registration reaches Last Mile Food Rescue. Totally optional — uncheck to skip.
+                      Optional — check this to add ${feeCoverageFor(subtotal)} so 100% of your registration reaches Last Mile Food Rescue.
                     </div>
                   </div>
                 </label>
