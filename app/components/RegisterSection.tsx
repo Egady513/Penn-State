@@ -39,6 +39,9 @@ const FALLBACK_ADDONS: CatalogAddon[] = [
   { id: 'fb-front', name: 'Advantage card: front tees',       price: 10, description: 'One-time advantage card',    tag: null,  per_person: false, allow_multiple: false },
 ]
 
+// A registered twosome a new team can ask to be grouped with.
+type PairTeam = { id: string; name: string; contact: string }
+
 const SHIRT_SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 const SKILL_LEVELS = ['New to golf', 'Casual', 'Intermediate', 'Regular golfer']
 
@@ -70,6 +73,10 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [challengeGolfer, setChallengeGolfer] = useState(0) // 0 = primary, 1 = second
   const [donation, setDonation] = useState('')
   const [catalog, setCatalog] = useState<CatalogAddon[] | null>(null)
+  // "Play with another twosome" pairing request
+  const [pairWanted, setPairWanted] = useState(false)
+  const [pairTeamId, setPairTeamId] = useState('')
+  const [pairTeams, setPairTeams] = useState<PairTeam[]>([])
   const [holeSponsorName, setHoleSponsorName] = useState('')
   const [holeSponsorLogoFile, setHoleSponsorLogoFile] = useState<File | null>(null)
   const [step2Error, setStep2Error] = useState('')
@@ -97,6 +104,22 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
         // (e.g. before the catalog migration adds the tag/sort_order columns).
         const rows = data as CatalogAddon[] | null
         setCatalog(error || !rows || rows.length === 0 ? FALLBACK_ADDONS : rows)
+      })
+  }, [])
+
+  // Load already-registered twosomes for the "play with another twosome" picker.
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('team')
+      .select('id, name, player(name)')
+      .eq('event_id', EVENT_ID)
+      .eq('payment_status', 'paid')
+      .eq('single_golfer', false)
+      .order('name')
+      .then(({ data }) => {
+        const rows = (data ?? []) as { id: string; name: string; player: { name: string }[] }[]
+        setPairTeams(rows.map(r => ({ id: r.id, name: r.name, contact: r.player?.[0]?.name ?? '' })))
       })
   }, [])
 
@@ -454,6 +477,43 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     onChange={e => setDonation(e.target.value)} />
                 </Field>
               </div>
+
+              {/* Play with an already-registered twosome */}
+              <div className={styles.pairBlock}>
+                <label className={`${styles.singleCheck} ${pairWanted ? styles.singleCheckOn : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={pairWanted}
+                    onChange={e => { setPairWanted(e.target.checked); if (!e.target.checked) setPairTeamId('') }}
+                    className={styles.singleCheckInput}
+                  />
+                  <div>
+                    <div className={styles.singleCheckTitle}>Have you already registered a twosome you want to play with?</div>
+                    <div className={styles.singleCheckSub}>We&apos;ll group you into the same foursome. This doesn&apos;t change your price.</div>
+                  </div>
+                </label>
+
+                {pairWanted && (
+                  pairTeams.length > 0 ? (
+                    <Field label="Their team" hint="Pick the twosome you want to be paired with">
+                      <Select value={pairTeamId} onChange={e => setPairTeamId(e.target.value)}>
+                        <option value="">— Select their team —</option>
+                        {pairTeams.map(t => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}{t.contact ? ` — ${t.contact}` : ''}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  ) : (
+                    <p className={styles.pairNote}>
+                      No other paid teams have registered yet. No problem — have them point to your
+                      team when they register, or just tell us at check-in.
+                    </p>
+                  )
+                )}
+              </div>
+
               <div className={styles.stepFooterTwo}>
                 <Button variant="secondary" size="lg" onClick={() => setStep(1)}>
                   <ArrowLeft size={18} /> Back
@@ -533,6 +593,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       holeSponsor: holeSponsorActive,
                       holeSponsorName: holeSponsorActive ? holeSponsorName.trim() : undefined,
                       holeSponsorLogoUrl: logoUrl,
+                      pairRequestTeamId: pairWanted && pairTeamId ? pairTeamId : null,
                     })
                     if (result.error || !result.pin || !result.teamId) {
                       setSubmitting(false)

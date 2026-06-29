@@ -23,6 +23,7 @@ type Row = {
   startHole: string;
   single_golfer: boolean;
   holeSponsorName: string | null;
+  pairRequestTeamId: string | null;
 };
 
 export default function RegistrationsPage() {
@@ -89,12 +90,12 @@ export default function RegistrationsPage() {
   async function load() {
     const supabase = createClient();
     const [teamsRes, playersRes, regsRes] = await Promise.all([
-      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer, hole_sponsor_name').eq('event_id', EVENT_ID).order('created_at'),
+      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing, created_at, single_golfer, hole_sponsor_name, pair_request_team_id').eq('event_id', EVENT_ID).order('created_at'),
       supabase.from('player').select('id, team_id, name, skill_level, email, dietary_notes, phone'),
       supabase.from('registration').select('team_id, payment_method, donation_amount'),
     ]);
 
-    const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean; hole_sponsor_name: string | null }[];
+    const teams = (teamsRes.data ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null; single_golfer: boolean; hole_sponsor_name: string | null; pair_request_team_id: string | null }[];
     const players = (playersRes.data ?? []) as { id: string; team_id: string; name: string; skill_level: string | null; email: string | null; dietary_notes: string | null; phone: string | null }[];
     const regs = (regsRes.data ?? []) as { team_id: string; payment_method: string | null; donation_amount: number | null }[];
 
@@ -111,6 +112,7 @@ export default function RegistrationsPage() {
         startHole: t.start_hole != null ? String(t.start_hole) : '',
         single_golfer: t.single_golfer ?? false,
         holeSponsorName: t.hole_sponsor_name ?? null,
+        pairRequestTeamId: t.pair_request_team_id ?? null,
       }))
     );
     setLoading(false);
@@ -120,6 +122,14 @@ export default function RegistrationsPage() {
 
   const patch = (id: string, p: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
+
+  // Resolve a pairing request to "Team name (primary contact)" for display.
+  function pairRequestLabel(teamId: string): string | null {
+    const target = rows.find((r) => r.id === teamId);
+    if (!target) return null;
+    const contact = target.players[0]?.name;
+    return contact ? `${target.name} (${contact})` : target.name;
+  }
 
   async function saveAssignment(row: Row) {
     const supabase = createClient();
@@ -256,6 +266,11 @@ export default function RegistrationsPage() {
                   {team.holeSponsorName && (
                     <div className={styles.holeSponsorBadge} title="This team sponsored a hole">
                       ⛳ Hole sponsor: {team.holeSponsorName}
+                    </div>
+                  )}
+                  {team.pairRequestTeamId && pairRequestLabel(team.pairRequestTeamId) && (
+                    <div className={styles.pairRequestBadge} title="This team asked to be grouped with another team — pair them manually below.">
+                      🤝 Wants to play with: {pairRequestLabel(team.pairRequestTeamId)}
                     </div>
                   )}
                   {team.donation > 0 && (

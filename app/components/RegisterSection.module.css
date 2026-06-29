@@ -114,6 +114,9 @@
 .singleCheckTitle { font-size: 14px; font-weight: 700; }
 .singleCheckSub { font-size: 12px; color: var(--fg-muted); margin-top: 4px; line-height: 1.5; }
 
+.pairBlock { display: flex; flex-direction: column; gap: var(--space-3); }
+.pairNote { font-size: 12px; color: var(--fg-muted); margin: 0; line-height: 1.5; }
+
 /* Golfer block */
 .golferBlock {
   padding-top: var(--space-6);
