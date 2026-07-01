@@ -223,7 +223,7 @@ export default function FlyerPage() {
               <div>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: BRONZE }}>Every entry fights hunger</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 39, lineHeight: 1.08, marginTop: 9, color: NAVY, letterSpacing: '-0.015em' }}>
-                  100% benefits <span style={{ color: BRONZE }}>Last Mile Food Rescue</span>
+                  100% of proceeds benefit <span style={{ color: BRONZE }}>Last Mile Food Rescue</span>
                 </div>
                 <div style={{ fontSize: 25, lineHeight: 1.55, color: BODY, marginTop: 12 }}>
                   1 in 5 of our neighbors faces hunger. Last Mile rescues good food before it&apos;s wasted and rushes it to local pantries — your team helps fund the next delivery.
