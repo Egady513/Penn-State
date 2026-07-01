@@ -57,6 +57,15 @@ export default function FlyerPage() {
 
   const dims = FORMATS[format]
 
+  // Sponsor grid auto-fits to the roster: fewer sponsors = bigger tiles,
+  // more sponsors = more columns + shorter tiles, so it always stays balanced
+  // and never overflows the fixed artboard. Empty = 3 placeholder tiles.
+  const spN = sponsors.length
+  const spTiles: (Sponsor | null)[] = spN > 0 ? sponsors : [null, null, null]
+  const spCols = spN === 0 ? 3 : spN === 1 ? 1 : (spN === 2 || spN === 4) ? 2 : spN >= 10 ? 4 : 3
+  const spRows = Math.ceil(spTiles.length / spCols)
+  const spTileH = spRows <= 1 ? 116 : spRows === 2 ? 98 : spRows === 3 ? 82 : 68
+
   // Load the real, active (non-hole) sponsors — logos auto-update with the DB.
   useEffect(() => {
     const supabase = createClient()
@@ -242,9 +251,9 @@ export default function FlyerPage() {
 
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: NAVY }}>Proudly supported by</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 14 }}>
-                  {(sponsors.length > 0 ? sponsors : [null, null, null]).map((s, i) => (
-                    <div key={s?.id ?? `ph-${i}`} style={{ height: 98, borderRadius: 10, overflow: 'hidden', background: '#FFFFFF', border: '1px solid #E2E6EC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10, boxSizing: 'border-box' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${spCols}, 1fr)`, gap: 14, marginTop: 14 }}>
+                  {spTiles.map((s, i) => (
+                    <div key={s?.id ?? `ph-${i}`} style={{ height: spTileH, borderRadius: 10, overflow: 'hidden', background: '#FFFFFF', border: '1px solid #E2E6EC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10, boxSizing: 'border-box' }}>
                       {s?.logo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={s.logo_url} alt={s.name} crossOrigin="anonymous" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
