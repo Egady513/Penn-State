@@ -47,7 +47,7 @@ const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hol
 export default function FlyerPage() {
   const [format, setFormat] = useState<FormatKey>('post')
   const [scale, setScale] = useState(0.42)
-  const [contentH, setContentH] = useState(FORMATS.post.h) // real rendered height (grows with content)
+  const [contentH, setContentH] = useState<number>(FORMATS.post.h) // real rendered height (grows with content)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [libReady, setLibReady] = useState(false)
