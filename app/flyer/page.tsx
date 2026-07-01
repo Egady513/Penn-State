@@ -47,7 +47,6 @@ const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hol
 export default function FlyerPage() {
   const [format, setFormat] = useState<FormatKey>('post')
   const [scale, setScale] = useState(0.42)
-  const [contentH, setContentH] = useState<number>(FORMATS.post.h) // real rendered height (grows with content)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [libReady, setLibReady] = useState(false)
@@ -107,42 +106,32 @@ export default function FlyerPage() {
     document.body.appendChild(s)
   }, [])
 
-  // Measure the real content height so a growing roster never clips the footer.
-  useEffect(() => {
-    const el = flyerRef.current
-    if (!el) return
-    const measure = () => setContentH(Math.max(dims.h, Math.ceil(el.scrollHeight)))
-    const raf = requestAnimationFrame(() => { measure(); requestAnimationFrame(measure) })
-    return () => cancelAnimationFrame(raf)
-  }, [sponsors, raffleValue, format, dims.h])
-
-  // Fit the artboard to the viewport (uses the measured height so tall flyers scale too).
+  // Fit the fixed IG-sized artboard to the viewport.
   useEffect(() => {
     const compute = () => {
       const availW = (stageRef.current?.clientWidth ?? 480) - 40
       const availH = (typeof window !== 'undefined' ? window.innerHeight : 900) - 190
-      let s = Math.min(availW / dims.w, availH / contentH)
+      let s = Math.min(availW / dims.w, availH / dims.h)
       s = Math.min(s, 0.62)
       setScale(isFinite(s) && s > 0 ? s : 0.4)
     }
     compute()
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
-  }, [dims.w, contentH])
+  }, [dims.w, dims.h])
 
   async function download() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lib = (window as any).htmlToImage
     if (!flyerRef.current || !lib || busy) return
-    const exportH = Math.max(dims.h, Math.ceil(flyerRef.current.scrollHeight))
     setBusy(true)
-    setStatus(`Rendering ${dims.w}×${exportH}…`)
+    setStatus(`Rendering ${dims.w}×${dims.h}…`)
     try {
       if (document.fonts?.ready) await document.fonts.ready
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
       const dataUrl = await lib.toPng(flyerRef.current, {
         width: dims.w,
-        height: exportH,
+        height: dims.h,
         pixelRatio: 1,
         cacheBust: true,
         backgroundColor: NAVY,
@@ -150,7 +139,7 @@ export default function FlyerPage() {
       })
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `drive-out-hunger-2026-${format}-${dims.w}x${exportH}.png`
+      a.download = `drive-out-hunger-2026-${format}-${dims.w}x${dims.h}.png`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -193,12 +182,12 @@ export default function FlyerPage() {
 
       {/* Scaled stage */}
       <div ref={stageRef} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', justifyContent: 'center', padding: '28px 20px 0' }}>
-        <div style={{ position: 'relative', width: dims.w * scale, height: contentH * scale }}>
+        <div style={{ position: 'relative', width: dims.w * scale, height: dims.h * scale }}>
           {/* ── Artboard (the exported image) ── */}
           <div
             ref={flyerRef}
             style={{
-              position: 'absolute', top: 0, left: 0, width: dims.w, minHeight: dims.h,
+              position: 'absolute', top: 0, left: 0, width: dims.w, height: dims.h,
               transform: `scale(${scale})`, transformOrigin: 'top left',
               background: NAVY, color: '#fff', overflow: 'hidden',
               fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column',
@@ -212,8 +201,8 @@ export default function FlyerPage() {
                 <div style={{ display: 'inline-block', fontSize: 15, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: PUGH, background: 'rgba(150,190,230,0.16)', padding: '8px 18px', borderRadius: 999, marginBottom: 22 }}>
                   2nd Annual
                 </div>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 72, lineHeight: 0.94, letterSpacing: '-0.035em', margin: 0, color: '#fff' }}>Drive Out<br />Hunger Golf<br />Outing</h1>
-                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 26, lineHeight: 1.28, color: PUGH, marginTop: 20, maxWidth: 480 }}>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 64, lineHeight: 0.95, letterSpacing: '-0.035em', margin: 0, color: '#fff' }}>Drive Out<br />Hunger Golf<br />Outing</h1>
+                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 24, lineHeight: 1.26, color: PUGH, marginTop: 16, maxWidth: 460 }}>
                   A 2-person scramble benefiting Last Mile Food Rescue.
                 </div>
               </div>
@@ -249,7 +238,7 @@ export default function FlyerPage() {
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 39, lineHeight: 1.08, marginTop: 9, color: NAVY, letterSpacing: '-0.015em' }}>
                   100% of proceeds benefit <span style={{ color: BRONZE }}>Last Mile Food Rescue</span>
                 </div>
-                <div style={{ fontSize: 25, lineHeight: 1.55, color: BODY, marginTop: 12 }}>
+                <div style={{ fontSize: 22, lineHeight: 1.5, color: BODY, marginTop: 10 }}>
                   1 in 5 of our neighbors faces hunger. Last Mile rescues good food before it&apos;s wasted and rushes it to local pantries — your team helps fund the next delivery.
                 </div>
               </div>
