@@ -257,14 +257,13 @@ export default function FlyerPage() {
                   {ADDONS.map(t => (
                     <span key={t} style={{ fontSize: 14, fontWeight: 600, color: '#7a5a26', background: '#fff', border: `1px dashed ${BRONZE}`, padding: '7px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t}</span>
                   ))}
+                  {raffleValue >= 100 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, color: BRONZE, background: 'rgba(162,120,58,0.12)', border: `1px solid rgba(162,120,58,0.40)`, padding: '6px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+                      <Ticket size={17} color={BRONZE} strokeWidth={2.2} />
+                      ${raffleValue.toLocaleString()}+ in raffle prizes
+                    </span>
+                  )}
                 </div>
-
-                {raffleValue >= 100 && (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginTop: 14, padding: '10px 18px', background: 'rgba(162,120,58,0.10)', border: `1px solid rgba(162,120,58,0.35)`, borderRadius: 12 }}>
-                    <Ticket size={24} color={BRONZE} strokeWidth={2} style={{ flex: 'none' }} />
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: BRONZE, letterSpacing: '-0.01em' }}>${raffleValue.toLocaleString()}+ in raffle prizes</div>
-                  </div>
-                )}
               </div>
 
               <div style={{ height: 1, background: '#E2E6EC' }} />
