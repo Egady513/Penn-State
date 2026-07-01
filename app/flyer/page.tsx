@@ -277,7 +277,7 @@ export default function FlyerPage() {
               </div>
 
               <div style={{ fontSize: 13, lineHeight: 1.5, color: MUTED, textAlign: 'center' }}>
-                Hosted by the Greater Cincinnati Penn State Alumni Association · 501(c)(3) · 100% of proceeds benefit Last Mile Food Rescue
+                Hosted by the Greater Cincinnati Penn State Alumni Association · 100% of proceeds benefit Last Mile Food Rescue
               </div>
             </div>
           </div>
