@@ -232,7 +232,7 @@ export default function FlyerPage() {
             </div>
 
             {/* Details band (cream) */}
-            <div style={{ flex: '1 1 auto', background: CREAM, color: NAVY, padding: '36px 52px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
+            <div style={{ flex: '1 1 auto', background: CREAM, color: NAVY, padding: '36px 52px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20, boxShadow: 'inset 0 20px 26px -18px rgba(0,0,0,0.30)' }}>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: BRONZE }}>Every entry fights hunger</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 39, lineHeight: 1.08, marginTop: 9, color: NAVY, letterSpacing: '-0.015em' }}>
