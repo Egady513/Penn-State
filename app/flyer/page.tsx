@@ -172,8 +172,10 @@ export default function FlyerPage() {
             }}
           >
             {/* Hero — navy, headline top-left, Last Mile image right (registration styling) */}
-            <div style={{ flex: '1 1 auto', minHeight: 430, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '64px 56px 44px', boxSizing: 'border-box' }}>
-              <div style={{ flex: '1 1 auto' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', flex: '1 1 auto', minHeight: 430, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '64px 56px 44px', boxSizing: 'border-box' }}>
+              {/* Sun-spot glow (matches the registration hero) */}
+              <div aria-hidden style={{ position: 'absolute', top: -90, right: -90, width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(150,190,230,0.18), transparent 70%)', filter: 'blur(8px)', pointerEvents: 'none', zIndex: 0 }} />
+              <div style={{ flex: '1 1 auto', position: 'relative', zIndex: 1 }}>
                 <div style={{ display: 'inline-block', fontSize: 15, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: PUGH, background: 'rgba(150,190,230,0.16)', padding: '8px 18px', borderRadius: 999, marginBottom: 22 }}>
                   2nd Annual
                 </div>
@@ -188,7 +190,7 @@ export default function FlyerPage() {
                 alt="Last Mile Food Rescue"
                 width={340}
                 height={340}
-                style={{ flex: 'none', width: 340, height: 340, borderRadius: 20, objectFit: 'cover', boxShadow: '0 0 0 4px rgba(150,190,230,0.15), 0 24px 60px rgba(0,0,0,0.4)' }}
+                style={{ flex: 'none', position: 'relative', zIndex: 1, width: 340, height: 340, borderRadius: 20, objectFit: 'cover', boxShadow: '0 0 0 4px rgba(150,190,230,0.22), 0 24px 60px rgba(0,0,0,0.4)' }}
               />
             </div>
 
