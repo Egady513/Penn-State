@@ -22,11 +22,11 @@ const STATS = [
   { label: 'Course', value: 'Beckett Ridge', Icon: MapPin },
   { label: 'Format', value: '2-Person Scramble', Icon: Flag },
   { label: 'Entry', value: '$200 / team', Icon: CreditCard },
-  { label: 'Tee-off', value: '9:00 AM shotgun', Icon: Clock },
+  { label: 'Tee-off', value: '8:00 AM shotgun', Icon: Clock },
 ]
 const INCLUDES = ['Green fees', 'Cart fees', 'Breakfast', 'Lunch', 'Player goodie bags']
 const ADDONS = ['Hole contests', 'Advantage cards', '“Sink-It, Keep It” putting green challenge', 'Raffle']
-const REGISTER_URL = 'penn-state-topaz.vercel.app'
+const REGISTER_URL = 'https://penn-state-topaz.vercel.app/'
 const CONTACT_PHONE = '513-708-0874'
 
 const FORMATS = {
@@ -171,14 +171,14 @@ export default function FlyerPage() {
               fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column',
             }}
           >
-            {/* Hero — navy, headline left, Last Mile image right (registration styling) */}
-            <div style={{ flex: '1 1 auto', minHeight: 430, background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 40, padding: '0 56px', boxSizing: 'border-box' }}>
+            {/* Hero — navy, headline top-left, Last Mile image right (registration styling) */}
+            <div style={{ flex: '1 1 auto', minHeight: 430, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '64px 56px 44px', boxSizing: 'border-box' }}>
               <div style={{ flex: '1 1 auto' }}>
-                <div style={{ display: 'inline-block', fontSize: 14, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: PUGH, background: 'rgba(150,190,230,0.16)', padding: '8px 16px', borderRadius: 999, marginBottom: 22 }}>
-                  Charity golf outing
+                <div style={{ display: 'inline-block', fontSize: 15, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: PUGH, background: 'rgba(150,190,230,0.16)', padding: '8px 18px', borderRadius: 999, marginBottom: 22 }}>
+                  2nd Annual
                 </div>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 92, lineHeight: 0.9, letterSpacing: '-0.045em', margin: 0, color: '#fff' }}>Drive Out<br />Hunger</h1>
-                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 26, lineHeight: 1.28, color: PUGH, marginTop: 18, maxWidth: 480 }}>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 72, lineHeight: 0.94, letterSpacing: '-0.035em', margin: 0, color: '#fff' }}>Drive Out<br />Hunger Golf<br />Outing</h1>
+                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 26, lineHeight: 1.28, color: PUGH, marginTop: 20, maxWidth: 480 }}>
                   A 2-person scramble benefiting Last Mile Food Rescue.
                 </div>
               </div>
@@ -186,9 +186,9 @@ export default function FlyerPage() {
               <img
                 src="/lastmile-hero.png"
                 alt="Last Mile Food Rescue"
-                width={380}
-                height={380}
-                style={{ flex: 'none', width: 380, height: 380, borderRadius: 20, objectFit: 'cover', boxShadow: '0 0 0 4px rgba(150,190,230,0.15), 0 24px 60px rgba(0,0,0,0.4)' }}
+                width={340}
+                height={340}
+                style={{ flex: 'none', width: 340, height: 340, borderRadius: 20, objectFit: 'cover', boxShadow: '0 0 0 4px rgba(150,190,230,0.15), 0 24px 60px rgba(0,0,0,0.4)' }}
               />
             </div>
 
@@ -242,7 +242,7 @@ export default function FlyerPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: NAVY }}>Proudly supported by</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 14 }}>
                   {(sponsors.length > 0 ? sponsors : [null, null, null]).map((s, i) => (
-                    <div key={s?.id ?? `ph-${i}`} style={{ height: 98, borderRadius: 10, overflow: 'hidden', background: '#EEF1F6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, boxSizing: 'border-box' }}>
+                    <div key={s?.id ?? `ph-${i}`} style={{ height: 98, borderRadius: 10, overflow: 'hidden', background: '#FFFFFF', border: '1px solid #E2E6EC', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10, boxSizing: 'border-box' }}>
                       {s?.logo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={s.logo_url} alt={s.name} crossOrigin="anonymous" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
@@ -255,14 +255,14 @@ export default function FlyerPage() {
               </div>
 
               {/* Register box */}
-              <div style={{ background: NAVY, borderRadius: 14, padding: '22px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 10px 22px rgba(0,30,68,0.18)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, lineHeight: 1.08, color: '#fff', letterSpacing: '-0.01em' }}>Register your team online</div>
-                  <div style={{ fontSize: 26, fontWeight: 600, color: PUGH, letterSpacing: '0.01em' }}>{REGISTER_URL}</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#7E8AA0', marginTop: 2 }}>Questions? Call or text Eddie Gady: {CONTACT_PHONE}</div>
+              <div style={{ background: NAVY, borderRadius: 14, padding: '20px 28px', display: 'flex', alignItems: 'center', gap: 24, boxShadow: '0 10px 22px rgba(0,30,68,0.18)' }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, lineHeight: 1.1, color: '#fff', letterSpacing: '-0.01em' }}>Register your team online</div>
+                  <div style={{ fontSize: 34, fontWeight: 700, color: PUGH, letterSpacing: '0.005em', marginTop: 4 }}>{REGISTER_URL}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#7E8AA0', marginTop: 6 }}>Questions? Call or text Eddie Gady: {CONTACT_PHONE}</div>
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/register-qr.png" alt="Register QR code" width={108} height={108} style={{ flex: 'none', width: 108, height: 108, borderRadius: 8, background: '#fff', padding: 6, boxSizing: 'border-box' }} />
+                <img src="/register-qr.png" alt="Register QR code" width={104} height={104} style={{ flex: 'none', width: 104, height: 104, borderRadius: 8, background: '#fff', padding: 6, boxSizing: 'border-box' }} />
               </div>
 
               <div style={{ fontSize: 13, lineHeight: 1.5, color: MUTED, textAlign: 'center' }}>
