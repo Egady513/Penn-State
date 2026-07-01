@@ -65,7 +65,7 @@ export default function FlyerPage() {
   const spTiles: (Sponsor | null)[] = spN > 0 ? sponsors : [null, null, null]
   const spCols = spN === 0 ? 3 : spN === 1 ? 1 : (spN === 2 || spN === 4) ? 2 : spN >= 10 ? 4 : 3
   const spRows = Math.ceil(spTiles.length / spCols)
-  const spTileH = spRows <= 1 ? 116 : spRows === 2 ? 98 : spRows === 3 ? 82 : 68
+  const spTileH = spRows <= 1 ? 132 : spRows === 2 ? 106 : spRows === 3 ? 84 : 68
 
   // Load the real, active (non-hole) sponsors — logos auto-update with the DB.
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function FlyerPage() {
             }}
           >
             {/* Hero — navy, headline top-left, Last Mile image right (registration styling) */}
-            <div style={{ position: 'relative', overflow: 'hidden', flex: '1 1 auto', minHeight: 360, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '48px 56px 36px', boxSizing: 'border-box' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 40, padding: '52px 56px 44px', boxSizing: 'border-box' }}>
               {/* Sun-spot glow (matches the registration hero) */}
               <div aria-hidden style={{ position: 'absolute', top: -120, right: -120, width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(150,190,230,0.40), rgba(150,190,230,0.12) 45%, transparent 72%)', filter: 'blur(6px)', pointerEvents: 'none', zIndex: 0 }} />
               <div style={{ flex: '1 1 auto', position: 'relative', zIndex: 1 }}>
@@ -232,7 +232,7 @@ export default function FlyerPage() {
             </div>
 
             {/* Details band (cream) */}
-            <div style={{ flex: '0 0 auto', background: CREAM, color: NAVY, padding: '30px 52px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ flex: '1 1 auto', background: CREAM, color: NAVY, padding: '36px 52px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20 }}>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: BRONZE }}>Every entry fights hunger</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 39, lineHeight: 1.08, marginTop: 9, color: NAVY, letterSpacing: '-0.015em' }}>
