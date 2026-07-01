@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Calendar, MapPin, Flag, CreditCard, Clock } from 'lucide-react'
+import { Calendar, MapPin, Flag, CreditCard, Clock, Ticket } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 
@@ -25,7 +25,7 @@ const STATS = [
   { label: 'Tee-off', value: '8:00 AM shotgun', Icon: Clock },
 ]
 const INCLUDES = ['Green fees', 'Cart fees', 'Breakfast', 'Post-round lunch & awards', 'Player goodie bags']
-const ADDONS = ['Hole contests', 'Advantage cards', '“Sink-It, Keep It” putting green challenge', 'Raffle']
+const ADDONS = ['Hole contests', 'Advantage cards', '“Sink-It, Keep It” putting green challenge']
 const REGISTER_URL = 'https://penn-state-topaz.vercel.app/'
 const CONTACT_PHONE = '513-708-0874'
 
@@ -51,6 +51,7 @@ export default function FlyerPage() {
   const [status, setStatus] = useState('')
   const [libReady, setLibReady] = useState(false)
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
+  const [raffleValue, setRaffleValue] = useState(0) // floored $ of raffle prizes
 
   const stageRef = useRef<HTMLDivElement>(null)
   const flyerRef = useRef<HTMLDivElement>(null)
@@ -78,6 +79,18 @@ export default function FlyerPage() {
       .then(({ data, error }) => {
         const rows = (data as Sponsor[] | null) ?? []
         if (!error) setSponsors(rows.filter(s => !isHole(s)))
+      })
+
+    // Live raffle-prize value from the donor page (floored to a clean number).
+    supabase
+      .from('donor')
+      .select('estimated_value')
+      .eq('event_id', EVENT_ID)
+      .eq('use', 'raffle')
+      .then(({ data }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sum = ((data ?? []) as any[]).reduce((s, d) => s + (Number(d.estimated_value) || 0), 0)
+        setRaffleValue(Math.floor(sum / 100) * 100)
       })
   }, [])
 
@@ -245,6 +258,16 @@ export default function FlyerPage() {
                     <span key={t} style={{ fontSize: 14, fontWeight: 600, color: '#7a5a26', background: '#fff', border: `1px dashed ${BRONZE}`, padding: '7px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t}</span>
                   ))}
                 </div>
+
+                {raffleValue >= 100 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 16, padding: '14px 18px', background: 'rgba(162,120,58,0.10)', border: `1px solid rgba(162,120,58,0.35)`, borderRadius: 12 }}>
+                    <Ticket size={28} color={BRONZE} strokeWidth={2} style={{ flex: 'none' }} />
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: BRONZE, letterSpacing: '-0.01em' }}>${raffleValue.toLocaleString()}+ in raffle prizes</div>
+                      <div style={{ fontSize: 15, color: BODY, marginTop: 2 }}>Generously donated by local businesses</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ height: 1, background: '#E2E6EC' }} />
