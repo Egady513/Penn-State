@@ -24,7 +24,7 @@ const STATS = [
   { label: 'Entry', value: '$200 / team', Icon: CreditCard },
   { label: 'Tee-off', value: '8:00 AM shotgun', Icon: Clock },
 ]
-const INCLUDES = ['Green fees', 'Cart fees', 'Breakfast', 'Lunch', 'Player goodie bags']
+const INCLUDES = ['Green fees', 'Cart fees', 'Breakfast', 'Post-round lunch & awards', 'Player goodie bags']
 const ADDONS = ['Hole contests', 'Advantage cards', '“Sink-It, Keep It” putting green challenge', 'Raffle']
 const REGISTER_URL = 'https://penn-state-topaz.vercel.app/'
 const CONTACT_PHONE = '513-708-0874'
