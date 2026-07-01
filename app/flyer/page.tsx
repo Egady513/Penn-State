@@ -47,6 +47,7 @@ const isHole = (s: Sponsor) => !!s.sponsorship_type?.toLowerCase().includes('hol
 export default function FlyerPage() {
   const [format, setFormat] = useState<FormatKey>('post')
   const [scale, setScale] = useState(0.42)
+  const [contentH, setContentH] = useState(FORMATS.post.h) // real rendered height (grows with content)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [libReady, setLibReady] = useState(false)
@@ -106,32 +107,42 @@ export default function FlyerPage() {
     document.body.appendChild(s)
   }, [])
 
-  // Fit the 1080px artboard to the viewport.
+  // Measure the real content height so a growing roster never clips the footer.
+  useEffect(() => {
+    const el = flyerRef.current
+    if (!el) return
+    const measure = () => setContentH(Math.max(dims.h, Math.ceil(el.scrollHeight)))
+    const raf = requestAnimationFrame(() => { measure(); requestAnimationFrame(measure) })
+    return () => cancelAnimationFrame(raf)
+  }, [sponsors, raffleValue, format, dims.h])
+
+  // Fit the artboard to the viewport (uses the measured height so tall flyers scale too).
   useEffect(() => {
     const compute = () => {
       const availW = (stageRef.current?.clientWidth ?? 480) - 40
       const availH = (typeof window !== 'undefined' ? window.innerHeight : 900) - 190
-      let s = Math.min(availW / dims.w, availH / dims.h)
+      let s = Math.min(availW / dims.w, availH / contentH)
       s = Math.min(s, 0.62)
       setScale(isFinite(s) && s > 0 ? s : 0.4)
     }
     compute()
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
-  }, [dims.w, dims.h])
+  }, [dims.w, contentH])
 
   async function download() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lib = (window as any).htmlToImage
     if (!flyerRef.current || !lib || busy) return
+    const exportH = Math.max(dims.h, Math.ceil(flyerRef.current.scrollHeight))
     setBusy(true)
-    setStatus(`Rendering ${dims.w}×${dims.h}…`)
+    setStatus(`Rendering ${dims.w}×${exportH}…`)
     try {
       if (document.fonts?.ready) await document.fonts.ready
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
       const dataUrl = await lib.toPng(flyerRef.current, {
         width: dims.w,
-        height: dims.h,
+        height: exportH,
         pixelRatio: 1,
         cacheBust: true,
         backgroundColor: NAVY,
@@ -139,7 +150,7 @@ export default function FlyerPage() {
       })
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `drive-out-hunger-2026-${format}-${dims.w}x${dims.h}.png`
+      a.download = `drive-out-hunger-2026-${format}-${dims.w}x${exportH}.png`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -182,19 +193,19 @@ export default function FlyerPage() {
 
       {/* Scaled stage */}
       <div ref={stageRef} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', justifyContent: 'center', padding: '28px 20px 0' }}>
-        <div style={{ position: 'relative', width: dims.w * scale, height: dims.h * scale }}>
+        <div style={{ position: 'relative', width: dims.w * scale, height: contentH * scale }}>
           {/* ── Artboard (the exported image) ── */}
           <div
             ref={flyerRef}
             style={{
-              position: 'absolute', top: 0, left: 0, width: dims.w, height: dims.h,
+              position: 'absolute', top: 0, left: 0, width: dims.w, minHeight: dims.h,
               transform: `scale(${scale})`, transformOrigin: 'top left',
               background: NAVY, color: '#fff', overflow: 'hidden',
               fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column',
             }}
           >
             {/* Hero — navy, headline top-left, Last Mile image right (registration styling) */}
-            <div style={{ position: 'relative', overflow: 'hidden', flex: '1 1 auto', minHeight: 430, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '64px 56px 44px', boxSizing: 'border-box' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', flex: '1 1 auto', minHeight: 360, background: NAVY, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 40, padding: '48px 56px 36px', boxSizing: 'border-box' }}>
               {/* Sun-spot glow (matches the registration hero) */}
               <div aria-hidden style={{ position: 'absolute', top: -120, right: -120, width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(150,190,230,0.40), rgba(150,190,230,0.12) 45%, transparent 72%)', filter: 'blur(6px)', pointerEvents: 'none', zIndex: 0 }} />
               <div style={{ flex: '1 1 auto', position: 'relative', zIndex: 1 }}>
@@ -232,7 +243,7 @@ export default function FlyerPage() {
             </div>
 
             {/* Details band (cream) */}
-            <div style={{ flex: '0 0 auto', background: CREAM, color: NAVY, padding: '32px 52px 30px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <div style={{ flex: '0 0 auto', background: CREAM, color: NAVY, padding: '30px 52px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: BRONZE }}>Every entry fights hunger</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 39, lineHeight: 1.08, marginTop: 9, color: NAVY, letterSpacing: '-0.015em' }}>
@@ -260,12 +271,9 @@ export default function FlyerPage() {
                 </div>
 
                 {raffleValue >= 100 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 16, padding: '14px 18px', background: 'rgba(162,120,58,0.10)', border: `1px solid rgba(162,120,58,0.35)`, borderRadius: 12 }}>
-                    <Ticket size={28} color={BRONZE} strokeWidth={2} style={{ flex: 'none' }} />
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: BRONZE, letterSpacing: '-0.01em' }}>${raffleValue.toLocaleString()}+ in raffle prizes</div>
-                      <div style={{ fontSize: 15, color: BODY, marginTop: 2 }}>Generously donated by local businesses</div>
-                    </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginTop: 14, padding: '10px 18px', background: 'rgba(162,120,58,0.10)', border: `1px solid rgba(162,120,58,0.35)`, borderRadius: 12 }}>
+                    <Ticket size={24} color={BRONZE} strokeWidth={2} style={{ flex: 'none' }} />
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, color: BRONZE, letterSpacing: '-0.01em' }}>${raffleValue.toLocaleString()}+ in raffle prizes</div>
                   </div>
                 )}
               </div>
