@@ -11,8 +11,8 @@ import { EVENT_ID } from '@/lib/eventId';
 import { Icon } from '@/components/ui/Icon';
 import styles from './page.module.css';
 
-const GOAL = 10_000;
-const LAST_YEAR = 6_200;
+const GOAL = 5_000;
+const LAST_YEAR = 3_600;
 const TOTAL_SPOTS = 36;
 const EVENT_DATE = new Date('2026-08-30');
 
@@ -26,6 +26,7 @@ type Stats = {
   sponsorsCommitted: number;
   sponsorDollarsCommitted: number;
   grossRaised: number;
+  netRaised: number;
   daysOut: number;
 };
 
@@ -51,7 +52,12 @@ export default function AdminOverviewPage() {
       supabase.from('team').select('id, pairing').eq('event_id', EVENT_ID).eq('single_golfer', true),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('challenge_participants'),
-    ]).then(async ([teamsRes, sponsorsRes, raisedRes, soloTeamsRes, challengeRes]) => {
+      // Same breakdown the Revenue tab uses — pulled here just for the
+      // 'expenses' row, so the goal tracker can compare net-of-expenses
+      // (matching how LAST_YEAR and GOAL below are defined).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('revenue_breakdown'),
+    ]).then(async ([teamsRes, sponsorsRes, raisedRes, soloTeamsRes, challengeRes, breakdownRes]) => {
       const teams    = (teamsRes.data    ?? []) as { id: string; name: string; payment_status: string; created_at: string; single_golfer: boolean; pairing: string | null }[];
       const sponsors = (sponsorsRes.data ?? []) as { id: string; amount: number }[];
       const soloTeams = (soloTeamsRes.data ?? []) as { id: string; pairing: string | null }[];
@@ -60,6 +66,10 @@ export default function AdminOverviewPage() {
       const raisedVal = (raisedRes as { data: number | null }).data;
       const grossRaised = raisedVal != null && !Number.isNaN(Number(raisedVal)) ? Number(raisedVal) : 0;
 
+      const breakdown = ((breakdownRes as { data: { category: string; dollars: number }[] | null }).data) ?? [];
+      const expensesTotal = Number(breakdown.find(r => r.category === 'expenses')?.dollars ?? 0);
+      const netRaised = grossRaised - expensesTotal;
+
       setStats({
         teamsRegistered: teams.length,
         teamsPaid: paid,
@@ -67,6 +77,7 @@ export default function AdminOverviewPage() {
         sponsorsCommitted: sponsors.length,
         sponsorDollarsCommitted: sponsors.reduce((s, sp) => s + (Number(sp.amount) || 0), 0),
         grossRaised,
+        netRaised,
         daysOut,
       });
       setRecent(teams.slice(0, 5));
@@ -121,9 +132,11 @@ export default function AdminOverviewPage() {
     );
   }
 
-  const pct = Math.min(Math.round((stats.grossRaised / GOAL) * 100), 100);
-  const ahead = stats.grossRaised - LAST_YEAR;
-  const aheadPct = Math.round((ahead / LAST_YEAR) * 100);
+  // Goal + last-year figures are both after-expenses, so compare against
+  // net raised (not the gross headline number above) for an apples-to-apples bar.
+  const pct = Math.min(Math.round((stats.netRaised / GOAL) * 100), 100);
+  const ahead = stats.netRaised - LAST_YEAR;
+  const aheadPct = LAST_YEAR > 0 ? Math.round((ahead / LAST_YEAR) * 100) : 0;
 
   return (
     <div>
