@@ -76,6 +76,35 @@
   font-weight: 700;
 }
 
+.progressWrap {
+  position: relative;
+  margin-top: 22px;
+}
+
+.progressMarker {
+  position: absolute;
+  top: -22px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--psu-navy);
+  background: var(--psu-pugh);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.progressMarker::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 6px;
+  background: var(--psu-pugh);
+}
+
 .progressTrack {
   height: 6px;
   background: rgba(255, 255, 255, 0.1);

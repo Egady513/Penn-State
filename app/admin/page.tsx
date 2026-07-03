@@ -173,8 +173,16 @@ export default function AdminOverviewPage() {
                 </>
               )}
             </p>
-            <div className={styles.progressTrack}>
-              <div className={styles.progressFill} style={{ width: `${pct}%` }} />
+            <div className={styles.progressWrap}>
+              <div
+                className={styles.progressMarker}
+                style={{ left: `${Math.min(Math.max(pct, 6), 94)}%` }}
+              >
+                ${stats.netRaised.toLocaleString()} · {pct}%
+              </div>
+              <div className={styles.progressTrack}>
+                <div className={styles.progressFill} style={{ width: `${pct}%` }} />
+              </div>
             </div>
             <div className={styles.progressLabels}>
               <span>2025 · ${LAST_YEAR.toLocaleString()}</span>
