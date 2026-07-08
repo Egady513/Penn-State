@@ -14,6 +14,8 @@ interface HeroSectionProps {
 }
 
 const SPOTS_TOTAL = 36
+// Don't show "X/36 spots taken" until it reads as scarcity, not emptiness.
+const SPOTS_CHIP_THRESHOLD = 27
 
 export function HeroSection({ onJump }: HeroSectionProps) {
   const [spotsTaken, setSpotsTaken] = useState<number | null>(null)
@@ -66,10 +68,12 @@ export function HeroSection({ onJump }: HeroSectionProps) {
           </div>
 
           <div className={styles.chipRow}>
-            <div className={styles.spotsChip}>
-              <span className={styles.spotsNum}>{spotsTaken ?? '—'}/{SPOTS_TOTAL}</span>
-              team spots taken
-            </div>
+            {spotsTaken != null && spotsTaken >= SPOTS_CHIP_THRESHOLD && (
+              <div className={styles.spotsChip}>
+                <span className={styles.spotsNum}>{spotsTaken}/{SPOTS_TOTAL}</span>
+                team spots taken
+              </div>
+            )}
             <MoneyRaised variant="chip" />
           </div>
         </div>
