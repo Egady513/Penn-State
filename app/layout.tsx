@@ -10,6 +10,20 @@ export const metadata: Metadata = {
     title: 'Drive Out Hunger Golf Outing',
     description: 'August 30, 2026 · Beckett Ridge Golf Club · Benefits Last Mile Food Rescue',
     type: 'website',
+    images: [
+      {
+        url: '/lastmile-hero.png',
+        width: 1181,
+        height: 686,
+        alt: 'Last Mile Food Rescue',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Drive Out Hunger Golf Outing',
+    description: 'August 30, 2026 · Beckett Ridge Golf Club · Benefits Last Mile Food Rescue',
+    images: ['/lastmile-hero.png'],
   },
 }
 
