@@ -8,7 +8,7 @@ const FG_MUTED = '#5B6470'
 const BG_SOFT = '#FAF8F3'
 const BORDER = '#E5E2D9'
 
-const EVENT_DATE_LABEL = 'Saturday, August 30, 2026'
+const EVENT_DATE_LABEL = 'Sunday, August 30, 2026'
 const EVENT_LOCATION = 'Beckett Ridge Golf Club, West Chester OH'
 
 interface ScheduleItem { time: string; label: string; detail?: string }
@@ -31,6 +31,7 @@ interface TemplateData {
   schedule: ScheduleItem[]
   hasHoleSponsor: boolean
   holeSponsorName: string | null
+  holeSponsorHole: number | null
   totalCents: number
 }
 
@@ -70,7 +71,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
   const [teamRes, playersRes, regRes, purchaseRes, eventRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('team') as any)
-      .select('name, pin, single_golfer, hole_sponsor_name')
+      .select('name, pin, single_golfer, hole_sponsor_name, hole_sponsor_hole')
       .eq('id', teamId)
       .maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,7 +95,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
   ])
 
   if (!teamRes.data) throw new Error(`Team ${teamId} not found`)
-  const team = teamRes.data as { name: string; pin: string; single_golfer: boolean; hole_sponsor_name: string | null }
+  const team = teamRes.data as { name: string; pin: string; single_golfer: boolean; hole_sponsor_name: string | null; hole_sponsor_hole: number | null }
   const players = (playersRes.data ?? []) as PlayerRow[]
   const reg = (regRes.data ?? { fee_amount: 0, donation_amount: 0, fee_coverage_amount: 0 }) as {
     fee_amount: number; donation_amount: number; fee_coverage_amount: number
@@ -128,6 +129,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     schedule,
     hasHoleSponsor,
     holeSponsorName: team.hole_sponsor_name ?? null,
+    holeSponsorHole: team.hole_sponsor_hole ?? null,
     totalCents,
   }
 }
@@ -179,8 +181,9 @@ function buildText(d: TemplateData): string {
     : ''
 
   const sponsorDisplayName = d.holeSponsorName || d.teamName
+  const holeLine = d.holeSponsorHole ? ` on Hole ${d.holeSponsorHole}` : ''
   const sponsorBlock = d.hasHoleSponsor
-    ? `\nThanks for stepping up as a hole sponsor! "${sponsorDisplayName}" will appear on the public page under "Hole Sponsors." If you'd like to upload a logo or update the display name, just reply to this email.\n`
+    ? `\nThanks for stepping up as a hole sponsor! "${sponsorDisplayName}" will appear${holeLine} on the public page under "Hole Sponsors." If you'd like to upload a logo or update the display name, just reply to this email.\n`
     : ''
 
   const playerLines = d.players.map(p => `  • ${p.name}`).join('\n')
@@ -251,10 +254,11 @@ function buildHtml(d: TemplateData): string {
     </div>` : ''
 
   const sponsorDisplayName = d.holeSponsorName || d.teamName
+  const holeLineHtml = d.holeSponsorHole ? ` on <strong>Hole ${d.holeSponsorHole}</strong>` : ''
   const sponsorBlock = d.hasHoleSponsor ? `
     <div style="margin-top:12px;padding:14px 16px;border-left:3px solid ${PSU_BRONZE};background:${BG_SOFT};border-radius:0 8px 8px 0;">
       <div style="font-weight:700;color:${PSU_NAVY};font-size:14px;margin-bottom:4px;">Thanks for sponsoring a hole!</div>
-      <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">&ldquo;${escapeHtml(sponsorDisplayName)}&rdquo; will appear on the public page under &ldquo;Hole Sponsors.&rdquo; If you&rsquo;d like to upload a logo or update the display name, just reply to this email and we&rsquo;ll set it up.</div>
+      <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">&ldquo;${escapeHtml(sponsorDisplayName)}&rdquo; will appear${holeLineHtml} on the public page under &ldquo;Hole Sponsors.&rdquo; If you&rsquo;d like to upload a logo or update the display name, just reply to this email and we&rsquo;ll set it up.</div>
     </div>` : ''
 
   return `<!doctype html>
