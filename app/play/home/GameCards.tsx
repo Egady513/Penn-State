@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { EVENT_ID } from '@/lib/eventId'
 import { Icon } from '@/components/ui/Icon'
 import styles from './GameCards.module.css'
 
@@ -14,10 +15,16 @@ type PurchaseRow = {
 }
 
 type Player = { id: string; name: string }
+type HoleContest = { number: number; contest_type: string; contest_label: string | null }
+
+// "Holes 3 & 12" from a list of hole numbers.
+const fmtHoles = (nums: number[]) =>
+  nums.length ? `Holes ${nums.slice().sort((a, b) => a - b).join(' & ')}` : null
 
 export function GameCards({ teamId }: { teamId: string }) {
   const [purchases, setPurchases] = useState<PurchaseRow[] | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
+  const [holeContests, setHoleContests] = useState<HoleContest[]>([])
 
   useEffect(() => {
     const supabase = createClient()
@@ -27,9 +34,13 @@ export function GameCards({ teamId }: { teamId: string }) {
         .select('id, paid_status, used, player_id, catalog_item:catalog_item_id(name, tag)')
         .eq('team_id', teamId),
       supabase.from('player').select('id, name').eq('team_id', teamId),
-    ]).then(([pRes, plRes]: [{ data: PurchaseRow[] | null }, { data: Player[] | null }]) => {
+      // Real contest-hole assignments from the admin Course page — replaces
+      // the old hardcoded "3 & 12 / 6 & 16" placeholder text.
+      supabase.from('hole').select('number, contest_type, contest_label').eq('event_id', EVENT_ID).order('number'),
+    ]).then(([pRes, plRes, hRes]: [{ data: PurchaseRow[] | null }, { data: Player[] | null }, { data: HoleContest[] | null }]) => {
       setPurchases(pRes.data ?? [])
       setPlayers(plRes.data ?? [])
+      setHoleContests(hRes.data ?? [])
     })
   }, [teamId])
 
@@ -47,6 +58,20 @@ export function GameCards({ teamId }: { teamId: string }) {
 
   const nameOf = (id: string | null) => players.find(p => p.id === id)?.name ?? 'Your team'
 
+  // Build "Closest-to-Pin · Holes 3 & 12 · Long Drive · Holes 6 & 16" from
+  // real hole data, plus any custom challenges Eddie's added per hole.
+  const ctpHoles = fmtHoles(holeContests.filter(h => h.contest_type === 'closest_to_pin').map(h => h.number))
+  const ldHoles = fmtHoles(holeContests.filter(h => h.contest_type === 'long_drive').map(h => h.number))
+  const customChallenges = holeContests.filter(h => h.contest_label)
+  const holeMapParts = [
+    ctpHoles && `Closest-to-Pin · ${ctpHoles}`,
+    ldHoles && `Long Drive · ${ldHoles}`,
+    ...customChallenges.map(h => `${h.contest_label} · Hole ${h.number}`),
+  ].filter(Boolean)
+  const holeMapText = holeMapParts.length > 0
+    ? holeMapParts.join(' · ')
+    : 'Ask at the tent for today’s challenge holes.'
+
   // One row per golfer that has any contest entry
   const challengeGolfers = Array.from(new Set(contest.map(c => c.player_id))).map(pid => {
     const rows = contest.filter(c => c.player_id === pid)
@@ -62,7 +87,7 @@ export function GameCards({ teamId }: { teamId: string }) {
       {/* ── Skills Challenge ─────────────────────────────── */}
       <div className={styles.card}>
         <div className={styles.cardTitle}>Skills Challenge</div>
-        <div className={styles.holeMap}>Closest-to-Pin · Holes 3 &amp; 12 · Long Drive · Holes 6 &amp; 16</div>
+        <div className={styles.holeMap}>{holeMapText}</div>
 
         {challengeGolfers.length === 0 ? (
           <div className={styles.empty}>Not entered. Add it at the contest hole or the tent.</div>

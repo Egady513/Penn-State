@@ -86,6 +86,11 @@ export default async function HomePage() {
   // Schedule from event JSONB
   const schedule = (event?.schedule as Array<{ time: string; label: string }>) ?? []
 
+  // Pull the shotgun-start time from the same live schedule instead of
+  // hardcoding it — so an admin edit on the Schedule page shows up here too.
+  const shotgunEntry = schedule.find(s => s.label.toLowerCase().includes('shotgun'))
+  const shotgunSub = shotgunEntry ? `Shotgun · ${shotgunEntry.time}` : 'Shotgun start'
+
   // Announcement posted time
   const announcedAt = announcement?.posted_at
     ? new Date(announcement.posted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -116,7 +121,7 @@ export default async function HomePage() {
         <StatTile
           label="Starting hole"
           value={startingHole}
-          sub="Shotgun · 9:00 AM"
+          sub={shotgunSub}
           accent="navy"
         />
         <StatTile
