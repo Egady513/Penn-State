@@ -33,6 +33,7 @@ import {
   CloudOff,
   WifiOff,
   ShoppingCart,
+  Mail,
   type LucideProps,
 } from 'lucide-react'
 
@@ -74,6 +75,7 @@ const iconMap: Record<string, React.FC<LucideProps>> = {
   'wifi-off': WifiOff,
   'cloud-check': CheckCircle,
   'shopping-cart': ShoppingCart,
+  mail: Mail,
 }
 
 interface IconProps {

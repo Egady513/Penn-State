@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
+import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, PERK_SPONSOR_NAMES } from '@/lib/eventPerksContent'
 
 const PSU_NAVY = '#001E44'
 const PSU_BRONZE = '#B08D57'
@@ -33,6 +34,8 @@ interface TemplateData {
   holeSponsorName: string | null
   holeSponsorHole: number | null
   totalCents: number
+  sponsors: { name: string; holeNumber: number | null }[]
+  donors: { name: string; item: string }[]
 }
 
 /**
@@ -68,7 +71,7 @@ export async function sendRegistrationConfirmation(teamId: string) {
 async function loadTemplateData(teamId: string): Promise<TemplateData> {
   const supabase = createAdminClient()
 
-  const [teamRes, playersRes, regRes, purchaseRes, eventRes] = await Promise.all([
+  const [teamRes, playersRes, regRes, purchaseRes, eventRes, sponsorsRes, donorsRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('team') as any)
       .select('name, pin, single_golfer, hole_sponsor_name, hole_sponsor_hole')
@@ -92,6 +95,19 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
       .select('schedule')
       .eq('id', EVENT_ID)
       .maybeSingle(),
+    // Live sponsor + donor lists — pulled fresh on every send so this
+    // section never goes stale, unlike a hand-written snapshot.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('sponsor') as any)
+      .select('name, hole_number, sort_order')
+      .eq('event_id', EVENT_ID)
+      .eq('active', true)
+      .order('sort_order'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('donor') as any)
+      .select('name, donated_item')
+      .eq('event_id', EVENT_ID)
+      .order('name'),
   ])
 
   if (!teamRes.data) throw new Error(`Team ${teamId} not found`)
@@ -117,6 +133,16 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     (Number(reg.fee_amount) + Number(reg.donation_amount) + Number(reg.fee_coverage_amount) + purchaseTotal) * 100,
   )
 
+  // Sponsors that already get their own dedicated perk blurb (513Sips,
+  // Courtesy Automotive, etc.) are excluded here so they're not thanked twice.
+  const rawSponsors = (sponsorsRes.data ?? []) as { name: string; hole_number: number | null }[]
+  const sponsors = rawSponsors
+    .filter(s => !PERK_SPONSOR_NAMES.includes(s.name.trim().toLowerCase()))
+    .map(s => ({ name: s.name, holeNumber: s.hole_number }))
+
+  const donors = ((donorsRes.data ?? []) as { name: string; donated_item: string }[])
+    .map(d => ({ name: d.name, item: d.donated_item }))
+
   return {
     teamName: team.name,
     pin: team.pin,
@@ -131,6 +157,8 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     holeSponsorName: team.hole_sponsor_name ?? null,
     holeSponsorHole: team.hole_sponsor_hole ?? null,
     totalCents,
+    sponsors,
+    donors,
   }
 }
 
@@ -164,6 +192,69 @@ function formatLineItems(d: TemplateData) {
     lines.push({ label: 'Processing fee coverage', amount: money(d.feeCoverageAmount) })
   }
   return lines
+}
+
+// ── Perks, prizes, challenges & thank-yous (shared static content + live sponsor/donor pull) ─
+
+function buildPerksText(d: TemplateData): string {
+  const early = GET_THERE_EARLY.map(p => `  • ${p.title} — ${p.body}`).join('\n')
+  const holePerks = HOLE_PERKS.map(p => `  • ${p.title} — ${p.body}`).join('\n')
+  const winners = TOURNAMENT_WINNERS.map(w => `  • ${w.place}: ${w.prize}`).join('\n')
+  const challenges = HOLE_CHALLENGES.map(c => {
+    const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
+    return `  • ${c.name} — ${prizeLine}`
+  }).join('\n')
+  const sponsorLines = d.sponsors.length > 0
+    ? d.sponsors.map(s => `  • ${s.name}${s.holeNumber ? ` — Hole ${s.holeNumber}` : ''}`).join('\n')
+    : '  Sponsor list coming soon.'
+  const donorLines = d.donors.length > 0
+    ? d.donors.map(don => `  • ${don.name} — ${don.item}`).join('\n')
+    : ''
+
+  return `
+GET THERE EARLY FOR THESE PERKS
+${early}
+
+HOLE PERKS
+${holePerks}
+
+THANK YOU TO OUR SPONSORS
+${sponsorLines}
+
+TOURNAMENT WINNERS
+${winners}
+
+HOLE CHALLENGES
+${challenges}
+${donorLines ? `\nTHANK YOU TO OUR RAFFLE & PRIZE DONORS\n${donorLines}\n` : ''}`
+}
+
+function buildPerksHtml(d: TemplateData): string {
+  const listBlock = (title: string, rows: string[]) => rows.length > 0 ? `
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${FG_MUTED};margin:18px 0 8px;">${escapeHtml(title)}</div>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+      ${rows.map(r => `<tr><td style="padding:3px 0;color:${PSU_NAVY};font-size:13px;line-height:1.5;">${r}</td></tr>`).join('')}
+    </table>` : ''
+
+  const early = GET_THERE_EARLY.map(p => `<strong>${escapeHtml(p.title)}</strong> — ${escapeHtml(p.body)}`)
+  const holePerks = HOLE_PERKS.map(p => `<strong>${escapeHtml(p.title)}</strong> — ${escapeHtml(p.body)}`)
+  const winners = TOURNAMENT_WINNERS.map(w => `<strong>${escapeHtml(w.place)}:</strong> ${escapeHtml(w.prize)}`)
+  const challenges = HOLE_CHALLENGES.map(c => {
+    const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
+    return `<strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(prizeLine)}`
+  })
+  const sponsorLines = d.sponsors.length > 0
+    ? d.sponsors.map(s => escapeHtml(s.name) + (s.holeNumber ? ` — Hole ${s.holeNumber}` : ''))
+    : ['Sponsor list coming soon.']
+  const donorLines = d.donors.map(don => `${escapeHtml(don.name)} — ${escapeHtml(don.item)}`)
+
+  return `
+    ${listBlock('Get there early for these perks', early)}
+    ${listBlock('Hole perks', holePerks)}
+    ${listBlock('Thank you to our sponsors', sponsorLines)}
+    ${listBlock('Tournament winners', winners)}
+    ${listBlock('Hole challenges', challenges)}
+    ${listBlock('Thank you to our raffle & prize donors', donorLines)}`
 }
 
 // ── Plain-text body (fallback for clients that block HTML, also helps spam scoring) ─
@@ -214,6 +305,7 @@ EVENT DETAILS
 
 ${scheduleLines}
 ${soloBlock}${sponsorBlock}
+${buildPerksText(d)}
 ABOUT LAST MILE FOOD RESCUE
 Last Mile rescues surplus food from grocers, restaurants, and kitchens and delivers it to the pantries and shelters that get it to families in need. Every dollar from this outing helps cover that last mile.
 Learn more: https://lastmilefood.org
@@ -315,6 +407,10 @@ function buildHtml(d: TemplateData): string {
         </td></tr>
 
         ${soloBlock || sponsorBlock ? `<tr><td style="padding:8px 28px 0;">${soloBlock}${sponsorBlock}</td></tr>` : ''}
+
+        <tr><td style="padding:8px 28px 0;">
+          ${buildPerksHtml(d)}
+        </td></tr>
 
         <tr><td style="padding:24px 28px;">
           <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${FG_MUTED};margin-bottom:8px;">About Last Mile Food Rescue</div>
