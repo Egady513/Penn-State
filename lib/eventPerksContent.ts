@@ -19,6 +19,10 @@ export const GET_THERE_EARLY = [
 
 export const HOLE_PERKS = [
   {
+    title: 'Free drink ticket',
+    body: 'Every registered golfer gets one drink ticket on us. Redeem it on the course.',
+  },
+  {
     title: '513Sips',
     body: 'Handing out water and Arnold Palmers on the course to keep you refreshed.',
   },

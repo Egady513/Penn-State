@@ -126,9 +126,18 @@ export async function POST(req: NextRequest) {
             amount:      count * 75,
             category:    'greens_fees',
           })
+          // Drink ticket: every golfer gets one, $3 each. Comes off net
+          // proceeds same as greens fees.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('expense') as any).insert({
+            event_id:    teamData.event_id,
+            description: `Drink tickets — ${count === 1 ? 'single golfer' : 'team of 2'}`,
+            amount:      count * 3,
+            category:    'other',
+          })
         }
       } catch (err) {
-        console.error(`[webhook] greens fee expense insert failed for team ${teamId}:`, err)
+        console.error(`[webhook] greens fee / drink ticket expense insert failed for team ${teamId}:`, err)
       }
 
       // If this team bought a hole sponsorship, auto-list them on the public
@@ -158,7 +167,7 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
   try {
     const { data: team } = await supabase
       .from('team')
-      .select('id, name, hole_sponsor_name, hole_sponsor_logo_url, event_id')
+      .select('id, name, hole_sponsor_name, hole_sponsor_logo_url, hole_sponsor_hole, event_id')
       .eq('id', teamId)
       .maybeSingle()
     if (!team) return
@@ -189,6 +198,7 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
       name: sponsorName,
       logo_url: team.hole_sponsor_logo_url ?? null,
       sponsorship_type: 'Hole',
+      hole_number: team.hole_sponsor_hole ?? null,
       amount: 100,
       active: true,
     })
