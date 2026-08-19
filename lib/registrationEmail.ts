@@ -1,7 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
-import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, PERK_SPONSOR_NAMES } from '@/lib/eventPerksContent'
+import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, DRINK_TICKET } from '@/lib/eventPerksContent'
+
+const isHoleSponsorType = (t: string | null) => !!t?.toLowerCase().includes('hole')
 
 const PSU_NAVY = '#001E44'
 const PSU_BRONZE = '#B08D57'
@@ -35,6 +37,7 @@ interface TemplateData {
   holeSponsorHole: number | null
   totalCents: number
   sponsors: { name: string; holeNumber: number | null }[]
+  holeSponsors: { name: string; holeNumber: number | null }[]
   donors: { name: string; item: string }[]
 }
 
@@ -99,7 +102,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     // section never goes stale, unlike a hand-written snapshot.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('sponsor') as any)
-      .select('name, hole_number, sort_order')
+      .select('name, hole_number, sponsorship_type, sort_order')
       .eq('event_id', EVENT_ID)
       .eq('active', true)
       .order('sort_order'),
@@ -133,11 +136,15 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     (Number(reg.fee_amount) + Number(reg.donation_amount) + Number(reg.fee_coverage_amount) + purchaseTotal) * 100,
   )
 
-  // Sponsors that already get their own dedicated perk blurb (513Sips,
-  // Courtesy Automotive, etc.) are excluded here so they're not thanked twice.
-  const rawSponsors = (sponsorsRes.data ?? []) as { name: string; hole_number: number | null }[]
+  // Every active sponsor is thanked — split into general sponsors and hole
+  // sponsors, same grouping the public sponsors page uses. Nobody is left
+  // out, even if they also got a dedicated perk mention elsewhere.
+  const rawSponsors = (sponsorsRes.data ?? []) as { name: string; hole_number: number | null; sponsorship_type: string | null }[]
   const sponsors = rawSponsors
-    .filter(s => !PERK_SPONSOR_NAMES.includes(s.name.trim().toLowerCase()))
+    .filter(s => !isHoleSponsorType(s.sponsorship_type))
+    .map(s => ({ name: s.name, holeNumber: s.hole_number }))
+  const holeSponsors = rawSponsors
+    .filter(s => isHoleSponsorType(s.sponsorship_type))
     .map(s => ({ name: s.name, holeNumber: s.hole_number }))
 
   const donors = ((donorsRes.data ?? []) as { name: string; donated_item: string }[])
@@ -158,6 +165,7 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     holeSponsorHole: team.hole_sponsor_hole ?? null,
     totalCents,
     sponsors,
+    holeSponsors,
     donors,
   }
 }
@@ -204,23 +212,24 @@ function buildPerksText(d: TemplateData): string {
     const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
     return `  • ${c.name} — ${prizeLine}`
   }).join('\n')
-  const sponsorLines = d.sponsors.length > 0
-    ? d.sponsors.map(s => `  • ${s.name}${s.holeNumber ? ` — Hole ${s.holeNumber}` : ''}`).join('\n')
-    : '  Sponsor list coming soon.'
+  const fmtSponsorList = (list: TemplateData['sponsors']) =>
+    list.length > 0 ? list.map(s => `  • ${s.name}${s.holeNumber ? ` — Hole ${s.holeNumber}` : ''}`).join('\n') : ''
+  const sponsorLines = fmtSponsorList(d.sponsors)
+  const holeSponsorLines = fmtSponsorList(d.holeSponsors)
   const donorLines = d.donors.length > 0
     ? d.donors.map(don => `  • ${don.name} — ${don.item}`).join('\n')
     : ''
 
   return `
+${DRINK_TICKET.title.toUpperCase()}
+  ${DRINK_TICKET.body}
+
 GET THERE EARLY FOR THESE PERKS
 ${early}
 
 HOLE PERKS
 ${holePerks}
-
-THANK YOU TO OUR SPONSORS
-${sponsorLines}
-
+${sponsorLines ? `\nTHANK YOU TO OUR SPONSORS\n${sponsorLines}\n` : ''}${holeSponsorLines ? `\nTHANK YOU TO OUR HOLE SPONSORS\n${holeSponsorLines}\n` : ''}
 TOURNAMENT WINNERS
 ${winners}
 
@@ -243,15 +252,21 @@ function buildPerksHtml(d: TemplateData): string {
     const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
     return `<strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(prizeLine)}`
   })
-  const sponsorLines = d.sponsors.length > 0
-    ? d.sponsors.map(s => escapeHtml(s.name) + (s.holeNumber ? ` — Hole ${s.holeNumber}` : ''))
-    : ['Sponsor list coming soon.']
+  const fmtSponsorListHtml = (list: TemplateData['sponsors']) =>
+    list.map(s => escapeHtml(s.name) + (s.holeNumber ? ` — Hole ${s.holeNumber}` : ''))
+  const sponsorLines = fmtSponsorListHtml(d.sponsors)
+  const holeSponsorLines = fmtSponsorListHtml(d.holeSponsors)
   const donorLines = d.donors.map(don => `${escapeHtml(don.name)} — ${escapeHtml(don.item)}`)
 
   return `
+    <div style="margin-bottom:16px;padding:14px 16px;border-left:3px solid ${PSU_BRONZE};background:${BG_SOFT};border-radius:0 8px 8px 0;">
+      <div style="font-weight:700;color:${PSU_NAVY};font-size:14px;margin-bottom:4px;">${escapeHtml(DRINK_TICKET.title)}</div>
+      <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">${escapeHtml(DRINK_TICKET.body)}</div>
+    </div>
     ${listBlock('Get there early for these perks', early)}
     ${listBlock('Hole perks', holePerks)}
     ${listBlock('Thank you to our sponsors', sponsorLines)}
+    ${listBlock('Thank you to our hole sponsors', holeSponsorLines)}
     ${listBlock('Tournament winners', winners)}
     ${listBlock('Hole challenges', challenges)}
     ${listBlock('Thank you to our raffle & prize donors', donorLines)}`

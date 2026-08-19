@@ -17,11 +17,15 @@ export const GET_THERE_EARLY = [
   },
 ]
 
+// Included with every registration (not an on-course sponsor activation) —
+// shown as its own callout near "what you signed up for," not buried in
+// the hole-perks list below.
+export const DRINK_TICKET = {
+  title: 'One drink ticket, on us',
+  body: 'Every registered golfer gets a free drink ticket to redeem on the course.',
+}
+
 export const HOLE_PERKS = [
-  {
-    title: 'Free drink ticket',
-    body: 'Every registered golfer gets one drink ticket on us. Redeem it on the course.',
-  },
   {
     title: '513Sips',
     body: 'Handing out water and Arnold Palmers on the course to keep you refreshed.',
@@ -67,9 +71,3 @@ export const HOLE_CHALLENGES: HoleChallenge[] = [
     description: '$5 entry. Land your shot in the right bucket and shave 1, 2, or 3 strokes off your score on that hole.',
   },
 ]
-
-// Sponsor names that already get a dedicated perk blurb above (in
-// GET_THERE_EARLY / HOLE_PERKS) — excluded from the generic "thank you to
-// our sponsors" list so nobody's thanked twice. Keep in sync with the
-// titles above. Matched case-insensitively.
-export const PERK_SPONSOR_NAMES = ['513sips', 'courtesy automotive', "it's working out", 'power wipes']
