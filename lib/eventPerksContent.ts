@@ -71,3 +71,23 @@ export const HOLE_CHALLENGES: HoleChallenge[] = [
     description: '$5 entry. Land your shot in the right bucket and shave 1, 2, or 3 strokes off your score on that hole.',
   },
 ]
+
+// Raffle prize bundles, curated from the print raffle deck (Tournament/Golf
+// Outing_2026 print.pptx) and confirmed with Eddie 2026-08-17. This is the
+// source of truth for the confirmation email's raffle section — NOT the
+// `donor` table, since bundles group multiple donors together with a
+// combined value that the flat donor rows can't represent on their own.
+// Add a new line here when a new donation comes in; nothing to migrate.
+export type RaffleBundle = { name: string; credit: string; splitNote?: string; value: string }
+
+export const RAFFLE_BUNDLES: RaffleBundle[] = [
+  { name: 'Cooper’s Hawk Wine & Tasting', credit: 'Cooper’s Hawk', value: '$200' },
+  { name: 'Restaurant Bundle', credit: 'Dewey’s Pizza ($25 gift card) & Skyline ($50 gift basket)', value: '$75' },
+  { name: 'Health & Family Bundle', credit: 'It’s Working Out ($75 gift basket) & Mike’s Carwash ($25 gift card)', value: '$200' },
+  { name: 'Florence Y’alls', credit: '4 tickets', value: '$100' },
+  { name: 'Bourbon & Cigar Bundle', credit: 'Greater Cincinnati Penn State Alumni (2 PSU Cincy bourbon glasses & bourbon)', splitNote: 'Split between 2 winners', value: '$150' },
+  { name: 'Jim Beam Bundle', credit: 'Jim Beam (cast iron skillet & grill set)', value: '$75' },
+  { name: 'Jewelry Bundle', credit: 'Kendra Scott', splitNote: 'Split between 3 winners', value: '$225' },
+  { name: 'Pins & Aces Mystery Bundle', credit: 'Pins & Aces', value: '$100' },
+  { name: 'PSU Bundle', credit: 'Soar Speakers (PSU Bluetooth speaker)', value: '$100' },
+]

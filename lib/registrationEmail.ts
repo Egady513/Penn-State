@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
-import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, DRINK_TICKET } from '@/lib/eventPerksContent'
+import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, DRINK_TICKET, RAFFLE_BUNDLES } from '@/lib/eventPerksContent'
 
 const isHoleSponsorType = (t: string | null) => !!t?.toLowerCase().includes('hole')
 
@@ -38,7 +38,6 @@ interface TemplateData {
   totalCents: number
   sponsors: { name: string; holeNumber: number | null }[]
   holeSponsors: { name: string; holeNumber: number | null }[]
-  donors: { name: string; item: string }[]
 }
 
 /**
@@ -74,7 +73,7 @@ export async function sendRegistrationConfirmation(teamId: string) {
 async function loadTemplateData(teamId: string): Promise<TemplateData> {
   const supabase = createAdminClient()
 
-  const [teamRes, playersRes, regRes, purchaseRes, eventRes, sponsorsRes, donorsRes] = await Promise.all([
+  const [teamRes, playersRes, regRes, purchaseRes, eventRes, sponsorsRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('team') as any)
       .select('name, pin, single_golfer, hole_sponsor_name, hole_sponsor_hole')
@@ -98,19 +97,15 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
       .select('schedule')
       .eq('id', EVENT_ID)
       .maybeSingle(),
-    // Live sponsor + donor lists — pulled fresh on every send so this
-    // section never goes stale, unlike a hand-written snapshot.
+    // Live sponsor list — pulled fresh on every send so this section never
+    // goes stale, unlike a hand-written snapshot. (Raffle donors are curated
+    // bundles, not a live table — see RAFFLE_BUNDLES in eventPerksContent.)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('sponsor') as any)
       .select('name, hole_number, sponsorship_type, sort_order')
       .eq('event_id', EVENT_ID)
       .eq('active', true)
       .order('sort_order'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('donor') as any)
-      .select('name, donated_item')
-      .eq('event_id', EVENT_ID)
-      .order('name'),
   ])
 
   if (!teamRes.data) throw new Error(`Team ${teamId} not found`)
@@ -147,9 +142,6 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     .filter(s => isHoleSponsorType(s.sponsorship_type))
     .map(s => ({ name: s.name, holeNumber: s.hole_number }))
 
-  const donors = ((donorsRes.data ?? []) as { name: string; donated_item: string }[])
-    .map(d => ({ name: d.name, item: d.donated_item }))
-
   return {
     teamName: team.name,
     pin: team.pin,
@@ -166,7 +158,6 @@ async function loadTemplateData(teamId: string): Promise<TemplateData> {
     totalCents,
     sponsors,
     holeSponsors,
-    donors,
   }
 }
 
@@ -202,7 +193,14 @@ function formatLineItems(d: TemplateData) {
   return lines
 }
 
-// ── Perks, prizes, challenges & thank-yous (shared static content + live sponsor/donor pull) ─
+// ── Perks, prizes, challenges & thank-yous (shared static content + live sponsor pull) ─
+
+// "Jewelry Bundle · Kendra Scott, split between 3 winners · $225 value"
+// Uses middle-dot separators (not em dashes) to match house style.
+function fmtBundleLine(b: { name: string; credit: string; splitNote?: string; value: string }): string {
+  const split = b.splitNote ? `, ${b.splitNote.toLowerCase()}` : ''
+  return `${b.name} · ${b.credit}${split} · ${b.value} value`
+}
 
 function buildPerksText(d: TemplateData): string {
   const early = GET_THERE_EARLY.map(p => `  • ${p.title} — ${p.body}`).join('\n')
@@ -216,9 +214,7 @@ function buildPerksText(d: TemplateData): string {
     list.length > 0 ? list.map(s => `  • ${s.name}${s.holeNumber ? ` — Hole ${s.holeNumber}` : ''}`).join('\n') : ''
   const sponsorLines = fmtSponsorList(d.sponsors)
   const holeSponsorLines = fmtSponsorList(d.holeSponsors)
-  const donorLines = d.donors.length > 0
-    ? d.donors.map(don => `  • ${don.name} — ${don.item}`).join('\n')
-    : ''
+  const bundleLines = RAFFLE_BUNDLES.map(b => `  • ${fmtBundleLine(b)}`).join('\n')
 
   return `
 ${DRINK_TICKET.title.toUpperCase()}
@@ -235,7 +231,9 @@ ${winners}
 
 HOLE CHALLENGES
 ${challenges}
-${donorLines ? `\nTHANK YOU TO OUR RAFFLE & PRIZE DONORS\n${donorLines}\n` : ''}`
+
+THANK YOU TO OUR RAFFLE & PRIZE DONORS
+${bundleLines}`
 }
 
 function buildPerksHtml(d: TemplateData): string {
@@ -256,7 +254,7 @@ function buildPerksHtml(d: TemplateData): string {
     list.map(s => escapeHtml(s.name) + (s.holeNumber ? ` — Hole ${s.holeNumber}` : ''))
   const sponsorLines = fmtSponsorListHtml(d.sponsors)
   const holeSponsorLines = fmtSponsorListHtml(d.holeSponsors)
-  const donorLines = d.donors.map(don => `${escapeHtml(don.name)} — ${escapeHtml(don.item)}`)
+  const bundleLines = RAFFLE_BUNDLES.map(b => escapeHtml(fmtBundleLine(b)))
 
   return `
     <div style="margin-bottom:16px;padding:14px 16px;border-left:3px solid ${PSU_BRONZE};background:${BG_SOFT};border-radius:0 8px 8px 0;">
@@ -269,7 +267,7 @@ function buildPerksHtml(d: TemplateData): string {
     ${listBlock('Thank you to our hole sponsors', holeSponsorLines)}
     ${listBlock('Tournament winners', winners)}
     ${listBlock('Hole challenges', challenges)}
-    ${listBlock('Thank you to our raffle & prize donors', donorLines)}`
+    ${listBlock('Thank you to our raffle & prize donors', bundleLines)}`
 }
 
 // ── Plain-text body (fallback for clients that block HTML, also helps spam scoring) ─
