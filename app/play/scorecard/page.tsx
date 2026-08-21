@@ -10,7 +10,7 @@ import { getTeamId } from '@/lib/getTeamId'
 import { EVENT_ID } from '@/lib/eventId'
 
 type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
-type SponsorMap  = Record<number, { name: string; amount: number }>
+type SponsorMap  = Record<number, { name: string; amount: number; logoUrl: string | null }>
 type ContestEntries = { ctp: boolean; ld: boolean }
 
 export default function ScorecardPage() {
@@ -34,14 +34,14 @@ export default function ScorecardPage() {
         supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
-        supabase.from('sponsor').select('name, amount, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
+        supabase.from('sponsor').select('name, amount, hole_number, logo_url').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
         supabase.from('purchase').select('catalog_item:catalog_item_id(name)').eq('team_id', teamId),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
-      const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null }[] | null
+      const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null; logo_url: string | null }[] | null
       const purchRows   = purchRes.data   as { catalog_item: { name: string } | null }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
@@ -62,7 +62,7 @@ export default function ScorecardPage() {
       // Sponsors page). Map them directly — no hole_id join needed.
       const sponsMap: SponsorMap = {}
       sponsorRows?.forEach(s => {
-        if (s.hole_number) sponsMap[s.hole_number] = { name: s.name, amount: s.amount }
+        if (s.hole_number) sponsMap[s.hole_number] = { name: s.name, amount: s.amount, logoUrl: s.logo_url }
       })
 
       // Build contest entry flags from purchases
@@ -229,7 +229,16 @@ export default function ScorecardPage() {
         <div className={styles.holeEditor}>
           {sponsor && (
             <div className={styles.sponsorBanner}>
-              <div className={styles.sponsorThumb} />
+              <div className={styles.sponsorThumb}>
+                {sponsor.logoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sponsor.logoUrl}
+                    alt={sponsor.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }}
+                  />
+                )}
+              </div>
               <div className={styles.sponsorInfo}>
                 <div className={styles.sponsorLabel}>This hole brought to you by</div>
                 <div className={styles.sponsorName}>{sponsor.name}</div>

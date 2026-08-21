@@ -66,9 +66,9 @@ export const HOLE_CHALLENGES: HoleChallenge[] = [
     description: '',
   },
   {
-    name: 'Bucket Golf Challenge',
+    name: 'Bucket Golf Challenge (Hole 6)',
     prizes: [],
-    description: '$5 entry. Land your shot in the right bucket and shave 1, 2, or 3 strokes off your score on that hole.',
+    description: '$5 a shot, no cap. Three buckets: land the closest and take 1 stroke off your score on that hole, the middle takes 2 off, the farthest takes 3 off.',
   },
 ]
 
