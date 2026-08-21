@@ -1,101 +1,155 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AdminTopBar } from '@/components/admin/AdminTopBar';
-import { AdminPill } from '@/components/admin/AdminPill';
-import { Button } from '@/components/ui/Button';
-import { ADMIN_HOLES, ADMIN_SPONSORS } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
+import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
-type Assignments = Record<number, string>;
+type ContestType = 'none' | 'closest_to_pin' | 'long_drive' | 'hole_in_one';
+
+type HoleRow = {
+  id: string;
+  number: number;
+  par: number;
+  contestType: ContestType;
+  contestLabel: string;
+};
+
+const CONTEST_LABEL: Record<ContestType, string> = {
+  none: '— No contest —',
+  closest_to_pin: 'Closest to pin',
+  long_drive: 'Long drive',
+  hole_in_one: 'Hole in one',
+};
 
 export default function CoursePage() {
-  const totalPar = ADMIN_HOLES.reduce((s, h) => s + h.par, 0);
+  const [holes, setHoles] = useState<HoleRow[]>([]);
+  const [sponsorByHole, setSponsorByHole] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
-  const [assignments, setAssignments] = useState<Assignments>(() => {
-    const map: Assignments = {};
-    ADMIN_SPONSORS.forEach((s) => {
-      if (s.hole) map[s.hole] = s.id;
+  useEffect(() => {
+    const supabase = createClient();
+    Promise.all([
+      supabase
+        .from('hole')
+        .select('id, number, par, contest_type, contest_label')
+        .eq('event_id', EVENT_ID)
+        .order('number'),
+      supabase
+        .from('sponsor')
+        .select('name, hole_number')
+        .eq('event_id', EVENT_ID)
+        .eq('active', true)
+        .not('hole_number', 'is', null),
+    ]).then(([holesRes, sponsorsRes]) => {
+      const holeRows = (holesRes.data ?? []) as { id: string; number: number; par: number; contest_type: ContestType; contest_label: string | null }[];
+      setHoles(holeRows.map(h => ({ id: h.id, number: h.number, par: h.par, contestType: h.contest_type, contestLabel: h.contest_label ?? '' })));
+
+      const sponsorRows = (sponsorsRes.data ?? []) as { name: string; hole_number: number | null }[];
+      const map: Record<number, string> = {};
+      sponsorRows.forEach(s => { if (s.hole_number != null) map[s.hole_number] = s.name; });
+      setSponsorByHole(map);
+
+      setLoading(false);
     });
-    return map;
-  });
+  }, []);
 
-  const sponsorById = Object.fromEntries(ADMIN_SPONSORS.map((s) => [s.id, s]));
+  const patch = (id: string, p: Partial<HoleRow>) =>
+    setHoles(prev => prev.map(h => (h.id === id ? { ...h, ...p } : h)));
 
-  const handleAssign = (holeN: number, sponsorId: string) => {
-    setAssignments((prev) => {
-      const next = { ...prev };
-      // Remove this sponsor from any other hole
-      Object.keys(next).forEach((k) => {
-        if (next[Number(k)] === sponsorId && Number(k) !== holeN) {
-          delete next[Number(k)];
-        }
-      });
-      if (sponsorId) {
-        next[holeN] = sponsorId;
-      } else {
-        delete next[holeN];
-      }
-      return next;
+  async function save(hole: HoleRow) {
+    setSavingId(hole.id);
+    setSavedId(null);
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('save_hole_contest', {
+      p_hole_id: hole.id,
+      p_contest_type: hole.contestType,
+      p_contest_label: hole.contestLabel,
     });
-  };
+    setSavingId(null);
+    if (!error) {
+      setSavedId(hole.id);
+      setTimeout(() => setSavedId(id => (id === hole.id ? null : id)), 1500);
+    }
+  }
+
+  const totalPar = holes.reduce((s, h) => s + h.par, 0);
 
   return (
     <div>
-      <AdminTopBar
-        title={`Course setup · Par ${totalPar}`}
-        action={<Button variant="primary" size="sm">Save changes</Button>}
-      />
+      <AdminTopBar title={holes.length > 0 ? `Course setup · Par ${totalPar}` : 'Course setup'} />
 
       <div className={styles.page}>
         <p className={styles.hint}>
-          Beckett Ridge · 18 holes · par {totalPar}. Assign a sponsor to each
-          hole. Contest holes are pre-set (CTP on 3 &amp; 12, Long Drive on 6
-          &amp; 16).
+          Beckett Ridge · 18 holes. Assign Closest-to-Pin, Long Drive, or a custom
+          challenge to any hole — this drives the contest banner players see on
+          that hole in the day-of scorecard. Changes save automatically.
+          Sponsor names shown here come from the <strong>Sponsors</strong> tab —
+          set the hole number there to have it appear below.
         </p>
 
-        <div className={styles.holeGrid}>
-          {ADMIN_HOLES.map((hole) => {
-            const sponsorId = assignments[hole.n];
-            const sponsor = sponsorId ? sponsorById[sponsorId] : null;
-
-            return (
-              <div key={hole.n} className={styles.holeCard}>
+        {loading ? (
+          <div className={styles.loadingRow}>Loading holes…</div>
+        ) : holes.length === 0 ? (
+          <div className={styles.loadingRow}>
+            No holes found for this event. Run <code>add_hole_picker_and_contests.sql</code> in Supabase.
+          </div>
+        ) : (
+          <div className={styles.holeGrid}>
+            {holes.map(hole => (
+              <div key={hole.id} className={styles.holeCard}>
                 <div className={styles.holeCardHeader}>
                   <div>
                     <div className={styles.holeEyebrow}>Hole</div>
-                    <div className={styles.holeNum}>{hole.n}</div>
+                    <div className={styles.holeNum}>{hole.number}</div>
                   </div>
                   <div className={styles.parBadge}>Par {hole.par}</div>
                 </div>
 
-                {hole.contest && (
-                  <div className={styles.contestRow}>
-                    <AdminPill tone="par">
-                      {hole.contest === 'ctp' ? 'Closest to pin' : 'Long drive'}
-                    </AdminPill>
-                  </div>
-                )}
-
                 <div>
-                  <div className={styles.sponsorLabel}>Sponsor</div>
+                  <div className={styles.sponsorLabel}>Contest</div>
                   <select
-                    value={sponsorId ?? ''}
-                    onChange={(e) => handleAssign(hole.n, e.target.value)}
-                    className={`${styles.sponsorSelect} ${sponsor ? styles.sponsorSelectFilled : ''}`}
+                    value={hole.contestType}
+                    onChange={e => {
+                      const next = { ...hole, contestType: e.target.value as ContestType };
+                      patch(hole.id, { contestType: next.contestType });
+                      save(next);
+                    }}
+                    className={`${styles.contestSelect} ${hole.contestType !== 'none' ? styles.contestSelectFilled : ''}`}
                   >
-                    <option value="">— None —</option>
-                    {ADMIN_SPONSORS.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} · {s.tier}
-                      </option>
+                    {(Object.keys(CONTEST_LABEL) as ContestType[]).map(ct => (
+                      <option key={ct} value={ct}>{CONTEST_LABEL[ct]}</option>
                     ))}
                   </select>
                 </div>
+
+                <div>
+                  <div className={styles.sponsorLabel}>Custom challenge</div>
+                  <input
+                    className={styles.labelInput}
+                    placeholder="e.g. Beat the pro"
+                    value={hole.contestLabel}
+                    onChange={e => patch(hole.id, { contestLabel: e.target.value })}
+                    onBlur={() => save(hole)}
+                  />
+                </div>
+
+                {sponsorByHole[hole.number] && (
+                  <div className={styles.sponsorTag} title="Set from the Sponsors tab">
+                    ⛳ {sponsorByHole[hole.number]}
+                  </div>
+                )}
+
+                {savingId === hole.id && <div className={styles.saveHint}>Saving…</div>}
+                {savedId === hole.id && <div className={styles.saveHintOk}>Saved</div>}
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

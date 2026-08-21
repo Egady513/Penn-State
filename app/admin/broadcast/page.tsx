@@ -24,13 +24,15 @@ First, a huge thank you to our sponsors and donors. Your support is what makes t
 - **One drink ticket, on us** · every registered golfer gets a free drink ticket to redeem on the course.
 - **Taco bar lunch & awards** · we're closing out the round with a taco bar at 1:00 PM, right alongside the awards.
 
-## Get there early to take advantage of these perks
-- **Courtesy Automotive Putting Green Challenge** · $20 for 2 putts. Hit either putt into a bottle of liquor on the putting green and it's yours to take home (one bottle per person).
+## Before you tee off
 - **"It's Working Out" complimentary stretching** · warm up before you tee off with free stretching, on the house.
 
 ## Hole perks
-- **513Sips** will be out on the course handing out water and Arnold Palmers to keep you refreshed.
-- **Zeek's Power Clean Wipes**, the Cincinnati-made shower wipes you might already know from the gym, are bringing packs to the course for a fun twist: buy a pack and use it to move your ball closer to the hole, out of the sand, out of the rough, wherever you need it, anywhere on that hole. Part of the proceeds go straight to Last Mile Food Rescue.
+- **513Sips · Hole 10** · handing out water and Arnold Palmers to keep you refreshed.
+- **Zeek's Power Clean Wipes · Hole 5** · $5 for a 5-pack of wipes, and what you buy decides how you play the hole. Buy one pack and your team gets one regular golf shot plus one swing with a shovel. Buy two packs and both players hit regular golf shots. Buy none and you're both swinging shovels. They'll also have 30-packs for sale during and after the round, and proceeds are split with Last Mile Food Rescue.
+
+## After your round
+- **"Sink It, Keep It" putting green challenge** · starting at noon as teams finish their round, presented by Courtesy Automotive. $20 for 2 putts. Sink either one into a bottle of liquor on the putting green and it's yours to take home (one bottle per person).
 
 ## Thank you to our sponsors
 - Courtesy Automotive
@@ -50,7 +52,8 @@ First, a huge thank you to our sponsors and donors. Your support is what makes t
 ## Hole challenges
 - **Closest to the Pin** · 1st: Free round for 4 at Legendary Run · 2nd: $100 to Go Play Golf
 - **Longest Drive** · 1st: $120 gift card to Another 9 · 2nd: $25 Dick's gift card
-- **Bucket Golf Challenge** · $5 entry. Land your shot in the right bucket and shave 1, 2, or 3 strokes off your score on that hole.
+- **Bucket Golf Challenge (Hole 6)** · $5 a shot, no cap. Three buckets: land the closest and take 1 stroke off your score on that hole, the middle takes 2 off, the farthest takes 3 off.
+- **Beat the Pro (Hole 4)** · new this year, presented by BackSwing Golf Events. Go head-to-head with a touring lady pro in a fun spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get the chance to improve your score. Do you have what it takes to beat the pro?
 
 ## Thank you to our raffle & prize donors
 - Cooper's Hawk Wine & Tasting · Cooper's Hawk · $200 value
@@ -80,16 +83,17 @@ const TEMPLATE_2_BODY = `We're just a couple days out from Drive Out Hunger 2026
 Sunday, August 30 · Beckett Ridge Golf Club, West Chester OH
 
 ## Schedule
-- 6:30 AM · Check-in, breakfast & putting green challenge
+- 6:30 AM · Check-in & breakfast
 - 7:45 AM · Pre-round briefing
 - 8:00 AM · Shotgun start
+- 12:00 PM · "Sink It, Keep It" putting green challenge opens as teams finish
 - 1:00 PM · Taco bar lunch & awards
 
 Every registered golfer also gets a free drink ticket to redeem on the course.
 
 **Your team PIN:** Check your confirmation email, or reply if you can't find it. You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy any additional add-ons or raffle tickets right from your phone.
 
-Get there early for the Courtesy Automotive Putting Green Challenge and complimentary stretching from It's Working Out.
+Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 4, Zeek's Power Clean Wipes on Hole 5, Bucket Golf on Hole 6, and 513Sips on Hole 10.
 
 See you Sunday. Thank you for being part of Drive Out Hunger and for supporting Last Mile Food Rescue.
 

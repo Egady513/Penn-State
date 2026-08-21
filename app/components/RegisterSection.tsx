@@ -90,6 +90,8 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
   const [pairTeamId, setPairTeamId] = useState('')
   const [pairTeams, setPairTeams] = useState<PairTeam[]>([])
   const [holeSponsorName, setHoleSponsorName] = useState('')
+  const [holeSponsorHole, setHoleSponsorHole] = useState('')
+  const [takenHoles, setTakenHoles] = useState<number[]>([])
   const [holeSponsorLogoFile, setHoleSponsorLogoFile] = useState<File | null>(null)
   const [step2Error, setStep2Error] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -116,6 +118,21 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
         // (e.g. before the catalog migration adds the tag/sort_order columns).
         const rows = data as CatalogAddon[] | null
         setCatalog(error || !rows || rows.length === 0 ? FALLBACK_ADDONS : rows)
+      })
+  }, [])
+
+  // Already-sponsored holes — so the picker can't offer a hole someone already has.
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('sponsor')
+      .select('hole_number')
+      .eq('event_id', EVENT_ID)
+      .eq('active', true)
+      .not('hole_number', 'is', null)
+      .then(({ data }) => {
+        const rows = (data ?? []) as { hole_number: number | null }[]
+        setTakenHoles(rows.map(r => r.hole_number).filter((n): n is number => n != null))
       })
   }, [])
 
@@ -423,7 +440,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     <input
                       type="checkbox"
                       checked={holeSponsor}
-                      onChange={e => { setHoleSponsor(e.target.checked); if (!e.target.checked) { setHoleSponsorName(''); setHoleSponsorLogoFile(null); } }}
+                      onChange={e => { setHoleSponsor(e.target.checked); if (!e.target.checked) { setHoleSponsorName(''); setHoleSponsorHole(''); setHoleSponsorLogoFile(null); } }}
                       className={styles.holeSponsorCheck}
                     />
                     <div className={styles.holeSponsorBody}>
@@ -449,6 +466,16 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                           value={holeSponsorName}
                           onChange={e => setHoleSponsorName(e.target.value)}
                         />
+                      </Field>
+                      <Field label="Which hole would you like to sponsor?" required hint="Already-sponsored holes are grayed out">
+                        <Select value={holeSponsorHole} onChange={e => setHoleSponsorHole(e.target.value)}>
+                          <option value="">— Select a hole —</option>
+                          {Array.from({ length: 18 }, (_, i) => i + 1).map(n => (
+                            <option key={n} value={n} disabled={takenHoles.includes(n)}>
+                              Hole {n}{takenHoles.includes(n) ? ' — already sponsored' : ''}
+                            </option>
+                          ))}
+                        </Select>
                       </Field>
                       <Field label="Logo (optional)" hint="PNG or JPG — we'll place it on the public sponsors page">
                         <input
@@ -539,6 +566,10 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                     setStep2Error('Please enter the name to display on the hole.')
                     return
                   }
+                  if (holeSponsorActive && !holeSponsorHole) {
+                    setStep2Error('Please select which hole you’d like to sponsor.')
+                    return
+                  }
                   setStep2Error('')
                   setStep(3)
                 }}>
@@ -555,7 +586,10 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                 <div className={styles.reviewEyebrow}>Team</div>
                 <div className={styles.reviewTeam}>{teamName || (single ? 'Solo golfer' : 'Your team')}</div>
                 {holeSponsorActive && holeSponsorName && (
-                  <div className={styles.reviewSponsorNote}>Hole sponsor: <strong>{holeSponsorName}</strong></div>
+                  <div className={styles.reviewSponsorNote}>
+                    Hole sponsor: <strong>{holeSponsorName}</strong>
+                    {holeSponsorHole && <> · Hole {holeSponsorHole}</>}
+                  </div>
                 )}
                 {golfers.slice(0, numGolfers).map((g, i) => (
                   <div key={i} className={styles.reviewGolfer}>
@@ -626,6 +660,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
                       feeCoverage: feeCoverageAmount,
                       holeSponsor: holeSponsorActive,
                       holeSponsorName: holeSponsorActive ? holeSponsorName.trim() : undefined,
+                      holeSponsorHole: holeSponsorActive && holeSponsorHole ? Number(holeSponsorHole) : undefined,
                       holeSponsorLogoUrl: logoUrl,
                       pairRequestTeamId: pairWanted && pairTeamId ? pairTeamId : null,
                     })
@@ -702,7 +737,7 @@ export const RegisterSection = forwardRef<HTMLElement, RegisterSectionProps>(fun
             {holeSponsorActive && (
               <>
                 <div className={styles.summaryLine}>
-                  <span>Hole sponsorship</span>
+                  <span>Hole sponsorship{holeSponsorHole ? ` · Hole ${holeSponsorHole}` : ''}</span>
                   <span className={styles.summaryAmt}>${holeSponsorPrice}</span>
                 </div>
                 {!single && (

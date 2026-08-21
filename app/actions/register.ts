@@ -39,6 +39,8 @@ export interface RegisterPayload {
   holeSponsor?: boolean
   /** Display name for the hole (business name, etc). Required if holeSponsor. */
   holeSponsorName?: string
+  /** Which hole they want to sponsor (1-18). Required if holeSponsor. */
+  holeSponsorHole?: number
   /** Public URL of the sponsor logo uploaded to Supabase storage. */
   holeSponsorLogoUrl?: string
   /** If this twosome wants to play with an already-registered team, that team's id. */
@@ -104,6 +106,7 @@ export async function registerTeam(payload: RegisterPayload): Promise<RegisterRe
       payment_status:         'unpaid',
       hole_sponsor_name:      payload.holeSponsorName?.trim() || null,
       hole_sponsor_logo_url:  payload.holeSponsorLogoUrl || null,
+      hole_sponsor_hole:      payload.holeSponsor ? (payload.holeSponsorHole ?? null) : null,
       pair_request_team_id:   payload.pairRequestTeamId || null,
     }).select('id').single()
 

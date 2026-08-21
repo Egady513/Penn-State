@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
-import { GET_THERE_EARLY, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, DRINK_TICKET, RAFFLE_BUNDLES } from '@/lib/eventPerksContent'
+import { GET_THERE_EARLY, AFTER_ROUND, HOLE_PERKS, TOURNAMENT_WINNERS, HOLE_CHALLENGES, DRINK_TICKET, RAFFLE_BUNDLES } from '@/lib/eventPerksContent'
 
 const isHoleSponsorType = (t: string | null) => !!t?.toLowerCase().includes('hole')
 
@@ -203,8 +203,9 @@ function fmtBundleLine(b: { name: string; credit: string; splitNote?: string; va
 }
 
 function buildPerksText(d: TemplateData): string {
-  const early = GET_THERE_EARLY.map(p => `  • ${p.title} — ${p.body}`).join('\n')
-  const holePerks = HOLE_PERKS.map(p => `  • ${p.title} — ${p.body}`).join('\n')
+  const early = GET_THERE_EARLY.map(p => `  • ${p.title} · ${p.body}`).join('\n')
+  const afterRound = AFTER_ROUND.map(p => `  • ${p.title} · ${p.body}`).join('\n')
+  const holePerks = HOLE_PERKS.map(p => `  • ${p.title} · ${p.body}`).join('\n')
   const winners = TOURNAMENT_WINNERS.map(w => `  • ${w.place}: ${w.prize}`).join('\n')
   const challenges = HOLE_CHALLENGES.map(c => {
     const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
@@ -220,11 +221,14 @@ function buildPerksText(d: TemplateData): string {
 ${DRINK_TICKET.title.toUpperCase()}
   ${DRINK_TICKET.body}
 
-GET THERE EARLY FOR THESE PERKS
+BEFORE YOU TEE OFF
 ${early}
 
 HOLE PERKS
 ${holePerks}
+
+AFTER YOUR ROUND
+${afterRound}
 ${sponsorLines ? `\nTHANK YOU TO OUR SPONSORS\n${sponsorLines}\n` : ''}${holeSponsorLines ? `\nTHANK YOU TO OUR HOLE SPONSORS\n${holeSponsorLines}\n` : ''}
 TOURNAMENT WINNERS
 ${winners}
@@ -243,8 +247,9 @@ function buildPerksHtml(d: TemplateData): string {
       ${rows.map(r => `<tr><td style="padding:3px 0;color:${PSU_NAVY};font-size:13px;line-height:1.5;">${r}</td></tr>`).join('')}
     </table>` : ''
 
-  const early = GET_THERE_EARLY.map(p => `<strong>${escapeHtml(p.title)}</strong> — ${escapeHtml(p.body)}`)
-  const holePerks = HOLE_PERKS.map(p => `<strong>${escapeHtml(p.title)}</strong> — ${escapeHtml(p.body)}`)
+  const early = GET_THERE_EARLY.map(p => `<strong>${escapeHtml(p.title)}</strong> · ${escapeHtml(p.body)}`)
+  const afterRound = AFTER_ROUND.map(p => `<strong>${escapeHtml(p.title)}</strong> · ${escapeHtml(p.body)}`)
+  const holePerks = HOLE_PERKS.map(p => `<strong>${escapeHtml(p.title)}</strong> · ${escapeHtml(p.body)}`)
   const winners = TOURNAMENT_WINNERS.map(w => `<strong>${escapeHtml(w.place)}:</strong> ${escapeHtml(w.prize)}`)
   const challenges = HOLE_CHALLENGES.map(c => {
     const prizeLine = c.prizes.length ? c.prizes.map(p => `${p.place}: ${p.prize}`).join(' · ') : c.description
@@ -261,8 +266,9 @@ function buildPerksHtml(d: TemplateData): string {
       <div style="font-weight:700;color:${PSU_NAVY};font-size:14px;margin-bottom:4px;">${escapeHtml(DRINK_TICKET.title)}</div>
       <div style="color:${PSU_NAVY};font-size:13px;line-height:1.5;">${escapeHtml(DRINK_TICKET.body)}</div>
     </div>
-    ${listBlock('Get there early for these perks', early)}
+    ${listBlock('Before you tee off', early)}
     ${listBlock('Hole perks', holePerks)}
+    ${listBlock('After your round', afterRound)}
     ${listBlock('Thank you to our sponsors', sponsorLines)}
     ${listBlock('Thank you to our hole sponsors', holeSponsorLines)}
     ${listBlock('Tournament winners', winners)}

@@ -8,12 +8,17 @@
 
 export const GET_THERE_EARLY = [
   {
-    title: 'Courtesy Automotive Putting Green Challenge',
-    body: '$20 for 2 putts. Hit either putt into a bottle of liquor on the putting green and it’s yours to take home (one bottle per person).',
-  },
-  {
     title: '“It’s Working Out” complimentary stretching',
     body: 'Warm up before you tee off with free stretching from It’s Working Out.',
+  },
+]
+
+// Moved from the morning to post-round (2026-08-21) — starts at noon as
+// teams come off the course.
+export const AFTER_ROUND = [
+  {
+    title: '“Sink It, Keep It” putting green challenge',
+    body: 'Starting at noon as teams finish their round, presented by Courtesy Automotive. $20 for 2 putts. Sink either one into a bottle of liquor on the putting green and it’s yours to take home (one bottle per person).',
   },
 ]
 
@@ -27,12 +32,12 @@ export const DRINK_TICKET = {
 
 export const HOLE_PERKS = [
   {
-    title: '513Sips',
-    body: 'Handing out water and Arnold Palmers on the course to keep you refreshed.',
+    title: '513Sips · Hole 10',
+    body: 'Handing out water and Arnold Palmers to keep you refreshed.',
   },
   {
-    title: 'Zeek’s Power Clean Wipes',
-    body: 'The Cincinnati-made shower wipes you might know from the gym are bringing packs to the course for a fun twist: buy a pack and use it to move your ball closer to the hole, out of the sand, out of the rough, wherever you need it, anywhere on that hole. Part of the proceeds go straight to Last Mile Food Rescue.',
+    title: 'Zeek’s Power Clean Wipes · Hole 5',
+    body: '$5 for a 5-pack of wipes, and what you buy decides how you play the hole. Buy one pack and your team gets one regular golf shot plus one swing with a shovel. Buy two packs and both players hit regular golf shots. Buy none and you’re both swinging shovels. They’ll also have 30-packs for sale during and after the round, and proceeds are split with Last Mile Food Rescue.',
   },
 ]
 
@@ -69,6 +74,11 @@ export const HOLE_CHALLENGES: HoleChallenge[] = [
     name: 'Bucket Golf Challenge (Hole 6)',
     prizes: [],
     description: '$5 a shot, no cap. Three buckets: land the closest and take 1 stroke off your score on that hole, the middle takes 2 off, the farthest takes 3 off.',
+  },
+  {
+    name: 'Beat the Pro (Hole 4)',
+    prizes: [],
+    description: 'New this year, presented by BackSwing Golf Events. Go head-to-head with a touring lady pro in a fun spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get the chance to improve your score. Do you have what it takes to beat the pro?',
   },
 ]
 

@@ -110,7 +110,10 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase.from('purchase') as any).update({ paid_status: 'paid' }).eq('team_id', teamId)
 
-      // Auto-log greens fee expense: $75 per golfer, categorized for Revenue tab.
+      // Auto-log greens fee + drink ticket costs against Revenue. Both are
+      // ONE running aggregate row per event (not a new row per team) —
+      // upsert_aggregate_expense atomically adds to the existing row, or
+      // creates it on the first call. See supabase/consolidate_auto_expenses.sql.
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: teamData } = await (supabase.from('team') as any)
@@ -120,24 +123,24 @@ export async function POST(req: NextRequest) {
         if (teamData) {
           const count = teamData.single_golfer ? 1 : 2
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase.from('expense') as any).insert({
-            event_id:    teamData.event_id,
-            description: `Greens fees — ${count === 1 ? 'single golfer' : 'team of 2'}`,
-            amount:      count * 75,
-            category:    'greens_fees',
+          await (supabase.rpc as any)('upsert_aggregate_expense', {
+            p_event_id: teamData.event_id,
+            p_category: 'greens_fees',
+            p_description: 'Greens fees ($75 × golfers registered)',
+            p_delta_amount: count * 75,
           })
           // Drink ticket: every golfer gets one, $3 each. Comes off net
           // proceeds same as greens fees.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase.from('expense') as any).insert({
-            event_id:    teamData.event_id,
-            description: `Drink tickets — ${count === 1 ? 'single golfer' : 'team of 2'}`,
-            amount:      count * 3,
-            category:    'other',
+          await (supabase.rpc as any)('upsert_aggregate_expense', {
+            p_event_id: teamData.event_id,
+            p_category: 'other',
+            p_description: 'Drink tickets ($3 × golfers registered)',
+            p_delta_amount: count * 3,
           })
         }
       } catch (err) {
-        console.error(`[webhook] greens fee / drink ticket expense insert failed for team ${teamId}:`, err)
+        console.error(`[webhook] greens fee / drink ticket expense upsert failed for team ${teamId}:`, err)
       }
 
       // If this team bought a hole sponsorship, auto-list them on the public
