@@ -114,7 +114,7 @@
 }
 .bodyInput:focus { border-color: var(--psu-beaver); box-shadow: var(--ring-focus); }
 
-.sendRow { display: flex; justify-content: flex-end; }
+.sendRow { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
 .resultOk {
   padding: 10px 14px;

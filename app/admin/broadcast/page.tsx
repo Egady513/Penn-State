@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { AdminTopBar } from '@/components/admin/AdminTopBar';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
-import { getBroadcastRecipientCount, sendBroadcastEmail, type BroadcastResult } from '@/app/actions/broadcastEmail';
+import { getBroadcastRecipientCount, sendBroadcastEmail, sendTestEmail, type BroadcastResult } from '@/app/actions/broadcastEmail';
 import styles from './page.module.css';
 
 // ── Template 1: send a couple weeks out ─────────────────────────────────
@@ -118,6 +118,8 @@ export default function BroadcastPage() {
   const [recipients, setRecipients] = useState<{ count: number; teams: number; golfers: number } | null>(null);
   const [loadingCount, setLoadingCount] = useState(true);
   const [sending, setSending] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState('');
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -173,6 +175,16 @@ export default function BroadcastPage() {
     setSubject(t.subject);
     setBody(t.body);
     setResult(null);
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    setResult(null);
+    setTestMsg('');
+    const res = await sendTestEmail(subject, body);
+    setTesting(false);
+    if (res.ok) setTestMsg('Test sent to your inbox. Check the formatting there, then send for real.');
+    else setResult(res);
   }
 
   async function handleSend() {
@@ -261,12 +273,17 @@ export default function BroadcastPage() {
           </div>
         )}
 
+        {testMsg && <div className={styles.resultOk}>{testMsg}</div>}
+
         <div className={styles.sendRow}>
+          <Button variant="secondary" size="lg" onClick={handleTest} disabled={testing || sending}>
+            {testing ? 'Sending test…' : 'Send test to myself'}
+          </Button>
           <Button
             variant="primary"
             size="lg"
             onClick={() => setConfirmOpen(true)}
-            disabled={sending || !recipients || recipients.count === 0}
+            disabled={sending || testing || !recipients || recipients.count === 0}
           >
             {sending ? 'Sending…' : `Send to ${recipients?.count ?? 0} email addresses`}
           </Button>

@@ -137,6 +137,32 @@ export interface BroadcastResult {
 }
 
 /**
+ * Send the exact same rendered email to the chapter's own inbox only.
+ * Use this to eyeball real formatting before committing to a full send —
+ * it goes through the identical render path, so what lands in your inbox
+ * is byte-for-byte what recipients would get (minus the [TEST] subject tag).
+ */
+export async function sendTestEmail(subject: string, body: string): Promise<BroadcastResult> {
+  if (!subject.trim() || !body.trim()) {
+    return { ok: false, sent: 0, failed: [], error: 'Subject and body are required.' }
+  }
+  const to = process.env.GMAIL_USER
+  if (!to) return { ok: false, sent: 0, failed: [], error: 'GMAIL_USER is not configured.' }
+
+  try {
+    await sendEmail({
+      to,
+      subject: `[TEST] ${subject}`,
+      text: bodyToText(body),
+      html: wrapHtml(subject, bodyToHtml(body)),
+    })
+    return { ok: true, sent: 1, failed: [] }
+  } catch (err) {
+    return { ok: false, sent: 0, failed: [to], error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/**
  * Sends `subject` + `body` (markdown-lite) to every player on a paid team.
  * Sends one recipient at a time (never a shared To/BCC list) so nobody
  * sees anyone else's email address — same privacy pattern as the
