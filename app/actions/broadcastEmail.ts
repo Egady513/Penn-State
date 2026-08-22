@@ -10,8 +10,15 @@ const BG_SOFT = '#FAF8F3'
 const BORDER = '#E5E2D9'
 const FG_MUTED = '#5B6470'
 
-/** Every paid team's player ids, deduped, lowercased, valid-looking emails only. */
-async function loadRecipientEmails(): Promise<{ emails: string[]; teamCount: number } | { error: string }> {
+/**
+ * Every paid team's player emails, deduped + lowercased, valid-looking only.
+ * Teammates sometimes register under one shared address, so `emails.length`
+ * is normally LOWER than `golferCount` — everyone is still covered, they
+ * just get one copy at the shared address instead of two identical ones.
+ */
+async function loadRecipientEmails(): Promise<
+  { emails: string[]; teamCount: number; golferCount: number } | { error: string }
+> {
   const supabase = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: teams, error: teamErr } = await (supabase.from('team') as any)
@@ -21,7 +28,7 @@ async function loadRecipientEmails(): Promise<{ emails: string[]; teamCount: num
   if (teamErr) return { error: teamErr.message }
 
   const teamIds = ((teams ?? []) as { id: string }[]).map(t => t.id)
-  if (teamIds.length === 0) return { emails: [], teamCount: 0 }
+  if (teamIds.length === 0) return { emails: [], teamCount: 0, golferCount: 0 }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: players, error: playerErr } = await (supabase.from('player') as any)
@@ -29,18 +36,21 @@ async function loadRecipientEmails(): Promise<{ emails: string[]; teamCount: num
     .in('team_id', teamIds)
   if (playerErr) return { error: playerErr.message }
 
+  const playerRows = (players ?? []) as { email: string | null }[]
   const emails = Array.from(new Set(
-    ((players ?? []) as { email: string | null }[])
+    playerRows
       .map(p => p.email?.trim().toLowerCase())
       .filter((e): e is string => !!e && e.includes('@'))
   ))
-  return { emails, teamCount: teamIds.length }
+  return { emails, teamCount: teamIds.length, golferCount: playerRows.length }
 }
 
-export async function getBroadcastRecipientCount(): Promise<{ count: number; teams: number } | { error: string }> {
+export async function getBroadcastRecipientCount(): Promise<
+  { count: number; teams: number; golfers: number } | { error: string }
+> {
   const result = await loadRecipientEmails()
   if ('error' in result) return { error: result.error }
-  return { count: result.emails.length, teams: result.teamCount }
+  return { count: result.emails.length, teams: result.teamCount, golfers: result.golferCount }
 }
 
 // ── Tiny markdown-lite → HTML/text renderer ─────────────────────────────

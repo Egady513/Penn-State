@@ -105,11 +105,17 @@ const TEMPLATES = [
   { key: 'template2', label: '2-3 days out (game day)', subject: TEMPLATE_2_SUBJECT, body: TEMPLATE_2_BODY },
 ] as const;
 
+// Your edits are kept in this browser so a refresh, a tab close, or clicking
+// away to another admin page doesn't wipe the message you're drafting.
+const DRAFT_KEY = 'doh-broadcast-draft';
+
 export default function BroadcastPage() {
   const [activeTemplate, setActiveTemplate] = useState<string>('template1');
   const [subject, setSubject] = useState(TEMPLATE_1_SUBJECT);
   const [body, setBody] = useState(TEMPLATE_1_BODY);
-  const [recipients, setRecipients] = useState<{ count: number; teams: number } | null>(null);
+  const [restored, setRestored] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [recipients, setRecipients] = useState<{ count: number; teams: number; golfers: number } | null>(null);
   const [loadingCount, setLoadingCount] = useState(true);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<BroadcastResult | null>(null);
@@ -122,9 +128,47 @@ export default function BroadcastPage() {
     });
   }, []);
 
+  // Restore any in-progress draft on load.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as { subject?: string; body?: string; template?: string; savedAt?: string };
+        if (typeof d.subject === 'string') setSubject(d.subject);
+        if (typeof d.body === 'string') setBody(d.body);
+        if (typeof d.template === 'string') setActiveTemplate(d.template);
+        setDraftSavedAt(d.savedAt ?? null);
+      }
+    } catch { /* corrupt draft — fall back to the template defaults */ }
+    setRestored(true);
+  }, []);
+
+  // Persist every keystroke. Guarded on `restored` so the initial template
+  // defaults can't overwrite a saved draft before it's been read back.
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      const savedAt = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ subject, body, template: activeTemplate, savedAt }));
+      setDraftSavedAt(savedAt);
+    } catch { /* storage full or blocked — editing still works, just not persisted */ }
+  }, [subject, body, activeTemplate, restored]);
+
+  const currentTemplate = TEMPLATES.find(t => t.key === activeTemplate);
+  const hasEdits = !!currentTemplate && (subject !== currentTemplate.subject || body !== currentTemplate.body);
+
+  function resetToTemplate() {
+    if (!currentTemplate) return;
+    if (hasEdits && !confirm('Discard your edits and reload the original template text?')) return;
+    setSubject(currentTemplate.subject);
+    setBody(currentTemplate.body);
+    setResult(null);
+  }
+
   function loadTemplate(key: string) {
     const t = TEMPLATES.find(x => x.key === key);
-    if (!t) return;
+    if (!t || key === activeTemplate) return;
+    if (hasEdits && !confirm('You have edits to the current message. Switching templates will discard them. Continue?')) return;
     setActiveTemplate(key);
     setSubject(t.subject);
     setBody(t.body);
@@ -156,8 +200,16 @@ export default function BroadcastPage() {
             <div className={styles.loadingRow}>Checking…</div>
           ) : recipients && recipients.count > 0 ? (
             <div className={styles.recipientLine}>
-              This will send to <strong>{recipients.count} golfer{recipients.count === 1 ? '' : 's'}</strong> across{' '}
-              <strong>{recipients.teams} paid team{recipients.teams === 1 ? '' : 's'}</strong>.
+              Covers all <strong>{recipients.golfers} golfers</strong> across{' '}
+              <strong>{recipients.teams} paid team{recipients.teams === 1 ? '' : 's'}</strong>, sent to{' '}
+              <strong>{recipients.count} email address{recipients.count === 1 ? '' : 'es'}</strong>.
+              {recipients.golfers > recipients.count && (
+                <div className={styles.recipientNote}>
+                  {recipients.golfers - recipients.count} golfer{recipients.golfers - recipients.count === 1 ? '' : 's'}{' '}
+                  registered under an address a teammate is already using, so those teammates share one
+                  copy instead of getting two identical emails. Nobody is left out.
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.recipientLine}>No paid teams to send to yet.</div>
@@ -182,8 +234,23 @@ export default function BroadcastPage() {
           <label className={styles.fieldLabel} style={{ marginTop: 16 }}>Subject</label>
           <input className={styles.subjectInput} value={subject} onChange={e => setSubject(e.target.value)} />
 
-          <label className={styles.fieldLabel} style={{ marginTop: 16 }}>Body</label>
+          <div className={styles.bodyLabelRow}>
+            <label className={styles.fieldLabel} style={{ marginBottom: 0 }}>Body</label>
+            <div className={styles.draftStatus}>
+              {hasEdits && <span className={styles.editedTag}>Edited</span>}
+              {draftSavedAt && <span>Draft saved {draftSavedAt}</span>}
+              {hasEdits && (
+                <button type="button" className={styles.resetBtn} onClick={resetToTemplate}>
+                  Reset to template
+                </button>
+              )}
+            </div>
+          </div>
           <textarea className={styles.bodyInput} value={body} onChange={e => setBody(e.target.value)} rows={28} />
+          <p className={styles.sendNote}>
+            Whatever is in this box right now is exactly what gets sent. Your edits are saved in this
+            browser, so a refresh or navigating away won&apos;t lose them.
+          </p>
         </AdminCard>
 
         {result && (
@@ -201,7 +268,7 @@ export default function BroadcastPage() {
             onClick={() => setConfirmOpen(true)}
             disabled={sending || !recipients || recipients.count === 0}
           >
-            {sending ? 'Sending…' : `Send to ${recipients?.count ?? 0} golfers`}
+            {sending ? 'Sending…' : `Send to ${recipients?.count ?? 0} email addresses`}
           </Button>
         </div>
       </div>
@@ -211,8 +278,8 @@ export default function BroadcastPage() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalTitle}>Send this to everyone?</div>
             <p className={styles.modalBody}>
-              This will immediately email <strong>{recipients?.count ?? 0} golfers</strong> across{' '}
-              {recipients?.teams ?? 0} teams. This can&apos;t be undone.
+              This will immediately send <strong>{recipients?.count ?? 0} emails</strong>, covering all{' '}
+              {recipients?.golfers ?? 0} golfers across {recipients?.teams ?? 0} teams. This can&apos;t be undone.
             </p>
             <div className={styles.modalActions}>
               <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)} disabled={sending}>Cancel</Button>

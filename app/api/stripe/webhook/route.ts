@@ -196,7 +196,10 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
       .limit(1)
     if (existing && existing.length > 0) return
 
-    await supabase.from('sponsor').insert({
+    // NOTE: supabase-js returns { error } rather than throwing, so this MUST
+    // be checked explicitly — an unchecked insert fails silently and the
+    // sponsorship disappears with no trace anywhere.
+    const { error: insertError } = await supabase.from('sponsor').insert({
       event_id: team.event_id,
       name: sponsorName,
       logo_url: team.hole_sponsor_logo_url ?? null,
@@ -205,6 +208,14 @@ async function maybeCreateHoleSponsor(supabase: any, teamId: string) {
       amount: 100,
       active: true,
     })
+    if (insertError) {
+      console.error(
+        `[webhook] hole sponsor insert FAILED for team ${teamId} ("${sponsorName}"):`,
+        insertError,
+      )
+      return
+    }
+    console.log(`[webhook] created hole sponsor "${sponsorName}" for team ${teamId}`)
   } catch (err) {
     // Don't fail the webhook if the auto-list fails — payment already
     // succeeded; Eddie can add the sponsor manually from admin if needed.
