@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { createClient } from '@/lib/supabase/client';
 import { uploadSponsorLogo } from '@/app/actions/upload-logo';
+import { syncHoleSponsors } from '@/app/actions/syncHoleSponsors';
 import { EVENT_ID } from '@/lib/eventId';
 import styles from './page.module.css';
 
@@ -47,7 +48,27 @@ export default function SponsorsPage() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Backfill hole sponsors from paid registrations. Covers the case where a
+  // Stripe webhook was missed and the team was marked paid by hand — the
+  // sponsor row never gets auto-created in that path.
+  async function runSync() {
+    setSyncing(true);
+    setSyncMsg('');
+    setError('');
+    const res = await syncHoleSponsors();
+    setSyncing(false);
+    if (res.error) { setError(`Sync failed: ${res.error}`); return; }
+    if (res.created.length === 0) {
+      setSyncMsg(`All caught up — ${res.alreadyPresent} hole sponsor${res.alreadyPresent === 1 ? '' : 's'} already listed.`);
+      return;
+    }
+    setSyncMsg(`Added ${res.created.length}: ${res.created.map(c => c.name).join(', ')}. Reloading…`);
+    setTimeout(() => window.location.reload(), 1200);
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -154,6 +175,9 @@ export default function SponsorsPage() {
         action={
           <div className={styles.topActions}>
             {savedAt && !saving && <span className={styles.savedHint}>Saved {savedAt}</span>}
+            <Button variant="secondary" size="sm" onClick={runSync} disabled={syncing}>
+              {syncing ? 'Syncing…' : 'Sync from registrations'}
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => exportHoleSponsorsCsv(items)}>
               Export hole sponsors
             </Button>
@@ -172,6 +196,7 @@ export default function SponsorsPage() {
 
       <div className={styles.page}>
         {error && <div className={styles.errorBar}>{error}</div>}
+        {syncMsg && <div className={styles.syncBar}>{syncMsg}</div>}
 
         <div className={styles.statsRow}>
           <div className={styles.statPill}>
