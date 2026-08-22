@@ -76,7 +76,7 @@ export const HOLE_CHALLENGES: HoleChallenge[] = [
     description: '$5 a shot, no cap. Three buckets: land the closest and take 1 stroke off your score on that hole, the middle takes 2 off, the farthest takes 3 off.',
   },
   {
-    name: 'Beat the Pro (Hole 4)',
+    name: 'Beat the Pro (Hole 13)',
     prizes: [],
     description: 'New this year, presented by BackSwing Golf Events. Go head-to-head with a touring lady pro in a fun spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get the chance to improve your score. Do you have what it takes to beat the pro?',
   },

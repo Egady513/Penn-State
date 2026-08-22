@@ -53,7 +53,7 @@ First, a huge thank you to our sponsors and donors. Your support is what makes t
 - **Closest to the Pin** · 1st: Free round for 4 at Legendary Run · 2nd: $100 to Go Play Golf
 - **Longest Drive** · 1st: $120 gift card to Another 9 · 2nd: $25 Dick's gift card
 - **Bucket Golf Challenge (Hole 6)** · $5 a shot, no cap. Three buckets: land the closest and take 1 stroke off your score on that hole, the middle takes 2 off, the farthest takes 3 off.
-- **Beat the Pro (Hole 4)** · new this year, presented by BackSwing Golf Events. Go head-to-head with a touring lady pro in a fun spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get the chance to improve your score. Do you have what it takes to beat the pro?
+- **Beat the Pro (Hole 13)** · new this year, presented by BackSwing Golf Events. Go head-to-head with a touring lady pro in a fun spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get the chance to improve your score. Do you have what it takes to beat the pro?
 
 ## Thank you to our raffle & prize donors
 - Cooper's Hawk Wine & Tasting · Cooper's Hawk · $200 value
@@ -93,7 +93,7 @@ Every registered golfer also gets a free drink ticket to redeem on the course.
 
 **Your team PIN:** Check your confirmation email, or reply if you can't find it. You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy any additional add-ons or raffle tickets right from your phone.
 
-Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 4, Zeek's Power Clean Wipes on Hole 5, Bucket Golf on Hole 6, and 513Sips on Hole 10.
+Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 13, Zeek's Power Clean Wipes on Hole 5, Bucket Golf on Hole 6, and 513Sips on Hole 10.
 
 See you Sunday. Thank you for being part of Drive Out Hunger and for supporting Last Mile Food Rescue.
 
