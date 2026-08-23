@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Stepper } from '@/components/ui/Stepper'
@@ -24,7 +25,17 @@ export default function ScorecardPage() {
   const [loaded, setLoaded] = useState(false)
   const miniRef = useRef<HTMLDivElement>(null)
 
-  const teamId = getTeamId()
+  const router = useRouter()
+
+  const cookieTeamId = getTeamId()
+
+  // No cookie means they never entered a PIN — send them to the login
+
+  // screen rather than silently loading another team's data.
+
+  useEffect(() => { if (!cookieTeamId) router.replace('/play') }, [cookieTeamId, router])
+
+  const teamId = cookieTeamId ?? ''
   const supabase = createClient()
 
   // Load all initial data on mount

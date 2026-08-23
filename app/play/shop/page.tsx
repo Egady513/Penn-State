@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +33,17 @@ export default function ShopPage() {
   const [buying, setBuying] = useState(false)
   const [error, setError] = useState('')
 
-  const teamId = getTeamId()
+  const router = useRouter()
+
+  const cookieTeamId = getTeamId()
+
+  // No cookie means they never entered a PIN — send them to the login
+
+  // screen rather than silently loading another team's data.
+
+  useEffect(() => { if (!cookieTeamId) router.replace('/play') }, [cookieTeamId, router])
+
+  const teamId = cookieTeamId ?? ''
   const supabase = createClient()
 
   useEffect(() => {

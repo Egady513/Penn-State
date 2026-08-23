@@ -1,12 +1,11 @@
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { EVENT_ID } from '@/lib/eventId'
+import { requireTeamId } from '@/lib/requireTeamId'
 import ChatClient from './ChatClient'
 import type { MessageRow } from './ChatClient'
 
 export default async function ChatPage() {
-  const cookieStore = await cookies()
-  const teamId = cookieStore.get('golf_team_id')?.value ?? FALLBACK_TEAM_ID
+  const teamId = await requireTeamId()
 
   const supabase = await createClient()
 

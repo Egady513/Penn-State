@@ -1,10 +1,9 @@
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/Icon'
-import { FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { requireTeamId } from '@/lib/requireTeamId'
 import { SettleButton } from './SettleButton'
 
 type OweItem = {
@@ -16,8 +15,7 @@ type OweItem = {
 }
 
 export default async function OwePage() {
-  const cookieStore = await cookies()
-  const teamId = cookieStore.get('golf_team_id')?.value ?? FALLBACK_TEAM_ID
+  const teamId = await requireTeamId()
 
   const supabase = await createClient()
 

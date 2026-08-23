@@ -1,16 +1,15 @@
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import styles from './page.module.css'
 import { Icon } from '@/components/ui/Icon'
 import { StatTile } from '@/components/ui/StatTile'
-import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { EVENT_ID } from '@/lib/eventId'
+import { requireTeamId } from '@/lib/requireTeamId'
 import { MoneyRaised } from '@/app/components/MoneyRaised'
 import { GameCards } from './GameCards'
 
 export default async function HomePage() {
-  const cookieStore = await cookies()
-  const teamId = cookieStore.get('golf_team_id')?.value ?? FALLBACK_TEAM_ID
+  const teamId = await requireTeamId()
 
   const supabase = await createClient()
 

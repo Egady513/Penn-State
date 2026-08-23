@@ -1,14 +1,13 @@
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import styles from './page.module.css'
 import { PlayerShell } from '@/components/player/PlayerShell'
 import { Icon } from '@/components/ui/Icon'
 import { Badge } from '@/components/ui/Badge'
-import { EVENT_ID, FALLBACK_TEAM_ID } from '@/lib/eventId'
+import { EVENT_ID } from '@/lib/eventId'
+import { requireTeamId } from '@/lib/requireTeamId'
 
 export default async function LeaderboardPage() {
-  const cookieStore = await cookies()
-  const myTeamId = cookieStore.get('golf_team_id')?.value ?? FALLBACK_TEAM_ID
+  const myTeamId = await requireTeamId()
 
   const supabase = await createClient()
 
