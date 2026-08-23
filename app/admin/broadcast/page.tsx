@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { AdminTopBar } from '@/components/admin/AdminTopBar';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
-import { getBroadcastRecipientCount, sendBroadcastEmail, sendTestEmail, type BroadcastResult } from '@/app/actions/broadcastEmail';
+import { getBroadcastRecipientCount, sendBroadcastEmail, sendTestEmail, sendGroupEmails, type BroadcastResult, type GroupSendResult } from '@/app/actions/broadcastEmail';
 import styles from './page.module.css';
 
 // ── Template 1: send a couple weeks out ─────────────────────────────────
@@ -100,9 +100,70 @@ See you Sunday. Thank you for being part of Drive Out Hunger and for supporting 
 Eddie Gady
 President, Greater Cincinnati Penn State Alumni Association`;
 
+// ── Template 3: sponsors / partners (game-day brief) ────────────────────
+
+const TEMPLATE_3_SUBJECT = 'Drive Out Hunger 2026 · Game-day details for our sponsors';
+
+const TEMPLATE_3_BODY = `First, a huge thank you to all of you for partnering with us in our 2nd Annual Drive Out Hunger Golf Outing! Your support is what makes this event possible, and every dollar raised goes straight toward helping Last Mile Food Rescue put food on the table for families across Cincinnati.
+
+## Outing details
+**Sunday, August 30 · Beckett Ridge Golf Club · 8:00 AM start · 66 golfers**
+
+## Agenda
+- **5:15 AM** · Eddie arrives to start setup
+- **5:30 AM** · 513Sips bartender arrives to set up
+- **6:15–7:00 AM** · Morning sponsors arrive (BackSwing Golf, Zeek's Power Wipes & It's Working Out)
+- **6:45 AM** · Registration begins
+- **7:45 AM** · Announcements & prayer
+- **8:00 AM** · Tee-off (currently a wave tee time going off holes 1 & 10; may become a reverse shotgun)
+- **12:00 PM** · Afternoon sponsors arrive (Courtesy Automotive)
+- **~1:00 PM** · Golfers start to finish
+- **~1:45 PM** · Lunch & award ceremony
+
+## Holes & challenges
+- **Zeek's Power Wipes** · Hole 5
+- **Beat the Pro** · Hole 13
+- **Bucket Golf Challenge** (Last Mile volunteers) · Hole 1
+- **513Sips refreshments** · Hole 10
+- **Closest to the Pin** · Hole 10
+- **Longest Drive** · Hole 18
+- **"Sink It, Keep It"** · ½ putting green challenge
+
+This is going to be the largest outing we have done in the 7 years we have hosted it, and our 2nd year benefiting Last Mile Food Rescue. We are incredibly excited and thankful for your help in making this unforgettable for everyone participating.
+
+If you have ANY questions or concerns, please do not hesitate to reach out to me directly: 513-708-0874
+
+Eddie Gady
+President, Greater Cincinnati Penn State Alumni Association`;
+
+// One group per line: "Group name: email, email". Each group gets its own
+// email; groups never see each other.
+const DEFAULT_GROUPS = `Power Wipes: Whitney.Mueller@powercleanwipes.com, michael@powercleanwipes.com, zeek.kreke@powercleanwipes.com
+Courtesy Automotive: sgibson@gocourtesy.com
+It's Working Out: joey@itsworkingout.com
+513Sips: egady303@gmail.com
+BackSwing Golf: abbie@backswinggolfevents.com, events@backswinggolfevents.com
+Last Mile Food Rescue: Beth@lastmilefood.org`;
+
+function parseGroups(raw: string): { name: string; emails: string[] }[] {
+  return raw
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const idx = line.indexOf(':');
+      if (idx === -1) return null;
+      const name = line.slice(0, idx).trim();
+      const emails = line.slice(idx + 1).split(',').map(e => e.trim()).filter(e => e.includes('@'));
+      return name && emails.length ? { name, emails } : null;
+    })
+    .filter((g): g is { name: string; emails: string[] } => g !== null);
+}
+
 const TEMPLATES = [
   { key: 'template1', label: '~2 weeks out', subject: TEMPLATE_1_SUBJECT, body: TEMPLATE_1_BODY },
   { key: 'template2', label: '2-3 days out (game day)', subject: TEMPLATE_2_SUBJECT, body: TEMPLATE_2_BODY },
+  { key: 'template3', label: 'Sponsors (game-day brief)', subject: TEMPLATE_3_SUBJECT, body: TEMPLATE_3_BODY },
 ] as const;
 
 // Your edits are kept in this browser so a refresh, a tab close, or clicking
@@ -120,6 +181,9 @@ export default function BroadcastPage() {
   const [sending, setSending] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState('');
+  const [audience, setAudience] = useState<'golfers' | 'groups'>('golfers');
+  const [groupsRaw, setGroupsRaw] = useState(DEFAULT_GROUPS);
+  const [groupResult, setGroupResult] = useState<GroupSendResult | null>(null);
   const [result, setResult] = useState<BroadcastResult | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -187,13 +251,22 @@ export default function BroadcastPage() {
     else setResult(res);
   }
 
+  const parsedGroups = parseGroups(groupsRaw);
+  const groupEmailTotal = parsedGroups.reduce((n, g) => n + g.emails.length, 0);
+
   async function handleSend() {
     setSending(true);
     setResult(null);
-    const res = await sendBroadcastEmail(subject, body);
+    setGroupResult(null);
+    if (audience === 'groups') {
+      const res = await sendGroupEmails(subject, body, parsedGroups);
+      setGroupResult(res);
+    } else {
+      const res = await sendBroadcastEmail(subject, body);
+      setResult(res);
+    }
     setSending(false);
     setConfirmOpen(false);
-    setResult(res);
   }
 
   return (
@@ -207,6 +280,46 @@ export default function BroadcastPage() {
           live template — review the sponsor/donor lists and team count before sending in case they&apos;ve changed.
         </p>
 
+        <AdminCard title="Audience">
+          <div className={styles.templateRow}>
+            <button
+              type="button"
+              className={`${styles.templateBtn} ${audience === 'golfers' ? styles.templateBtnOn : ''}`}
+              onClick={() => { setAudience('golfers'); setResult(null); setGroupResult(null); }}
+            >
+              Paid golfers
+            </button>
+            <button
+              type="button"
+              className={`${styles.templateBtn} ${audience === 'groups' ? styles.templateBtnOn : ''}`}
+              onClick={() => { setAudience('groups'); setResult(null); setGroupResult(null); }}
+            >
+              Sponsor groups
+            </button>
+          </div>
+
+          {audience === 'groups' && (
+            <>
+              <label className={styles.fieldLabel} style={{ marginTop: 16 }}>
+                Groups — one per line, as <code>Name: email, email</code>
+              </label>
+              <textarea
+                className={styles.bodyInput}
+                value={groupsRaw}
+                onChange={e => setGroupsRaw(e.target.value)}
+                rows={7}
+              />
+              <div className={styles.recipientNote}>
+                <strong>{parsedGroups.length} group{parsedGroups.length === 1 ? '' : 's'}</strong>,{' '}
+                {groupEmailTotal} address{groupEmailTotal === 1 ? '' : 'es'} total. Each group gets its
+                own separate email — groups never see each other. People within the same group share a
+                To line, since they&apos;re colleagues at the same organization.
+              </div>
+            </>
+          )}
+        </AdminCard>
+
+        {audience === 'golfers' && (
         <AdminCard title="Recipients">
           {loadingCount ? (
             <div className={styles.loadingRow}>Checking…</div>
@@ -227,6 +340,7 @@ export default function BroadcastPage() {
             <div className={styles.recipientLine}>No paid teams to send to yet.</div>
           )}
         </AdminCard>
+        )}
 
         <AdminCard title="Message">
           <label className={styles.fieldLabel}>Template</label>
@@ -275,6 +389,17 @@ export default function BroadcastPage() {
 
         {testMsg && <div className={styles.resultOk}>{testMsg}</div>}
 
+        {groupResult && (
+          <div className={groupResult.ok ? styles.resultOk : styles.resultErr}>
+            {groupResult.error
+              ? `Couldn't send: ${groupResult.error}`
+              : `Sent to ${groupResult.sentGroups.length} group${groupResult.sentGroups.length === 1 ? '' : 's'}: ${groupResult.sentGroups.map(g => `${g.group} (${g.count})`).join(', ')}.` +
+                (groupResult.failed.length
+                  ? ` FAILED: ${groupResult.failed.map(f => `${f.group} — ${f.error}`).join('; ')}`
+                  : '')}
+          </div>
+        )}
+
         <div className={styles.sendRow}>
           <Button variant="secondary" size="lg" onClick={handleTest} disabled={testing || sending}>
             {testing ? 'Sending test…' : 'Send test to myself'}
@@ -283,9 +408,18 @@ export default function BroadcastPage() {
             variant="primary"
             size="lg"
             onClick={() => setConfirmOpen(true)}
-            disabled={sending || testing || !recipients || recipients.count === 0}
+            disabled={
+              sending || testing ||
+              (audience === 'golfers'
+                ? !recipients || recipients.count === 0
+                : parsedGroups.length === 0)
+            }
           >
-            {sending ? 'Sending…' : `Send to ${recipients?.count ?? 0} email addresses`}
+            {sending
+              ? 'Sending…'
+              : audience === 'groups'
+                ? `Send to ${parsedGroups.length} sponsor group${parsedGroups.length === 1 ? '' : 's'}`
+                : `Send to ${recipients?.count ?? 0} email addresses`}
           </Button>
         </div>
       </div>
@@ -295,8 +429,18 @@ export default function BroadcastPage() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalTitle}>Send this to everyone?</div>
             <p className={styles.modalBody}>
-              This will immediately send <strong>{recipients?.count ?? 0} emails</strong>, covering all{' '}
-              {recipients?.golfers ?? 0} golfers across {recipients?.teams ?? 0} teams. This can&apos;t be undone.
+              {audience === 'groups' ? (
+                <>
+                  This will immediately send <strong>{parsedGroups.length} separate emails</strong>, one
+                  per group ({parsedGroups.map(g => g.name).join(', ')}), reaching {groupEmailTotal}{' '}
+                  address{groupEmailTotal === 1 ? '' : 'es'}. This can&apos;t be undone.
+                </>
+              ) : (
+                <>
+                  This will immediately send <strong>{recipients?.count ?? 0} emails</strong>, covering all{' '}
+                  {recipients?.golfers ?? 0} golfers across {recipients?.teams ?? 0} teams. This can&apos;t be undone.
+                </>
+              )}
             </p>
             <div className={styles.modalActions}>
               <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)} disabled={sending}>Cancel</Button>

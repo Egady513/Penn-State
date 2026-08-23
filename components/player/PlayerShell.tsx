@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import styles from './PlayerShell.module.css'
 import { Icon } from '@/components/ui/Icon'
+import { signOutTeam } from '@/app/play/actions'
 
 const TABS = [
   { id: 'home',      href: '/play/home',        label: 'Home',     icon: 'home'       },
@@ -29,9 +31,19 @@ export function PlayerShell({
   liftBar = false,
 }: PlayerShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [signingOut, setSigningOut] = useState(false)
 
   const syncIcon = syncStatus === 'offline' ? 'wifi-off' : 'cloud-check'
   const syncColor = syncStatus === 'offline' ? 'var(--warning)' : 'var(--psu-pugh)'
+
+  async function handleSwitchTeam() {
+    if (!confirm('Sign out of this team and enter a different PIN?')) return
+    setSigningOut(true)
+    await signOutTeam()
+    router.push('/play')
+    router.refresh()
+  }
 
   return (
     <div className={styles.shell}>
@@ -41,9 +53,20 @@ export function PlayerShell({
           {subtitle && <div className={styles.appBarSub}>{subtitle}</div>}
           <div className={styles.appBarTitle}>{title}</div>
         </div>
-        <div className={styles.syncBadge} style={{ color: syncColor }}>
-          <Icon name={syncIcon} size={16} color={syncColor} />
-          <span>{syncStatus === 'offline' ? 'Offline' : 'Live'}</span>
+        <div className={styles.appBarRight}>
+          <div className={styles.syncBadge} style={{ color: syncColor }}>
+            <Icon name={syncIcon} size={16} color={syncColor} />
+            <span>{syncStatus === 'offline' ? 'Offline' : 'Live'}</span>
+          </div>
+          <button
+            type="button"
+            className={styles.switchTeamBtn}
+            onClick={handleSwitchTeam}
+            disabled={signingOut}
+            title="Sign out and enter a different team PIN"
+          >
+            {signingOut ? '…' : 'Switch team'}
+          </button>
         </div>
       </div>
 

@@ -136,6 +136,60 @@ export interface BroadcastResult {
   error?: string
 }
 
+export interface GroupSendResult {
+  ok: boolean
+  sentGroups: { group: string; count: number }[]
+  failed: { group: string; error: string }[]
+  error?: string
+}
+
+/**
+ * Send one email per group (sponsors, vendors, partners) using the same
+ * branded shell as every other chapter email.
+ *
+ * Everyone inside a group is on the same To line — they're colleagues at the
+ * same organization, so that's a normal reply-all thread, not a privacy leak.
+ * Separate groups never see each other.
+ */
+export async function sendGroupEmails(
+  subject: string,
+  body: string,
+  groups: { name: string; emails: string[] }[],
+): Promise<GroupSendResult> {
+  if (!subject.trim() || !body.trim()) {
+    return { ok: false, sentGroups: [], failed: [], error: 'Subject and body are required.' }
+  }
+  const clean = groups
+    .map(g => ({
+      name: g.name.trim(),
+      emails: g.emails.map(e => e.trim()).filter(e => e && e.includes('@')),
+    }))
+    .filter(g => g.name && g.emails.length > 0)
+
+  if (clean.length === 0) {
+    return { ok: false, sentGroups: [], failed: [], error: 'No valid groups to send to.' }
+  }
+
+  const html = wrapHtml(subject, bodyToHtml(body))
+  const text = bodyToText(body)
+
+  const sentGroups: { group: string; count: number }[] = []
+  const failed: { group: string; error: string }[] = []
+
+  for (const g of clean) {
+    try {
+      await sendEmail({ to: g.emails, subject, text, html })
+      sentGroups.push({ group: g.name, count: g.emails.length })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[groupEmail] failed for "${g.name}":`, err)
+      failed.push({ group: g.name, error: msg })
+    }
+  }
+
+  return { ok: failed.length === 0, sentGroups, failed }
+}
+
 /**
  * Send the exact same rendered email to the chapter's own inbox only.
  * Use this to eyeball real formatting before committing to a full send —
