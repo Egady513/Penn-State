@@ -65,7 +65,7 @@ export function PlayerShell({
             disabled={signingOut}
             title="Sign out and enter a different team PIN"
           >
-            {signingOut ? '…' : 'Switch team'}
+            {signingOut ? '…' : 'Sign out'}
           </button>
         </div>
       </div>
