@@ -157,3 +157,49 @@
 .modalTitle { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin: 0 0 10px; }
 .modalBody { font-size: 13px; color: var(--fg-muted); line-height: 1.6; margin: 0 0 20px; }
 .modalActions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ── Group merge token ──────────────────────────────────────── */
+.groupTokenRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.tokenOn {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #065F46;
+  background: #D1FAE5;
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+
+.tokenNote {
+  flex: 1 1 320px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+.tokenNote code {
+  font-size: 11px;
+  background: var(--psu-pugh-soft, #E6F0FB);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.recipientWarn {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.recipientWarn a { color: #92400E; font-weight: 700; }

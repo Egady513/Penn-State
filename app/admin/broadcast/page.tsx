@@ -5,6 +5,8 @@ import { AdminTopBar } from '@/components/admin/AdminTopBar';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { getBroadcastRecipientCount, sendBroadcastEmail, sendTestEmail, sendGroupEmails, type BroadcastResult, type GroupSendResult } from '@/app/actions/broadcastEmail';
+
+import { PAIRING_TOKEN as GROUP_TOKEN } from '@/lib/broadcastToken';
 import styles from './page.module.css';
 
 // ── Template 1: send a couple weeks out ─────────────────────────────────
@@ -90,6 +92,8 @@ Sunday, August 30 · Beckett Ridge Golf Club, West Chester OH
 - 1:00 PM · Taco bar lunch & awards
 
 Every registered golfer also gets a free drink ticket to redeem on the course.
+
+{{group}}
 
 **Your team PIN:** Check your confirmation email, or reply if you can't find it. You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy any additional add-ons or raffle tickets right from your phone.
 
@@ -178,7 +182,7 @@ export default function BroadcastPage() {
   const [body, setBody] = useState(TEMPLATE_1_BODY);
   const [restored, setRestored] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
-  const [recipients, setRecipients] = useState<{ count: number; teams: number; golfers: number } | null>(null);
+  const [recipients, setRecipients] = useState<{ count: number; teams: number; golfers: number; ungrouped: number } | null>(null);
   const [loadingCount, setLoadingCount] = useState(true);
   const [sending, setSending] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -249,7 +253,7 @@ export default function BroadcastPage() {
     setTestMsg('');
     const res = await sendTestEmail(subject, body);
     setTesting(false);
-    if (res.ok) setTestMsg('Test sent to your inbox. Check the formatting there, then send for real.');
+    if (res.ok) setTestMsg(`Test sent to your inbox. Check the formatting there, then send for real.${res.note ? ` ${res.note}` : ''}`);
     else setResult(res);
   }
 
@@ -337,6 +341,14 @@ export default function BroadcastPage() {
                   copy instead of getting two identical emails. Nobody is left out.
                 </div>
               )}
+              {body.includes(GROUP_TOKEN) && recipients.ungrouped > 0 && (
+                <div className={styles.recipientWarn}>
+                  {recipients.ungrouped} team{recipients.ungrouped === 1 ? '' : 's'} still ha
+                  {recipients.ungrouped === 1 ? 's' : 've'} no group assigned. They&apos;ll get the
+                  &ldquo;posted at check-in&rdquo; wording instead of a group. Set groups on the{' '}
+                  <a href="/admin/registrations">Teams tab</a> first if you&apos;d rather they see one.
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.recipientLine}>No paid teams to send to yet.</div>
@@ -375,6 +387,28 @@ export default function BroadcastPage() {
             </div>
           </div>
           <textarea className={styles.bodyInput} value={body} onChange={e => setBody(e.target.value)} rows={28} />
+          <div className={styles.groupTokenRow}>
+            {body.includes(GROUP_TOKEN) ? (
+              <>
+                <span className={styles.tokenOn}>Personalized</span>
+                <span className={styles.tokenNote}>
+                  Each golfer sees their own group where <code>{GROUP_TOKEN}</code> sits: group number,
+                  starting hole, and the other team they&apos;re playing with. Anyone without a group yet
+                  gets a short &ldquo;posted at check-in&rdquo; line instead.
+                </span>
+              </>
+            ) : (
+              <>
+                <button type="button" className={styles.resetBtn} onClick={() => setBody(b => `${b.trimEnd()}\n\n${GROUP_TOKEN}\n`)}>
+                  Add group block
+                </button>
+                <span className={styles.tokenNote}>
+                  Drops in <code>{GROUP_TOKEN}</code>, which becomes each golfer&apos;s own group and
+                  starting hole. Move the line wherever you want it to appear.
+                </span>
+              </>
+            )}
+          </div>
           <p className={styles.sendNote}>
             Whatever is in this box right now is exactly what gets sent. Your edits are saved in this
             browser, so a refresh or navigating away won&apos;t lose them.

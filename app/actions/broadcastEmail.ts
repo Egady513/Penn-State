@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
+import { PAIRING_TOKEN } from '@/lib/broadcastToken'
 
 const NAVY = '#001E44'
 const PUGH = '#96BEE6'
@@ -10,47 +11,126 @@ const BG_SOFT = '#FAF8F3'
 const BORDER = '#E5E2D9'
 const FG_MUTED = '#5B6470'
 
+interface TeamRow {
+  id: string
+  name: string
+  pairing: string | null
+  start_hole: number | null
+  players: string[]
+}
+
+interface Recipients {
+  /** Deduped, lowercased, valid-looking player addresses on paid teams. */
+  emails: string[]
+  /** email -> the team(s) that address is registered on. */
+  teamsByEmail: Map<string, TeamRow[]>
+  teams: TeamRow[]
+  teamCount: number
+  golferCount: number
+}
+
 /**
- * Every paid team's player emails, deduped + lowercased, valid-looking only.
+ * Every paid team plus its players, keyed by address.
+ *
  * Teammates sometimes register under one shared address, so `emails.length`
- * is normally LOWER than `golferCount` — everyone is still covered, they
+ * is normally LOWER than `golferCount` - everyone is still covered, they
  * just get one copy at the shared address instead of two identical ones.
+ * That same address can also cover TWO teams when somebody registered a
+ * full foursome as two twosomes, which is why the map holds an array.
  */
-async function loadRecipientEmails(): Promise<
-  { emails: string[]; teamCount: number; golferCount: number } | { error: string }
-> {
+async function loadRecipients(): Promise<Recipients | { error: string }> {
   const supabase = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: teams, error: teamErr } = await (supabase.from('team') as any)
-    .select('id')
+  const { data: teamData, error: teamErr } = await (supabase.from('team') as any)
+    .select('id, name, pairing, start_hole')
     .eq('event_id', EVENT_ID)
     .eq('payment_status', 'paid')
   if (teamErr) return { error: teamErr.message }
 
-  const teamIds = ((teams ?? []) as { id: string }[]).map(t => t.id)
-  if (teamIds.length === 0) return { emails: [], teamCount: 0, golferCount: 0 }
+  const teamRows = (teamData ?? []) as { id: string; name: string; pairing: string | null; start_hole: number | null }[]
+  if (teamRows.length === 0) {
+    return { emails: [], teamsByEmail: new Map(), teams: [], teamCount: 0, golferCount: 0 }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: players, error: playerErr } = await (supabase.from('player') as any)
-    .select('email')
-    .in('team_id', teamIds)
+  const { data: playerData, error: playerErr } = await (supabase.from('player') as any)
+    .select('team_id, name, email')
+    .in('team_id', teamRows.map(t => t.id))
   if (playerErr) return { error: playerErr.message }
 
-  const playerRows = (players ?? []) as { email: string | null }[]
-  const emails = Array.from(new Set(
-    playerRows
-      .map(p => p.email?.trim().toLowerCase())
-      .filter((e): e is string => !!e && e.includes('@'))
-  ))
-  return { emails, teamCount: teamIds.length, golferCount: playerRows.length }
+  const playerRows = (playerData ?? []) as { team_id: string; name: string | null; email: string | null }[]
+
+  const teams: TeamRow[] = teamRows.map(t => ({
+    ...t,
+    players: playerRows.filter(p => p.team_id === t.id).map(p => p.name?.trim() || 'Golfer'),
+  }))
+  const teamById = new Map(teams.map(t => [t.id, t]))
+
+  const teamsByEmail = new Map<string, TeamRow[]>()
+  for (const p of playerRows) {
+    const email = p.email?.trim().toLowerCase()
+    if (!email || !email.includes('@')) continue
+    const team = teamById.get(p.team_id)
+    if (!team) continue
+    const list = teamsByEmail.get(email) ?? []
+    if (!list.some(t => t.id === team.id)) list.push(team)
+    teamsByEmail.set(email, list)
+  }
+
+  return {
+    emails: Array.from(teamsByEmail.keys()),
+    teamsByEmail,
+    teams,
+    teamCount: teams.length,
+    golferCount: playerRows.length,
+  }
+}
+
+// -- Per-recipient pairing block ----------------------------------------
+// A foursome is TWO 2-person teams sharing a group number, so "who you're
+// playing with" means the other team holding your number.
+
+
+function pairingBlock(myTeams: TeamRow[], allTeams: TeamRow[]): string {
+  if (myTeams.length === 0) return ''
+
+  const lines: string[] = ['## Your group']
+  for (const mine of myTeams) {
+    const group = mine.pairing?.trim()
+    if (!group) {
+      lines.push(`**${mine.name}** - ${mine.players.join(' & ')}`)
+      lines.push("We're finalizing groups now. Yours will be posted at check-in Sunday morning.")
+      continue
+    }
+    const partners = allTeams.filter(t => t.pairing?.trim() === group && t.id !== mine.id)
+    const hole = mine.start_hole ?? partners.find(t => t.start_hole != null)?.start_hole
+    lines.push(`**Group ${group}${hole != null ? ` - starting on hole ${hole}` : ''}**`)
+    lines.push(`- ${mine.name}: ${mine.players.join(', ')} (you)`)
+    for (const p of partners) lines.push(`- ${p.name}: ${p.players.join(', ')}`)
+    if (partners.length === 0) {
+      lines.push("You're a twosome for now. If another team joins your group we'll let you know at check-in.")
+    }
+  }
+  return lines.join('\n')
+}
+
+/** Swap the token for this recipient's group, or drop it if they have none. */
+function personalize(body: string, myTeams: TeamRow[], allTeams: TeamRow[]): string {
+  if (!body.includes(PAIRING_TOKEN)) return body
+  return body.split(PAIRING_TOKEN).join(pairingBlock(myTeams, allTeams))
 }
 
 export async function getBroadcastRecipientCount(): Promise<
-  { count: number; teams: number; golfers: number } | { error: string }
+  { count: number; teams: number; golfers: number; ungrouped: number } | { error: string }
 > {
-  const result = await loadRecipientEmails()
+  const result = await loadRecipients()
   if ('error' in result) return { error: result.error }
-  return { count: result.emails.length, teams: result.teamCount, golfers: result.golferCount }
+  return {
+    count: result.emails.length,
+    teams: result.teamCount,
+    golfers: result.golferCount,
+    ungrouped: result.teams.filter(t => !t.pairing?.trim()).length,
+  }
 }
 
 // ── Tiny markdown-lite → HTML/text renderer ─────────────────────────────
@@ -134,6 +214,8 @@ export interface BroadcastResult {
   sent: number
   failed: string[]
   error?: string
+  /** Test sends report which team was used to fill in the group block. */
+  note?: string
 }
 
 export interface GroupSendResult {
@@ -203,14 +285,30 @@ export async function sendTestEmail(subject: string, body: string): Promise<Broa
   const to = process.env.GMAIL_USER
   if (!to) return { ok: false, sent: 0, failed: [], error: 'GMAIL_USER is not configured.' }
 
+  // If the body carries the group token, fill it with a REAL team so the
+  // test shows what a golfer will actually receive. Prefer a team that
+  // already has a group, otherwise the block would only show the fallback.
+  let rendered = body
+  let note: string | undefined
+  if (body.includes(PAIRING_TOKEN)) {
+    const result = await loadRecipients()
+    if ('error' in result) return { ok: false, sent: 0, failed: [], error: result.error }
+    const sample = result.teams.find(t => t.pairing?.trim()) ?? result.teams[0]
+    if (!sample) return { ok: false, sent: 0, failed: [], error: 'No paid teams to sample a group from.' }
+    rendered = personalize(body, [sample], result.teams)
+    note = sample.pairing?.trim()
+      ? `Group block filled in with ${sample.name} (group ${sample.pairing.trim()}).`
+      : `No team has a group yet, so the block shows the fallback wording using ${sample.name}.`
+  }
+
   try {
     await sendEmail({
       to,
       subject: `[TEST] ${subject}`,
-      text: bodyToText(body),
-      html: wrapHtml(subject, bodyToHtml(body)),
+      text: bodyToText(rendered),
+      html: wrapHtml(subject, bodyToHtml(rendered)),
     })
-    return { ok: true, sent: 1, failed: [] }
+    return { ok: true, sent: 1, failed: [], note }
   } catch (err) {
     return { ok: false, sent: 0, failed: [to], error: err instanceof Error ? err.message : String(err) }
   }
@@ -227,16 +325,22 @@ export async function sendBroadcastEmail(subject: string, body: string): Promise
     return { ok: false, sent: 0, failed: [], error: 'Subject and body are required.' }
   }
 
-  const result = await loadRecipientEmails()
+  const result = await loadRecipients()
   if ('error' in result) return { ok: false, sent: 0, failed: [], error: result.error }
   if (result.emails.length === 0) return { ok: false, sent: 0, failed: [], error: 'No paid teams to send to.' }
 
-  const html = wrapHtml(subject, bodyToHtml(body))
-  const text = bodyToText(body)
+  // Without the token every recipient gets the identical email, so render
+  // once. With it, each address needs its own copy.
+  const personalized = body.includes(PAIRING_TOKEN)
+  const sharedHtml = personalized ? '' : wrapHtml(subject, bodyToHtml(body))
+  const sharedText = personalized ? '' : bodyToText(body)
 
   let sent = 0
   const failed: string[] = []
   for (const to of result.emails) {
+    const mine = personalized ? personalize(body, result.teamsByEmail.get(to) ?? [], result.teams) : body
+    const html = personalized ? wrapHtml(subject, bodyToHtml(mine)) : sharedHtml
+    const text = personalized ? bodyToText(mine) : sharedText
     try {
       await sendEmail({ to, subject, text, html })
       sent++
