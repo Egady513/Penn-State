@@ -410,7 +410,7 @@ function ContestBanner({
         <div className={styles.contestDesc}>
           {entered
             ? `You're in the ${name.toLowerCase()} contest — good luck.`
-            : `Pay $10 to enter — last chance before you tee off.`}
+            : `Enter now for $${SINGLE_CONTEST_PRICE}. Added to your tab — settle at the tent.`}
         </div>
       </div>
       {!entered && (
@@ -419,7 +419,7 @@ function ContestBanner({
           disabled={joining}
           className={styles.contestJoinBtn}
         >
-          {joining ? '…' : 'Add $10 to tab'}
+          {joining ? '…' : `Add $${SINGLE_CONTEST_PRICE} to tab`}
         </button>
       )}
     </div>
