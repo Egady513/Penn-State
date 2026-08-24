@@ -8,8 +8,10 @@ import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
-type Purchase = { id: string; label: string; amount: number; paid: boolean; catalogItemId: string }
-type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number }[] }
+// `amount` is the PER-UNIT price. Always multiply by `quantity` for money —
+// dropping it silently undercharged multi-quantity items at the check-in tent.
+type Purchase = { id: string; label: string; amount: number; quantity: number; paid: boolean; catalogItemId: string; tag: string | null }
+type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number; tickets: number | null }[] }
 type CatalogItem = { id: string; name: string; price: number; tag: string | null; allow_multiple: boolean }
 
 export default function CheckinPage() {
@@ -42,7 +44,8 @@ export default function CheckinPage() {
     const rawMulls     = (mullRes.error ? [] : (mullRes.data ?? [])) as { team_id: string; count: number; paid: boolean }[]
 
     const catalogById: Record<string, string> = {}
-    rawCatalog.forEach(c => { catalogById[c.id] = c.name })
+    const tagById: Record<string, string | null> = {}
+    rawCatalog.forEach(c => { catalogById[c.id] = c.name; tagById[c.id] = c.tag ?? null })
 
     const ctpLdIds  = new Set(rawCatalog.filter(c => c.tag === 'ctp' || c.tag === 'ld').map(c => c.id))
     const raffleIds = new Set(rawCatalog.filter(c => c.name.toLowerCase().includes('raffle')).map(c => c.id))
@@ -62,8 +65,10 @@ export default function CheckinPage() {
           id: p.id,
           label: catalogById[p.catalog_item_id] ?? 'Item',
           amount: Number(p.amount),
+          quantity: Number(p.quantity) || 1,
           paid: p.paid_status === 'paid',
           catalogItemId: p.catalog_item_id,
+          tag: tagById[p.catalog_item_id] ?? null,
         })),
         mulligans: {
           unpaid: teamMulls.filter(m => !m.paid).reduce((s, m) => s + m.count, 0),
@@ -77,7 +82,14 @@ export default function CheckinPage() {
         })(),
         raffleItems: rawPurchases
           .filter(p => p.team_id === t.id && raffleIds.has(p.catalog_item_id) && p.paid_status === 'paid')
-          .map(p => ({ name: catalogById[p.catalog_item_id] ?? 'Raffle tickets', qty: Number(p.quantity) || 1 })),
+          .map(p => {
+            const name = catalogById[p.catalog_item_id] ?? 'Raffle tickets'
+            const qty = Number(p.quantity) || 1
+            // Tickets are sold in bundles ("10 Raffle Tickets"), so the real
+            // number to hand over is the bundle size × how many were bought.
+            const perBundle = Number(name.match(/^\s*(\d+)/)?.[1] ?? NaN)
+            return { name, qty, tickets: Number.isFinite(perBundle) ? perBundle * qty : null }
+          }),
       }
     }))
     setCatalog(rawCatalog as CatalogItem[])
@@ -198,7 +210,15 @@ export default function CheckinPage() {
       <div className={styles.list}>
         {filtered.map(team => {
           const allArrived = team.golfers.length > 0 && team.golfers.every(g => g.arrived)
-          const purchaseOwed = team.purchases.filter(p => !p.paid).reduce((s, p) => s + p.amount, 0)
+          // amount is per-unit — must multiply by quantity or multi-buys undercharge.
+          const lineTotal = (p: Purchase) => p.amount * p.quantity
+          const purchaseOwed = team.purchases.filter(p => !p.paid).reduce((s, p) => s + lineTotal(p), 0)
+          // CTP + LD are two halves of one challenge entry and confuse people as
+          // separate rows — they get their own combined section below instead.
+          const isChallenge = (p: Purchase) => p.tag === 'ctp' || p.tag === 'ld'
+          const otherPurchases = team.purchases.filter(p => !isChallenge(p))
+          const challengePurchases = team.purchases.filter(isChallenge)
+          const challengeTotal = challengePurchases.reduce((s, p) => s + lineTotal(p), 0)
           const mulliganOwed = team.mulligans.unpaid * 2
           const outstanding  = purchaseOwed + mulliganOwed
           const isOpen = expanded === team.id
@@ -235,8 +255,10 @@ export default function CheckinPage() {
                       <div className={styles.owesTitle}>Owes ${outstanding.toFixed(0)}</div>
                       {team.purchases.filter(p => !p.paid).map(p => (
                         <div key={p.id} className={styles.owesRow}>
-                          <span className={styles.owesLabel}>{p.label}</span>
-                          <span className={styles.owesAmt}>${p.amount.toFixed(0)}</span>
+                          <span className={styles.owesLabel}>
+                            {p.label}{p.quantity > 1 ? ` × ${p.quantity}` : ''}
+                          </span>
+                          <span className={styles.owesAmt}>${lineTotal(p).toFixed(0)}</span>
                           <button
                             className={styles.paidToggle}
                             onClick={() => togglePurchasePaid(team.id, p.id, p.paid)}
@@ -278,13 +300,13 @@ export default function CheckinPage() {
                     ))}
                   </div>
 
-                  {team.purchases.length > 0 && (
+                  {otherPurchases.length > 0 && (
                     <div className={styles.addons}>
                       <div className={styles.addonsLabel}>Add-ons &amp; purchases</div>
-                      {team.purchases.map(p => (
+                      {otherPurchases.map(p => (
                         <div key={p.id} className={styles.addonRow}>
-                          <span>{p.label}</span>
-                          <span className={styles.addonPrice}>${p.amount.toFixed(0)}</span>
+                          <span>{p.label}{p.quantity > 1 ? ` × ${p.quantity}` : ''}</span>
+                          <span className={styles.addonPrice}>${lineTotal(p).toFixed(0)}</span>
                           <button
                             className={`${styles.paidToggle} ${p.paid ? styles.paidToggleOn : ''}`}
                             onClick={() => togglePurchasePaid(team.id, p.id, p.paid)}
@@ -299,7 +321,9 @@ export default function CheckinPage() {
 
                   {team.challengeNames.length > 0 && (
                     <div className={styles.addons}>
-                      <div className={styles.addonsLabel}>LD &amp; CTP Challenge</div>
+                      <div className={styles.addonsLabel}>
+                        LD &amp; CTP Challenge{challengeTotal > 0 ? ` · $${challengeTotal.toFixed(0)} — enters both contests` : ''}
+                      </div>
                       {team.challengeNames.map((name, i) => (
                         <div key={i} className={styles.golferRow}>
                           <span className={styles.golferName} style={{ fontSize: 14 }}>{name}</span>
@@ -316,7 +340,7 @@ export default function CheckinPage() {
                       </div>
                       {team.raffleItems.map((r, i) => (
                         <div key={i} className={styles.addonRow}>
-                          <span>{r.qty > 1 ? `${r.name} × ${r.qty}` : r.name}</span>
+                          <span>{r.tickets != null ? `${r.tickets} tickets` : r.name}{r.qty > 1 ? ` (${r.name} × ${r.qty})` : ''}</span>
                           <span className={styles.addonPrice} style={{ color: 'var(--success)', fontWeight: 600, marginLeft: 'auto' }}>Paid ✓</span>
                         </div>
                       ))}
