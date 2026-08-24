@@ -6,6 +6,7 @@ import { Search, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
+import { SINGLE_CONTEST_PRICE } from '@/lib/contestPricing'
 
 type Golfer   = { id: string; name: string; arrived: boolean }
 // `amount` is the PER-UNIT price. Always multiply by `quantity` for money —
@@ -170,6 +171,33 @@ export default function CheckinPage() {
       }
     }
     setBusyChallenge(null)
+    setAddingTo(null)
+    load()
+  }
+
+  /**
+   * Add ONE contest on its own (someone walks up to just the closest-to-pin
+   * hole). Priced above half the bundle so buying both stays the better deal.
+   * Inserted directly rather than through add_checkin_purchase, because that
+   * RPC always charges the catalog price.
+   */
+  async function addSingleContest(teamId: string, tag: 'ctp' | 'ld') {
+    const item = catalog.find(c => c.tag === tag)
+    if (!item) { setActionError(`${tag.toUpperCase()} catalog item not found.`); return }
+    setBusyChallenge(teamId)
+    setActionError('')
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('purchase') as any).insert({
+      team_id: teamId,
+      catalog_item_id: item.id,
+      quantity: 1,
+      amount: SINGLE_CONTEST_PRICE,
+      paid_status: 'unpaid',
+      channel: 'check_in',
+    })
+    setBusyChallenge(null)
+    if (error) { setActionError(`Couldn't add entry: ${error.message}`); return }
     setAddingTo(null)
     load()
   }
@@ -406,6 +434,28 @@ export default function CheckinPage() {
                               {busyChallenge === team.id ? '…' : `Both golfers · $${((catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)) * 2}`}
                             </button>
                           )}
+                        </div>
+                      )}
+                      {/* Single contest — costs more than half the bundle */}
+                      {catalog.some(c => c.tag === 'ctp') && (
+                        <div className={styles.addItemRow} style={{ marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>One only:</span>
+                          <button
+                            className={styles.addBtn}
+                            onClick={() => addSingleContest(team.id, 'ctp')}
+                            disabled={busyChallenge === team.id}
+                            style={{ flex: 1 }}
+                          >
+                            {busyChallenge === team.id ? '…' : `Closest to pin · $${SINGLE_CONTEST_PRICE}`}
+                          </button>
+                          <button
+                            className={styles.addBtn}
+                            onClick={() => addSingleContest(team.id, 'ld')}
+                            disabled={busyChallenge === team.id}
+                            style={{ flex: 1 }}
+                          >
+                            {busyChallenge === team.id ? '…' : `Long drive · $${SINGLE_CONTEST_PRICE}`}
+                          </button>
                         </div>
                       )}
                       {/* Regular items — CTP/LD excluded; already-bought single-buy items hidden */}

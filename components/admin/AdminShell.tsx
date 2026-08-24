@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/admin/included',     label: "What's included",   icon: 'check'     as const },
   { href: '/admin/checkin',      label: 'Check-in',          icon: 'qr'        as const },
   { href: '/admin/course',       label: 'Course',             icon: 'flag'      as const },
+  { href: '/admin/scores',       label: 'Scores',            icon: 'trophy'    as const },
   { href: '/admin/start-sheet',  label: 'Start sheet',       icon: 'flag'      as const },
   { href: '/admin/owe',          label: 'Who owes',          icon: 'owe'       as const },
   { href: '/admin/dietary',      label: 'Dietary',           icon: 'heart'     as const },

@@ -6,6 +6,7 @@ import sheet from '@/components/admin/sheet.module.css'
 
 type Cat = { count: number; dollars: number }
 type Expense = { id: string; description: string; amount: number; category: string; created_at: string }
+type Outside = { id: string; description: string; amount: number; method: string; created_at: string }
 
 // Income categories (everything except expenses), in display order.
 const INCOME: [string, string][] = [
@@ -16,11 +17,17 @@ const INCOME: [string, string][] = [
   ['mulligans', 'Mulligans'],
   ['other_addons', 'Other add-ons'],
   ['sponsorships', 'Sponsorships'],
+  ['outside', 'Cash / Venmo collected'],
 ]
 
 export default function RevenuePage() {
   const [cats, setCats] = useState<Record<string, Cat>>({})
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [outside, setOutside] = useState<Outside[]>([])
+  const [oDesc, setODesc] = useState('')
+  const [oAmount, setOAmount] = useState('')
+  const [oMethod, setOMethod] = useState('cash')
+  const [oSaving, setOSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [desc, setDesc] = useState('')
   const [amount, setAmount] = useState('')
@@ -30,17 +37,21 @@ export default function RevenuePage() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [brRes, exRes] = await Promise.all([
+    const [brRes, exRes, oiRes] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('revenue_breakdown'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('list_expenses'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('list_outside_income'),
     ])
     const br = (brRes.data ?? []) as { category: string; item_count: number; dollars: number }[]
     const map: Record<string, Cat> = {}
     br.forEach(r => { map[r.category] = { count: Number(r.item_count) || 0, dollars: Number(r.dollars) || 0 } })
     setCats(map)
     setExpenses((exRes.data ?? []) as Expense[])
+    // Migration may not have run yet — treat a missing table as empty.
+    setOutside((oiRes?.error ? [] : (oiRes?.data ?? [])) as Outside[])
     setLoading(false)
   }, [])
 
@@ -60,6 +71,29 @@ export default function RevenuePage() {
     setSaving(false)
     if (e) { setError(e.message); return }
     setDesc(''); setAmount(''); setCategory('other')
+    load()
+  }
+
+  async function addOutside() {
+    const amt = Number(oAmount)
+    if (!oDesc.trim() || !(amt > 0)) { setError('Enter a description and a positive amount.'); return }
+    setOSaving(true); setError('')
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: e } = await (supabase.rpc as any)('save_outside_income', {
+      p_id: null, p_description: oDesc.trim(), p_amount: amt, p_method: oMethod,
+    })
+    setOSaving(false)
+    if (e) { setError(`Couldn't add: ${e.message}`); return }
+    setODesc(''); setOAmount(''); setOMethod('cash')
+    load()
+  }
+
+  async function removeOutside(id: string) {
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.rpc as any)('delete_outside_income', { p_id: id })
+    setOutside(prev => prev.filter(o => o.id !== id))
     load()
   }
 
@@ -137,6 +171,52 @@ export default function RevenuePage() {
               <button onClick={addExpense} disabled={saving} style={addBtn}>{saving ? 'Adding…' : 'Add expense'}</button>
             </div>
             {error && <div style={{ color: '#C0392B', fontSize: 13, marginTop: 6 }}>{error}</div>}
+          </div>
+
+          <div style={{ marginTop: 28 }}>
+            <h2 className={sheet.h2}>Cash &amp; Venmo collected</h2>
+            <p className={sheet.sub}>
+              Money taken on the day outside Stripe. Counts toward gross and net, same as everything else.
+            </p>
+            <table className={sheet.table}>
+              <tbody>
+                {outside.length === 0 ? (
+                  <tr><td style={{ color: 'var(--fg-muted)', fontSize: 13 }}>Nothing recorded yet.</td></tr>
+                ) : outside.map(o => (
+                  <tr key={o.id}>
+                    <td>
+                      {o.description}
+                      <span style={{ color: 'var(--fg-muted)', fontSize: 12 }}> · {o.method}</span>
+                    </td>
+                    <td className={sheet.right}>${Number(o.amount).toLocaleString()}</td>
+                    <td className={sheet.noPrint} style={{ width: 34, textAlign: 'right' }}>
+                      <button
+                        onClick={() => removeOutside(o.id)}
+                        title="Remove"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', fontSize: 14 }}
+                      >✕</button>
+                    </td>
+                  </tr>
+                ))}
+                <tr className={sheet.totalRow}>
+                  <td>Total cash &amp; Venmo</td>
+                  <td className={sheet.right}>${outside.reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString()}</td>
+                  <td className={sheet.noPrint} />
+                </tr>
+              </tbody>
+            </table>
+
+            <div className={sheet.noPrint} style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input placeholder="What was it? (e.g. Bucket golf, hole 6)" value={oDesc} onChange={e => setODesc(e.target.value)} style={{ ...inputStyle, minWidth: 240, flex: 1 }} />
+              <input type="number" min={0} placeholder="Amount" value={oAmount} onChange={e => setOAmount(e.target.value)} style={{ ...inputStyle, width: 120 }} />
+              <select value={oMethod} onChange={e => setOMethod(e.target.value)} style={inputStyle}>
+                <option value="cash">Cash</option>
+                <option value="venmo">Venmo</option>
+                <option value="check">Check</option>
+                <option value="other">Other</option>
+              </select>
+              <button onClick={addOutside} disabled={oSaving} style={addBtn}>{oSaving ? 'Adding…' : 'Add'}</button>
+            </div>
           </div>
 
           <table className={sheet.table} style={{ marginTop: 16 }}>

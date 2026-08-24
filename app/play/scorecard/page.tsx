@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon'
 import { createClient } from '@/lib/supabase/client'
 import { getTeamId } from '@/lib/getTeamId'
 import { EVENT_ID } from '@/lib/eventId'
+import { SINGLE_CONTEST_PRICE } from '@/lib/contestPricing'
 
 type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
 type SponsorMap  = Record<number, { name: string; amount: number; logoUrl: string | null }>
@@ -300,7 +301,9 @@ export default function ScorecardPage() {
                     team_id: teamId,
                     catalog_item_id: item.id,
                     quantity: 1,
-                    amount: item.price,
+                    // Buying one contest on its own costs more than half the
+                    // bundle — the bundle stays the better deal.
+                    amount: SINGLE_CONTEST_PRICE,
                     paid_status: 'unpaid',
                     channel: 'during_round',
                   })
