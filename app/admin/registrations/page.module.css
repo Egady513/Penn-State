@@ -352,6 +352,21 @@
 }
 
 .pairingInput { width: 72px; }
+
+.pairingSelect {
+  height: 36px;
+  max-width: 210px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg);
+  outline: none;
+  cursor: pointer;
+}
+.pairingSelect:focus { border-color: var(--psu-beaver); box-shadow: var(--ring-focus); }
 .holeInput    { width: 60px; }
 
 .pairingInput:focus,

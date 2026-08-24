@@ -123,6 +123,36 @@ export default function RegistrationsPage() {
   const patch = (id: string, p: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
 
+  // ── Pairing groups ────────────────────────────────────────────────
+  // A foursome is TWO 2-person teams, so each group number holds 2 teams.
+  // Groups are numbered 1..ceil(teams/2) and drop out of the dropdown once
+  // they're full — except for the group the team is already in.
+  const paidRows = rows.filter((r) => r.paid);
+  const groupCount = Math.max(1, Math.ceil(paidRows.length / 2));
+  const groupNumbers = Array.from({ length: groupCount }, (_, i) => String(i + 1));
+
+  const teamsInGroup = (g: string) => rows.filter((r) => r.pairing === g);
+
+  /** Options for one team: unfilled groups, its own group, plus any legacy value. */
+  function groupOptions(row: Row): { value: string; label: string; disabled: boolean }[] {
+    const opts = groupNumbers.map((g) => {
+      const members = teamsInGroup(g);
+      const mine = row.pairing === g;
+      const full = members.length >= 2 && !mine;
+      const names = members.filter((m) => m.id !== row.id).map((m) => m.name);
+      return {
+        value: g,
+        label: `Group ${g}${names.length ? ` · with ${names.join(', ')}` : ''}${full ? ' (full)' : ''}`,
+        disabled: full,
+      };
+    });
+    // Don't silently drop a hand-typed legacy label like "A".
+    if (row.pairing && !groupNumbers.includes(row.pairing)) {
+      opts.unshift({ value: row.pairing, label: `${row.pairing} (old label)`, disabled: false });
+    }
+    return opts;
+  }
+
   // Resolve a pairing request to "Team name (primary contact)" for display.
   function pairRequestLabel(teamId: string): string | null {
     const target = rows.find((r) => r.id === teamId);
@@ -137,7 +167,7 @@ export default function RegistrationsPage() {
     await (supabase.rpc as any)('set_team_assignment', {
       p_team_id: row.id,
       p_start_hole: row.startHole ? Number(row.startHole) : null,
-      p_pairing: row.pairing,
+      p_pairing: row.pairing?.trim() ? row.pairing.trim() : null,
     });
   }
 
@@ -296,14 +326,23 @@ export default function RegistrationsPage() {
 
                 {/* Pairing */}
                 <label className={styles.fieldCol}>
-                  <span className={styles.fieldLabel}>Pairing</span>
-                  <input
-                    className={styles.pairingInput}
+                  <span className={styles.fieldLabel}>Group</span>
+                  <select
+                    className={styles.pairingSelect}
                     value={team.pairing}
-                    placeholder="—"
-                    onChange={(e) => patch(team.id, { pairing: e.target.value })}
-                    onBlur={() => saveAssignment({ ...team, pairing: team.pairing })}
-                  />
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      patch(team.id, { pairing: next });
+                      saveAssignment({ ...team, pairing: next });
+                    }}
+                  >
+                    <option value="">— None —</option>
+                    {groupOptions(team).map((o) => (
+                      <option key={o.value} value={o.value} disabled={o.disabled}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 {/* Start hole */}
