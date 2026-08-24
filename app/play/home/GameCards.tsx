@@ -54,7 +54,14 @@ export function GameCards({ teamId }: { teamId: string }) {
   if (!purchases) return null
 
   const contest = purchases.filter(p => p.catalog_item?.tag === 'ctp' || p.catalog_item?.tag === 'ld')
-  const advantages = purchases.filter(p => p.catalog_item && !p.catalog_item.tag)
+  // "Advantages" = things you actually play during the round. Everything
+  // untagged used to land here, which wrongly listed raffle tickets as an
+  // advantage card you could "mark used".
+  const advantages = purchases.filter(p =>
+    p.catalog_item &&
+    !p.catalog_item.tag &&
+    !p.catalog_item.name.toLowerCase().includes('raffle')
+  )
 
   const nameOf = (id: string | null) => players.find(p => p.id === id)?.name ?? 'Your team'
 

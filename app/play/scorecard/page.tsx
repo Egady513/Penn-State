@@ -23,6 +23,7 @@ export default function ScorecardPage() {
   const [activeHole, setActiveHole] = useState(1)
   const [draftScore, setDraftScore] = useState(4)
   const [loaded, setLoaded] = useState(false)
+  const [joiningContest, setJoiningContest] = useState(false)
   const miniRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
@@ -46,14 +47,14 @@ export default function ScorecardPage() {
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
         supabase.from('sponsor').select('name, amount, hole_number, logo_url').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
-        supabase.from('purchase').select('catalog_item:catalog_item_id(name)').eq('team_id', teamId),
+        supabase.from('purchase').select('catalog_item:catalog_item_id(name, tag)').eq('team_id', teamId),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
       const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null; logo_url: string | null }[] | null
-      const purchRows   = purchRes.data   as { catalog_item: { name: string } | null }[] | null
+      const purchRows   = purchRes.data   as { catalog_item: { name: string; tag: string | null } | null }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
         n: h.number,
@@ -76,13 +77,16 @@ export default function ScorecardPage() {
         if (s.hole_number) sponsMap[s.hole_number] = { name: s.name, amount: s.amount, logoUrl: s.logo_url }
       })
 
-      // Build contest entry flags from purchases
-      const purchNames = (purchRows ?? []).map(p =>
-        (p.catalog_item as { name: string } | null)?.name?.toLowerCase() ?? ''
+      // Build contest entry flags from purchase TAGS. Name matching was
+      // wrong: the CTP item is literally called "Closest To The Pin & Long
+      // Drive Entry", so it contains "long drive" and buying CTP alone also
+      // marked long-drive as entered, hiding that hole's Join button.
+      const purchTags = (purchRows ?? []).map(p =>
+        (p.catalog_item as { tag: string | null } | null)?.tag ?? null
       )
       const entries: ContestEntries = {
-        ctp: purchNames.some(n => n.includes('closest')),
-        ld:  purchNames.some(n => n.includes('long-drive') || n.includes('long drive')),
+        ctp: purchTags.includes('ctp'),
+        ld:  purchTags.includes('ld'),
       }
 
       setHoles(mappedHoles)
@@ -158,6 +162,15 @@ export default function ScorecardPage() {
         { team_id: teamId, hole_number: activeHole, count: clamped },
         { onConflict: 'team_id,hole_number' }
       )
+    } else {
+      // Backing a mulligan down to 0 has to DELETE the row. Previously this
+      // only skipped the write, so the old count stayed in the database and
+      // the player kept getting charged $2 for a mulligan they undid.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('mulligan') as any)
+        .delete()
+        .eq('team_id', teamId)
+        .eq('hole_number', activeHole)
     }
   }
 
@@ -263,26 +276,42 @@ export default function ScorecardPage() {
               name={contestName!}
               entered={holeContest === 'ctp' ? contestEntries.ctp : contestEntries.ld}
               onJoin={async () => {
-                // Find catalog item for this contest type and create a purchase
-                const itemName = holeContest === 'ctp' ? 'Closest-to-pin entry' : 'Long-drive entry'
-                const { data: item } = await (supabase.from('catalog_item') as any)
-                  .select('id, price')
-                  .eq('event_id', EVENT_ID)
-                  .ilike('name', `%${holeContest === 'ctp' ? 'closest' : 'long-drive'}%`)
-                  .maybeSingle()
-                if (!item) return
-                await (supabase.from('purchase') as any).insert({
-                  team_id: teamId,
-                  catalog_item_id: item.id,
-                  quantity: 1,
-                  amount: item.price,
-                  paid_status: 'unpaid',
-                  channel: 'during_round',
-                })
-                setContestEntries(e => ({
-                  ...e,
-                  [holeContest]: true,
-                }))
+                // Guard against a double-tap creating two charges — state
+                // updates are async, so `entered` alone isn't enough.
+                if (joiningContest || contestEntries[holeContest]) return
+                setJoiningContest(true)
+                try {
+                  // Look the item up by TAG, not by name. Name matching broke
+                  // silently the moment an item was renamed, and it also had
+                  // no active filter, so an inactive duplicate would make
+                  // maybeSingle() error and the button do nothing.
+                  const { data: item, error: lookupErr } = await (supabase.from('catalog_item') as any)
+                    .select('id, price')
+                    .eq('event_id', EVENT_ID)
+                    .eq('active', true)
+                    .eq('tag', holeContest)
+                    .limit(1)
+                    .maybeSingle()
+                  if (lookupErr || !item) {
+                    alert("Couldn't find that contest entry in the catalog. Please see Eddie at the tent.")
+                    return
+                  }
+                  const { error: insErr } = await (supabase.from('purchase') as any).insert({
+                    team_id: teamId,
+                    catalog_item_id: item.id,
+                    quantity: 1,
+                    amount: item.price,
+                    paid_status: 'unpaid',
+                    channel: 'during_round',
+                  })
+                  if (insErr) {
+                    alert("Couldn't add the entry. Please see Eddie at the tent.")
+                    return
+                  }
+                  setContestEntries(e => ({ ...e, [holeContest]: true }))
+                } finally {
+                  setJoiningContest(false)
+                }
               }}
             />
           )}

@@ -12,8 +12,10 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
 
   // Fetch teams first so we can use their IDs for the score query
+  // Paid teams only — an abandoned/unpaid registration shouldn't show up on
+  // the leaderboard sitting at "thru 0".
   const { data: teamsRaw } = await supabase
-    .from('team').select('id, name').eq('event_id', EVENT_ID)
+    .from('team').select('id, name').eq('event_id', EVENT_ID).eq('payment_status', 'paid')
   const teams = teamsRaw as { id: string; name: string }[] | null
 
   const teamIds = (teams ?? []).map(t => t.id)
