@@ -207,7 +207,7 @@ export default function RevenuePage() {
             </table>
 
             <div className={sheet.noPrint} style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input placeholder="What was it? (e.g. Bucket golf, hole 6)" value={oDesc} onChange={e => setODesc(e.target.value)} style={{ ...inputStyle, minWidth: 240, flex: 1 }} />
+              <input placeholder="What was it? (e.g. Bucket golf, hole 1)" value={oDesc} onChange={e => setODesc(e.target.value)} style={{ ...inputStyle, minWidth: 240, flex: 1 }} />
               <input type="number" min={0} placeholder="Amount" value={oAmount} onChange={e => setOAmount(e.target.value)} style={{ ...inputStyle, width: 120 }} />
               <select value={oMethod} onChange={e => setOMethod(e.target.value)} style={inputStyle}>
                 <option value="cash">Cash</option>
