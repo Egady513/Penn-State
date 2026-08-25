@@ -169,3 +169,28 @@
 @media (max-width: 600px) {
   .page { padding: 16px; }
 }
+
+/* Pin a catalog item to a hole (shows on that hole in the play app) */
+.holeField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.holeFieldLabel { font-weight: 600; white-space: nowrap; }
+
+.holeFieldInput {
+  width: 58px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  text-align: center;
+  color: var(--fg);
+  outline: none;
+}
+.holeFieldInput:focus { border-color: var(--psu-beaver); }

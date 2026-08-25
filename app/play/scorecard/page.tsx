@@ -14,6 +14,8 @@ import { SINGLE_CONTEST_PRICE } from '@/lib/contestPricing'
 type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
 type SponsorMap  = Record<number, { name: string; amount: number; logoUrl: string | null }>
 type ContestEntries = { ctp: boolean; ld: boolean }
+/** A catalog item pinned to a hole, e.g. Bucket Golf on Hole 1. */
+type HoleItem = { id: string; name: string; price: number; unit: string | null; description: string | null; hole: number }
 
 export default function ScorecardPage() {
   const [holes, setHoles] = useState<HoleInfo[]>([])
@@ -25,6 +27,9 @@ export default function ScorecardPage() {
   const [draftScore, setDraftScore] = useState(4)
   const [loaded, setLoaded] = useState(false)
   const [joiningContest, setJoiningContest] = useState(false)
+  const [holeItems, setHoleItems] = useState<HoleItem[]>([])
+  const [itemQty, setItemQty] = useState<Record<string, number>>({})
+  const [busyItem, setBusyItem] = useState<string | null>(null)
   const miniRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
@@ -43,19 +48,21 @@ export default function ScorecardPage() {
   // Load all initial data on mount
   useEffect(() => {
     async function load() {
-      const [holeRes, scoreRes, mullRes, sponsorRes, purchRes] = await Promise.all([
+      const [holeRes, scoreRes, mullRes, sponsorRes, purchRes, holeItemRes] = await Promise.all([
         supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
         supabase.from('sponsor').select('name, amount, hole_number, logo_url').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
-        supabase.from('purchase').select('catalog_item:catalog_item_id(name, tag)').eq('team_id', teamId),
+        supabase.from('purchase').select('catalog_item_id, quantity, paid_status, catalog_item:catalog_item_id(name, tag)').eq('team_id', teamId),
+        supabase.from('catalog_item').select('id, name, price, unit, description, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
       const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null; logo_url: string | null }[] | null
-      const purchRows   = purchRes.data   as { catalog_item: { name: string; tag: string | null } | null }[] | null
+      const purchRows   = purchRes.data   as { catalog_item_id: string; quantity: number; paid_status: string; catalog_item: { name: string; tag: string | null } | null }[] | null
+      const itemRows    = holeItemRes.data as { id: string; name: string; price: number; unit: string | null; description: string | null; hole_number: number }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
         n: h.number,
@@ -89,6 +96,20 @@ export default function ScorecardPage() {
         ctp: purchTags.includes('ctp'),
         ld:  purchTags.includes('ld'),
       }
+
+      setHoleItems((itemRows ?? []).map(r => ({
+        id: r.id, name: r.name, price: r.price, unit: r.unit, description: r.description, hole: r.hole_number,
+      })))
+
+      // Only UNPAID lines are still on the tab. Once a team settles at
+      // the tent the counter resets, so a second round of shots opens a
+      // fresh line instead of reviving a paid one.
+      const qtyMap: Record<string, number> = {}
+      purchRows?.forEach(pr => {
+        if (pr.paid_status !== 'unpaid') return
+        qtyMap[pr.catalog_item_id] = (qtyMap[pr.catalog_item_id] ?? 0) + (pr.quantity ?? 0)
+      })
+      setItemQty(qtyMap)
 
       setHoles(mappedHoles)
       setScores(scoreMap)
@@ -125,6 +146,38 @@ export default function ScorecardPage() {
     return acc + (score - par)
   }, 0)
   const toParDisplay = through === 0 ? '—' : totalToPar === 0 ? 'E' : (totalToPar > 0 ? `+${totalToPar}` : `${totalToPar}`)
+
+  /**
+   * Add or remove one unit of a hole-pinned item (Bucket Golf).
+   * Goes through an RPC that increments ONE open line rather than
+   * inserting a row per tap, so check-in shows "Bucket Golf x3",
+   * not three separate $5 rows.
+   */
+  async function changeHoleItem(item: HoleItem, delta: 1 | -1) {
+    if (busyItem) return
+    const current = itemQty[item.id] ?? 0
+    if (delta === -1 && current === 0) return
+    setBusyItem(item.id)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)(
+        delta === 1 ? 'add_hole_purchase' : 'remove_hole_purchase',
+        delta === 1
+          ? { p_team_id: teamId, p_catalog_item_id: item.id, p_qty: 1 }
+          : { p_team_id: teamId, p_catalog_item_id: item.id },
+      )
+      if (error) {
+        alert("Couldn't update that. Please see the volunteer at the hole.")
+        return
+      }
+      setItemQty(q => ({
+        ...q,
+        [item.id]: typeof data === 'number' ? data : Math.max(0, current + delta),
+      }))
+    } finally {
+      setBusyItem(null)
+    }
+  }
 
   const completeHole = async () => {
     const newScores = { ...scores, [activeHole]: draftScore }
@@ -318,6 +371,55 @@ export default function ScorecardPage() {
               }}
             />
           )}
+
+          {holeItems.filter(it => it.hole === activeHole).map(it => {
+            const qty = itemQty[it.id] ?? 0
+            const busy = busyItem === it.id
+            return (
+              <div key={it.id} className={styles.holeItemCard}>
+                <div className={styles.holeItemHead}>
+                  <div>
+                    <div className={styles.holeItemName}>{it.name}</div>
+                    <div className={styles.holeItemPrice}>
+                      ${it.price} per {it.unit || 'shot'}
+                    </div>
+                  </div>
+                  <div className={styles.holeItemCount}>
+                    <span className={`${styles.holeItemCountNum} num`}>{qty}</span>
+                    <span className={styles.holeItemCountLabel}>bought</span>
+                  </div>
+                </div>
+
+                {it.description && <p className={styles.holeItemDesc}>{it.description}</p>}
+
+                <div className={styles.holeItemActions}>
+                  <button
+                    type="button"
+                    className={styles.holeItemMinus}
+                    disabled={busy || qty === 0}
+                    onClick={() => changeHoleItem(it, -1)}
+                    aria-label={`Remove one ${it.unit || 'shot'}`}
+                  >
+                    &minus;
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.holeItemAdd}
+                    disabled={busy}
+                    onClick={() => changeHoleItem(it, 1)}
+                  >
+                    {busy ? '…' : `Add a ${it.unit || 'shot'} · $${it.price}`}
+                  </button>
+                </div>
+
+                <div className={styles.holeItemTab}>
+                  {qty > 0
+                    ? `${qty} × $${it.price} = $${qty * it.price} on your tab. Show this to the volunteer, settle at the tent.`
+                    : 'Buy as many as you want. It goes on your tab, settle at the tent.'}
+                </div>
+              </div>
+            )
+          })}
 
           <div className={styles.holeHeader}>
             <div>

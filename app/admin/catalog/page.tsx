@@ -18,6 +18,7 @@ type Item = {
   per_person: boolean;
   allow_multiple: boolean;
   tag: string | null;
+  hole_number: number | null;
 };
 
 export default function CatalogPage() {
@@ -32,7 +33,7 @@ export default function CatalogPage() {
     const supabase = createClient();
     supabase
       .from('catalog_item')
-      .select('id, name, price, description, active, per_person, allow_multiple, tag, sort_order')
+      .select('id, name, price, description, active, per_person, allow_multiple, tag, sort_order, hole_number')
       .eq('event_id', EVENT_ID)
       .order('per_person')
       .order('sort_order')
@@ -54,6 +55,7 @@ export default function CatalogPage() {
             active: r.active,
             per_person: r.per_person,
             allow_multiple: r.allow_multiple ?? false,
+            hole_number: r.hole_number ?? null,
             tag: r.tag,
           }))
         );
@@ -67,7 +69,7 @@ export default function CatalogPage() {
   const add = () =>
     setItems((prev) => [
       ...prev,
-      { id: null, name: '', price: 0, description: '', active: true, per_person: false, allow_multiple: false, tag: null },
+      { id: null, name: '', price: 0, description: '', active: true, per_person: false, allow_multiple: false, tag: null, hole_number: null },
     ]);
 
   async function save() {
@@ -86,6 +88,7 @@ export default function CatalogPage() {
           p_active: it.active,
           p_per_person: it.per_person,
           p_allow_multiple: it.allow_multiple,
+          p_hole_number: it.hole_number,
         });
         if (rpcError) throw new Error(rpcError.message);
       }
@@ -167,6 +170,26 @@ export default function CatalogPage() {
                         min={0}
                         value={it.price}
                         onChange={(e) => update(i, { price: Number(e.target.value) })}
+                      />
+                    </label>
+
+                    <label
+                      className={styles.holeField}
+                      title="Pin this item to a hole. It shows as a buy button on that hole's scorecard in the play app."
+                    >
+                      <span className={styles.holeFieldLabel}>On hole</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={18}
+                        className={styles.holeFieldInput}
+                        value={it.hole_number ?? ''}
+                        placeholder="—"
+                        onChange={(e) =>
+                          update(i, {
+                            hole_number: e.target.value === '' ? null : Math.min(18, Math.max(1, Number(e.target.value))),
+                          })
+                        }
                       />
                     </label>
 
