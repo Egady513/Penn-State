@@ -373,49 +373,47 @@ export default function ScorecardPage() {
           )}
 
           {holeItems.filter(it => it.hole === activeHole).map(it => {
-            const qty = itemQty[it.id] ?? 0
+            const qty  = itemQty[it.id] ?? 0
             const busy = busyItem === it.id
+            const unit = it.unit || 'shot'
             return (
-              <div key={it.id} className={styles.holeItemCard}>
-                <div className={styles.holeItemHead}>
-                  <div>
-                    <div className={styles.holeItemName}>{it.name}</div>
-                    <div className={styles.holeItemPrice}>
-                      ${it.price} per {it.unit || 'shot'}
-                    </div>
+              <div
+                key={it.id}
+                className={`${styles.contestBanner} ${qty > 0 ? styles.contestBannerPaid : styles.contestBannerUnpaid}`}
+              >
+                <div className={`${styles.contestIcon} ${qty > 0 ? styles.contestIconPaid : styles.contestIconUnpaid}`}>
+                  <Icon name={qty > 0 ? 'check' : 'target'} size={16} color="#fff" />
+                </div>
+                <div className={styles.contestInfo}>
+                  <div className={`${styles.contestLabel} ${qty > 0 ? styles.contestLabelPaid : styles.contestLabelUnpaid}`}>
+                    {it.name}
                   </div>
-                  <div className={styles.holeItemCount}>
-                    <span className={`${styles.holeItemCountNum} num`}>{qty}</span>
-                    <span className={styles.holeItemCountLabel}>bought</span>
+                  <div className={styles.contestDesc}>
+                    {qty > 0
+                      ? `${qty} ${unit}${qty === 1 ? '' : 's'} · $${qty * it.price} on your tab.`
+                      : `$${it.price} a ${unit}, no cap. Goes on your tab.`}
                   </div>
                 </div>
-
-                {it.description && <p className={styles.holeItemDesc}>{it.description}</p>}
-
-                <div className={styles.holeItemActions}>
+                <div className={styles.holeItemBtns}>
+                  {qty > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => changeHoleItem(it, -1)}
+                      disabled={busy}
+                      className={styles.holeItemMinus}
+                      aria-label={`Remove one ${unit}`}
+                    >
+                      &minus;
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className={styles.holeItemMinus}
-                    disabled={busy || qty === 0}
-                    onClick={() => changeHoleItem(it, -1)}
-                    aria-label={`Remove one ${it.unit || 'shot'}`}
-                  >
-                    &minus;
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.holeItemAdd}
-                    disabled={busy}
                     onClick={() => changeHoleItem(it, 1)}
+                    disabled={busy}
+                    className={styles.contestJoinBtn}
                   >
-                    {busy ? '…' : `Add a ${it.unit || 'shot'} · $${it.price}`}
+                    {busy ? '…' : qty > 0 ? `+ $${it.price}` : `Add $${it.price} to tab`}
                   </button>
-                </div>
-
-                <div className={styles.holeItemTab}>
-                  {qty > 0
-                    ? `${qty} × $${it.price} = $${qty * it.price} on your tab. Show this to the volunteer, settle at the tent.`
-                    : 'Buy as many as you want. It goes on your tab, settle at the tent.'}
                 </div>
               </div>
             )
@@ -511,8 +509,8 @@ function ContestBanner({
         </div>
         <div className={styles.contestDesc}>
           {entered
-            ? `You're in the ${name.toLowerCase()} contest — good luck.`
-            : `Enter now for $${SINGLE_CONTEST_PRICE}. Added to your tab — settle at the tent.`}
+            ? `You're in the ${name.toLowerCase()} contest. Good luck.`
+            : `Enter now for $${SINGLE_CONTEST_PRICE}. Goes on your tab.`}
         </div>
       </div>
       {!entered && (
