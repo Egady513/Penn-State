@@ -100,7 +100,7 @@ INSERT INTO catalog_item
    per_person, sort_order, tag, allow_multiple, hole_number)
 SELECT
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-  'Bucket Golf Challenge', 5, 'shot',
+  'Bucket Golf Challenge', 5, 'each',
   '{during_round,check_in}'::purchase_channel[], true,
   'Hole 1. $5 a shot, no cap. Closest bucket takes 1 stroke off this hole, the middle takes 2, the farthest takes 3.',
   false, 10, 'bucket_golf', true, 1

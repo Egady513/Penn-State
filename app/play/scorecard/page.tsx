@@ -15,7 +15,7 @@ type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
 type SponsorMap  = Record<number, { name: string; amount: number; logoUrl: string | null }>
 type ContestEntries = { ctp: boolean; ld: boolean }
 /** A catalog item pinned to a hole, e.g. Bucket Golf on Hole 1. */
-type HoleItem = { id: string; name: string; price: number; unit: string | null; description: string | null; hole: number }
+type HoleItem = { id: string; name: string; price: number; description: string | null; hole: number }
 
 export default function ScorecardPage() {
   const [holes, setHoles] = useState<HoleInfo[]>([])
@@ -54,7 +54,7 @@ export default function ScorecardPage() {
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
         supabase.from('sponsor').select('name, amount, hole_number, logo_url').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
         supabase.from('purchase').select('catalog_item_id, quantity, paid_status, catalog_item:catalog_item_id(name, tag)').eq('team_id', teamId),
-        supabase.from('catalog_item').select('id, name, price, unit, description, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
+        supabase.from('catalog_item').select('id, name, price, description, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
       ])
 
       const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
@@ -62,7 +62,7 @@ export default function ScorecardPage() {
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
       const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null; logo_url: string | null }[] | null
       const purchRows   = purchRes.data   as { catalog_item_id: string; quantity: number; paid_status: string; catalog_item: { name: string; tag: string | null } | null }[] | null
-      const itemRows    = holeItemRes.data as { id: string; name: string; price: number; unit: string | null; description: string | null; hole_number: number }[] | null
+      const itemRows    = holeItemRes.data as { id: string; name: string; price: number; description: string | null; hole_number: number }[] | null
 
       const mappedHoles: HoleInfo[] = (holeRows ?? []).map(h => ({
         n: h.number,
@@ -98,7 +98,7 @@ export default function ScorecardPage() {
       }
 
       setHoleItems((itemRows ?? []).map(r => ({
-        id: r.id, name: r.name, price: r.price, unit: r.unit, description: r.description, hole: r.hole_number,
+        id: r.id, name: r.name, price: r.price, description: r.description, hole: r.hole_number,
       })))
 
       // Only UNPAID lines are still on the tab. Once a team settles at
@@ -375,7 +375,6 @@ export default function ScorecardPage() {
           {holeItems.filter(it => it.hole === activeHole).map(it => {
             const qty  = itemQty[it.id] ?? 0
             const busy = busyItem === it.id
-            const unit = it.unit || 'shot'
             return (
               <div
                 key={it.id}
@@ -390,8 +389,8 @@ export default function ScorecardPage() {
                   </div>
                   <div className={styles.contestDesc}>
                     {qty > 0
-                      ? `${qty} ${unit}${qty === 1 ? '' : 's'} · $${qty * it.price} on your tab.`
-                      : `$${it.price} a ${unit}, no cap. Goes on your tab.`}
+                      ? `${qty} × $${it.price} = $${qty * it.price} on your tab.`
+                      : `$${it.price} each, buy as many as you want. Goes on your tab.`}
                   </div>
                 </div>
                 <div className={styles.holeItemBtns}>
@@ -401,7 +400,7 @@ export default function ScorecardPage() {
                       onClick={() => changeHoleItem(it, -1)}
                       disabled={busy}
                       className={styles.holeItemMinus}
-                      aria-label={`Remove one ${unit}`}
+                      aria-label={`Remove one ${it.name}`}
                     >
                       &minus;
                     </button>
