@@ -6,7 +6,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { getBroadcastRecipientCount, sendBroadcastEmail, sendTestEmail, sendGroupEmails, type BroadcastResult, type GroupSendResult } from '@/app/actions/broadcastEmail';
 
-import { PAIRING_TOKEN as GROUP_TOKEN } from '@/lib/broadcastToken';
+import { PAIRING_TOKEN as GROUP_TOKEN, PIN_TOKEN } from '@/lib/broadcastToken';
 import styles from './page.module.css';
 
 // ── Template 1: send a couple weeks out ─────────────────────────────────
@@ -95,11 +95,23 @@ Every registered golfer also gets a free drink ticket to redeem on the course.
 
 {{group}}
 
-**Your team PIN:** Check your confirmation email, or reply if you can't find it. You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy any additional add-ons or raffle tickets right from your phone.
+{{pin}}
+
+You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy add-ons or raffle tickets right from your phone. Anything you buy on the course goes on your team tab, and you can settle up by card in the app or with me at the end.
 
 Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 13, Zeek's Power Clean Wipes on Hole 5, and 513Sips on Hole 10.
 
-**Heads up:** Bucket Golf has moved to **Hole 1**, so you can play it while you're waiting to tee off. (An earlier email said Hole 6.)
+**Heads up:** Bucket Golf has moved to **Hole 1**, so you can play it while you're waiting to tee off. (An earlier email said Hole 6.) It's $5 a shot with no cap, and you can buy shots right from the app.
+
+## Please stick around after your round
+Lunch is a taco bar, and the awards ceremony follows. Both are included, so plan to stay.
+
+While you're waiting on the rest of the field to finish, there's plenty to do:
+- **Bucket Golf Challenge** · come back and test your luck again to shave strokes off your score.
+- **"Sink It, Keep It"** · join Courtesy Automotive on the putting green. $20 for 2 putts. Sink one into a bottle of liquor and it's yours to take home.
+- **Raffle** · over $1,000 in prizes. Tickets are on sale in the app and at the tent right up until the drawing.
+
+Any trouble on Sunday, call or text me at 513-708-0874.
 
 See you Sunday. Thank you for being part of Drive Out Hunger and for supporting Last Mile Food Rescue.
 
@@ -388,13 +400,14 @@ export default function BroadcastPage() {
           </div>
           <textarea className={styles.bodyInput} value={body} onChange={e => setBody(e.target.value)} rows={28} />
           <div className={styles.groupTokenRow}>
-            {body.includes(GROUP_TOKEN) ? (
+            {body.includes(GROUP_TOKEN) || body.includes(PIN_TOKEN) ? (
               <>
                 <span className={styles.tokenOn}>Personalized</span>
                 <span className={styles.tokenNote}>
-                  Each golfer sees their own group where <code>{GROUP_TOKEN}</code> sits: group number,
-                  starting hole, and the other team they&apos;re playing with. Anyone without a group yet
-                  gets a short &ldquo;posted at check-in&rdquo; line instead.
+                  <code>{GROUP_TOKEN}</code> becomes each golfer&apos;s group number, starting hole and
+                  the other team they&apos;re playing with. Anyone without a group yet gets a short
+                  &ldquo;posted at check-in&rdquo; line instead. <code>{PIN_TOKEN}</code> becomes their
+                  own team PIN, so nobody has to dig up an old email.
                 </span>
               </>
             ) : (
@@ -402,9 +415,12 @@ export default function BroadcastPage() {
                 <button type="button" className={styles.resetBtn} onClick={() => setBody(b => `${b.trimEnd()}\n\n${GROUP_TOKEN}\n`)}>
                   Add group block
                 </button>
+                <button type="button" className={styles.resetBtn} onClick={() => setBody(b => `${b.trimEnd()}\n\n${PIN_TOKEN}\n`)}>
+                  Add team PIN
+                </button>
                 <span className={styles.tokenNote}>
-                  Drops in <code>{GROUP_TOKEN}</code>, which becomes each golfer&apos;s own group and
-                  starting hole. Move the line wherever you want it to appear.
+                  <code>{GROUP_TOKEN}</code> becomes each golfer&apos;s own group and starting hole.
+                  <code>{PIN_TOKEN}</code> becomes their team PIN. Move either line wherever you want it.
                 </span>
               </>
             )}

@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email'
 import { EVENT_ID } from '@/lib/eventId'
-import { PAIRING_TOKEN } from '@/lib/broadcastToken'
+import { PAIRING_TOKEN, PIN_TOKEN } from '@/lib/broadcastToken'
 
 const NAVY = '#001E44'
 const PUGH = '#96BEE6'
@@ -14,6 +14,7 @@ const FG_MUTED = '#5B6470'
 interface TeamRow {
   id: string
   name: string
+  pin: string | null
   pairing: string | null
   start_hole: number | null
   players: string[]
@@ -42,12 +43,12 @@ async function loadRecipients(): Promise<Recipients | { error: string }> {
   const supabase = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: teamData, error: teamErr } = await (supabase.from('team') as any)
-    .select('id, name, pairing, start_hole')
+    .select('id, name, pin, pairing, start_hole')
     .eq('event_id', EVENT_ID)
     .eq('payment_status', 'paid')
   if (teamErr) return { error: teamErr.message }
 
-  const teamRows = (teamData ?? []) as { id: string; name: string; pairing: string | null; start_hole: number | null }[]
+  const teamRows = (teamData ?? []) as { id: string; name: string; pin: string | null; pairing: string | null; start_hole: number | null }[]
   if (teamRows.length === 0) {
     return { emails: [], teamsByEmail: new Map(), teams: [], teamCount: 0, golferCount: 0 }
   }
@@ -114,10 +115,28 @@ function pairingBlock(myTeams: TeamRow[], allTeams: TeamRow[]): string {
   return lines.join('\n')
 }
 
+/** Swap for the recipient's own team PIN. */
+function pinBlock(myTeams: TeamRow[]): string {
+  if (myTeams.length === 0) return ''
+  // One address can cover two teams when a foursome registered as two
+  // twosomes, so name the team when there is more than one PIN to show.
+  if (myTeams.length === 1) return `**Your team PIN: ${myTeams[0].pin ?? 'see your confirmation email'}**`
+  return myTeams
+    .map(t => `**${t.name} PIN: ${t.pin ?? 'see your confirmation email'}**`)
+    .join('\n')
+}
+
 /** Swap the token for this recipient's group, or drop it if they have none. */
 function personalize(body: string, myTeams: TeamRow[], allTeams: TeamRow[]): string {
-  if (!body.includes(PAIRING_TOKEN)) return body
-  return body.split(PAIRING_TOKEN).join(pairingBlock(myTeams, allTeams))
+  let out = body
+  if (out.includes(PAIRING_TOKEN)) out = out.split(PAIRING_TOKEN).join(pairingBlock(myTeams, allTeams))
+  if (out.includes(PIN_TOKEN)) out = out.split(PIN_TOKEN).join(pinBlock(myTeams))
+  return out
+}
+
+/** True when this body needs a per-recipient render. */
+function isPersonalized(body: string): boolean {
+  return body.includes(PAIRING_TOKEN) || body.includes(PIN_TOKEN)
 }
 
 export async function getBroadcastRecipientCount(): Promise<
@@ -290,7 +309,7 @@ export async function sendTestEmail(subject: string, body: string): Promise<Broa
   // already has a group, otherwise the block would only show the fallback.
   let rendered = body
   let note: string | undefined
-  if (body.includes(PAIRING_TOKEN)) {
+  if (isPersonalized(body)) {
     const result = await loadRecipients()
     if ('error' in result) return { ok: false, sent: 0, failed: [], error: result.error }
     const sample = result.teams.find(t => t.pairing?.trim()) ?? result.teams[0]
@@ -331,7 +350,7 @@ export async function sendBroadcastEmail(subject: string, body: string): Promise
 
   // Without the token every recipient gets the identical email, so render
   // once. With it, each address needs its own copy.
-  const personalized = body.includes(PAIRING_TOKEN)
+  const personalized = isPersonalized(body)
   const sharedHtml = personalized ? '' : wrapHtml(subject, bodyToHtml(body))
   const sharedText = personalized ? '' : bodyToText(body)
 
