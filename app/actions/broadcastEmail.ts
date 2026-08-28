@@ -134,6 +134,26 @@ function personalize(body: string, myTeams: TeamRow[], allTeams: TeamRow[]): str
   return out
 }
 
+/**
+ * Remove merge tokens that cannot resolve.
+ *
+ * Group sends (sponsors, vendors) have no team behind the address, so
+ * {{group}} and {{pin}} have nothing to fill them. Without this the raw
+ * "{{group}}" text mails out to a sponsor. Drops a token that sits on its
+ * own line along with the line, then collapses the gap it leaves.
+ */
+function stripTokens(body: string): string {
+  const lines = body.split('\n').filter(l => {
+    const t = l.trim()
+    return t !== PAIRING_TOKEN && t !== PIN_TOKEN
+  })
+  return lines.join('\n')
+    .split(PAIRING_TOKEN).join('')
+    .split(PIN_TOKEN).join('')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 /** True when this body needs a per-recipient render. */
 function isPersonalized(body: string): boolean {
   return body.includes(PAIRING_TOKEN) || body.includes(PIN_TOKEN)
@@ -276,8 +296,10 @@ export async function sendGroupEmails(
     return { ok: false, sentGroups: [], failed: [], error: 'No valid groups to send to.' }
   }
 
-  const html = wrapHtml(subject, bodyToHtml(body))
-  const text = bodyToText(body)
+  // Sponsors have no team, so any merge token here would mail out raw.
+  const groupBody = stripTokens(body)
+  const html = wrapHtml(subject, bodyToHtml(groupBody))
+  const text = bodyToText(groupBody)
 
   const sentGroups: { group: string; count: number }[] = []
   const failed: { group: string; error: string }[] = []

@@ -11,7 +11,7 @@ import { getTeamId } from '@/lib/getTeamId'
 import { EVENT_ID } from '@/lib/eventId'
 import { SINGLE_CONTEST_PRICE } from '@/lib/contestPricing'
 
-type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null }
+type HoleInfo    = { n: number; par: number; contest: 'ctp' | 'ld' | null; label: string | null }
 type SponsorMap  = Record<number, { name: string; amount: number; logoUrl: string | null }>
 type ContestEntries = { ctp: boolean; ld: boolean }
 /** A catalog item pinned to a hole, e.g. Bucket Golf on Hole 1. */
@@ -49,7 +49,7 @@ export default function ScorecardPage() {
   useEffect(() => {
     async function load() {
       const [holeRes, scoreRes, mullRes, sponsorRes, purchRes, holeItemRes] = await Promise.all([
-        supabase.from('hole').select('number, par, contest_type').eq('event_id', EVENT_ID).order('number'),
+        supabase.from('hole').select('number, par, contest_type, contest_label').eq('event_id', EVENT_ID).order('number'),
         supabase.from('score').select('hole_number, strokes').eq('team_id', teamId),
         supabase.from('mulligan').select('hole_number, count').eq('team_id', teamId),
         supabase.from('sponsor').select('name, amount, hole_number, logo_url').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
@@ -57,7 +57,7 @@ export default function ScorecardPage() {
         supabase.from('catalog_item').select('id, name, price, description, hole_number').eq('event_id', EVENT_ID).eq('active', true).not('hole_number', 'is', null),
       ])
 
-      const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string }[] | null
+      const holeRows    = holeRes.data    as { number: number; par: number; contest_type: string; contest_label: string | null }[] | null
       const scoreRows   = scoreRes.data   as { hole_number: number; strokes: number }[] | null
       const mullRows    = mullRes.data    as { hole_number: number; count: number }[] | null
       const sponsorRows = sponsorRes.data as { name: string; amount: number; hole_number: number | null; logo_url: string | null }[] | null
@@ -70,6 +70,7 @@ export default function ScorecardPage() {
         contest: h.contest_type === 'closest_to_pin' ? 'ctp'
                : h.contest_type === 'long_drive' ? 'ld'
                : null,
+        label: h.contest_label?.trim() || null,
       }))
 
       const scoreMap: Record<number, number> = {}
@@ -228,7 +229,7 @@ export default function ScorecardPage() {
     }
   }
 
-  const holeObj = holes.find(h => h.n === activeHole) ?? { n: activeHole, par: 4, contest: null }
+  const holeObj: HoleInfo = holes.find(h => h.n === activeHole) ?? { n: activeHole, par: 4, contest: null, label: null }
   const sponsor = sponsorByHole[activeHole]
   const holeContest = holeObj.contest
   const contestName = holeContest === 'ctp' ? 'Closest to pin' : holeContest === 'ld' ? 'Long drive' : null
@@ -370,6 +371,22 @@ export default function ScorecardPage() {
                 }
               }}
             />
+          )}
+
+          {holeObj.label && !holeContest && !holeItems.some(it => it.hole === activeHole) && (
+            <div className={`${styles.contestBanner} ${styles.contestBannerUnpaid}`}>
+              <div className={`${styles.contestIcon} ${styles.contestIconUnpaid}`}>
+                <Icon name="target" size={16} color="#fff" />
+              </div>
+              <div className={styles.contestInfo}>
+                <div className={`${styles.contestLabel} ${styles.contestLabelUnpaid}`}>
+                  {holeObj.label}
+                </div>
+                <div className={styles.contestDesc}>
+                  The crew at this hole will get you set up.
+                </div>
+              </div>
+            </div>
           )}
 
           {holeItems.filter(it => it.hole === activeHole).map(it => {
