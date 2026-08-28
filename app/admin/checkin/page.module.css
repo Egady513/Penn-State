@@ -249,3 +249,90 @@
 .paidToggle:hover { background: var(--ink-050); }
 .paidToggleOn { background: var(--success-soft, #D1FAE5); border-color: var(--success); color: var(--success); }
 .paidToggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Settle the whole tab at once (cash / Venmo) ─────────────── */
+.owesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settleAllBtn {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: var(--psu-navy, #001E44);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.settleAllBtn:disabled { opacity: 0.6; cursor: default; }
+
+.owesHint {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+/* ── Who this team is paired with ────────────────────────────── */
+.pairBox {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--psu-pugh-soft, #E6F0FB);
+  border: 1px solid var(--psu-pugh, #96BEE6);
+}
+
+.pairLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1E3A5F;
+  flex: none;
+}
+
+.pairWith { font-size: 13px; color: #1E3A5F; line-height: 1.45; }
+.pairNone { font-size: 13px; color: var(--fg-muted); font-style: italic; }
+
+/* ── Still available to buy ──────────────────────────────────── */
+.notYetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--fg-muted);
+  border-top: 1px dashed var(--border);
+}
+.notYetRow:first-of-type { border-top: none; }
+
+.notYetPrice { font-weight: 700; color: var(--fg); white-space: nowrap; }
+
+/* ── Who a line item belongs to ──────────────────────────────── */
+.forWho { color: var(--fg-muted); font-weight: 500; }
+
+/* ── Dietary flag at the taco bar ────────────────────────────── */
+.dietaryTag {
+  display: inline-block;
+  margin-left: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  padding: 1px 6px;
+  border-radius: 5px;
+}

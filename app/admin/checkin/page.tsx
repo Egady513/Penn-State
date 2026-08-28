@@ -8,11 +8,11 @@ import { createClient } from '@/lib/supabase/client'
 import { EVENT_ID } from '@/lib/eventId'
 import { SINGLE_CONTEST_PRICE } from '@/lib/contestPricing'
 
-type Golfer   = { id: string; name: string; arrived: boolean }
+type Golfer   = { id: string; name: string; arrived: boolean; dietary: string | null }
 // `amount` is the PER-UNIT price. Always multiply by `quantity` for money —
 // dropping it silently undercharged multi-quantity items at the check-in tent.
-type Purchase = { id: string; label: string; amount: number; quantity: number; paid: boolean; catalogItemId: string; tag: string | null }
-type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number; tickets: number | null }[] }
+type Purchase = { id: string; label: string; amount: number; quantity: number; paid: boolean; catalogItemId: string; tag: string | null; playerId: string | null; playerName: string | null }
+type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; pairing: string | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number; tickets: number | null }[] }
 type CatalogItem = { id: string; name: string; price: number; tag: string | null; allow_multiple: boolean }
 
 export default function CheckinPage() {
@@ -26,20 +26,22 @@ export default function CheckinPage() {
   const [busyPurchase, setBusyPurchase] = useState<string | null>(null)
   const [busyMulls, setBusyMulls] = useState<string | null>(null)
   const [busyChallenge, setBusyChallenge] = useState<string | null>(null)
+  const [addForPlayer, setAddForPlayer] = useState('')
+  const [busySettle, setBusySettle] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
 
   async function load() {
     const supabase = createClient()
     const [teamsRes, playersRes, purchasesRes, catalogRes, mullRes] = await Promise.all([
-      supabase.from('team').select('id, name, pin, payment_status, start_hole').eq('event_id', EVENT_ID).order('name'),
-      supabase.from('player').select('id, team_id, name, arrived_at'),
+      supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing').eq('event_id', EVENT_ID).order('name'),
+      supabase.from('player').select('id, team_id, name, arrived_at, dietary_notes'),
       supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id, quantity'),
       supabase.from('catalog_item').select('id, name, price, tag, allow_multiple').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
-    const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null }[]
-    const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null }[]
+    const rawTeams     = (teamsRes.data    ?? []) as { id: string; name: string; pin: string; payment_status: string; start_hole: number | null; pairing: string | null }[]
+    const rawPlayers   = (playersRes.data  ?? []) as { id: string; team_id: string; name: string; arrived_at: string | null; dietary_notes: string | null }[]
     const rawPurchases = (purchasesRes.data ?? []) as { id: string; team_id: string; amount: number; paid_status: string; catalog_item_id: string; player_id: string | null; quantity: number }[]
     const rawCatalog   = (catalogRes.data  ?? []) as (CatalogItem & { tag: string | null })[]
     const rawMulls     = (mullRes.error ? [] : (mullRes.data ?? [])) as { team_id: string; count: number; paid: boolean }[]
@@ -59,8 +61,11 @@ export default function CheckinPage() {
         pin: t.pin,
         paid: t.payment_status === 'paid',
         startHole: t.start_hole ?? null,
+        pairing: t.pairing?.trim() || null,
         golfers: rawPlayers.filter(p => p.team_id === t.id).map(p => ({
           id: p.id, name: p.name, arrived: !!p.arrived_at,
+          dietary: p.dietary_notes && p.dietary_notes.trim().toLowerCase() !== 'none'
+            ? p.dietary_notes.trim() : null,
         })),
         purchases: rawPurchases.filter(p => p.team_id === t.id).map(p => ({
           id: p.id,
@@ -70,6 +75,8 @@ export default function CheckinPage() {
           paid: p.paid_status === 'paid',
           catalogItemId: p.catalog_item_id,
           tag: tagById[p.catalog_item_id] ?? null,
+          playerId: p.player_id,
+          playerName: p.player_id ? (rawPlayers.find(x => x.id === p.player_id)?.name ?? null) : null,
         })),
         mulligans: {
           unpaid: teamMulls.filter(m => !m.paid).reduce((s, m) => s + m.count, 0),
@@ -143,15 +150,42 @@ export default function CheckinPage() {
     ))
   }
 
+  /**
+   * Cash or Venmo at the tent: settle everything at once. Marking five
+   * separate lines paid one at a time is how a line backs up.
+   */
+  async function settleAll(team: Team) {
+    setActionError('')
+    setBusySettle(team.id)
+    const supabase = createClient()
+    for (const p of team.purchases.filter(x => !x.paid)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: p.id, p_paid: true })
+      if (error) { setActionError(`Couldn't settle: ${error.message}`); setBusySettle(null); load(); return }
+    }
+    if (team.mulligans.unpaid > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('mark_mulligans_paid', { p_team_id: team.id })
+      if (error) { setActionError(`Couldn't settle mulligans: ${error.message}`); setBusySettle(null); load(); return }
+    }
+    setBusySettle(null)
+    load()
+  }
+
   async function addItem(teamId: string) {
     if (!selectedItem) return
     setActionError('')
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.rpc as any)('add_checkin_purchase', { p_team_id: teamId, p_catalog_item_id: selectedItem })
+    const { error } = await (supabase.rpc as any)('add_checkin_purchase', {
+      p_team_id: teamId,
+      p_catalog_item_id: selectedItem,
+      p_player_id: addForPlayer || null,
+    })
     if (error) { setActionError(`Couldn't add item: ${error.message}`); return }
     setAddingTo(null)
     setSelectedItem('')
+    setAddForPlayer('')
     load()
   }
 
@@ -206,6 +240,7 @@ export default function CheckinPage() {
   const filtered = teams.filter(t =>
     !q || t.name.toLowerCase().includes(q) || t.pin.includes(q) ||
     (t.startHole != null && String(t.startHole).includes(q)) ||
+    (t.pairing != null && t.pairing.toLowerCase() === q) ||
     t.golfers.some(g => g.name.toLowerCase().includes(q))
   )
 
@@ -260,6 +295,7 @@ export default function CheckinPage() {
                   <div className={styles.teamMeta}>
                     PIN {team.pin} ·{' '}
                     {team.startHole != null && <span>Hole {team.startHole} · </span>}
+                    {team.pairing && <span>Group {team.pairing} · </span>}
                     <Badge tone={team.paid ? 'paid' : 'unpaid'} size="sm">
                       {team.paid ? 'Paid' : 'Unpaid'}
                     </Badge>
@@ -280,11 +316,25 @@ export default function CheckinPage() {
                 <div className={styles.cardBody}>
                   {outstanding > 0 && (
                     <div className={styles.owesBox}>
-                      <div className={styles.owesTitle}>Owes ${outstanding.toFixed(0)}</div>
+                      <div className={styles.owesHead}>
+                        <div className={styles.owesTitle}>Owes ${outstanding.toFixed(0)}</div>
+                        <button
+                          className={styles.settleAllBtn}
+                          onClick={() => settleAll(team)}
+                          disabled={busySettle === team.id}
+                          title="Cash or Venmo: mark every open line paid"
+                        >
+                          {busySettle === team.id ? 'Settling…' : `Settle all $${outstanding.toFixed(0)}`}
+                        </button>
+                      </div>
+                      <div className={styles.owesHint}>
+                        Or they pay by card themselves in the app: Owe tab, PIN {team.pin}.
+                      </div>
                       {team.purchases.filter(p => !p.paid).map(p => (
                         <div key={p.id} className={styles.owesRow}>
                           <span className={styles.owesLabel}>
                             {p.label}{p.quantity > 1 ? ` × ${p.quantity}` : ''}
+                            {p.playerName && <span className={styles.forWho}> for {p.playerName}</span>}
                           </span>
                           <span className={styles.owesAmt}>${lineTotal(p).toFixed(0)}</span>
                           <button
@@ -322,18 +372,83 @@ export default function CheckinPage() {
                         >
                           <Check size={16} />
                         </button>
-                        <span className={styles.golferName}>{g.name}</span>
+                        <span className={styles.golferName}>
+                          {g.name}
+                          {g.dietary && <span className={styles.dietaryTag}>{g.dietary}</span>}
+                        </span>
                         <span className={styles.golferStatus}>{g.arrived ? 'Arrived' : 'Not here yet'}</span>
                       </div>
                     ))}
                   </div>
+
+                  {(() => {
+                    const partners = team.pairing
+                      ? teams.filter(t => t.pairing === team.pairing && t.id !== team.id)
+                      : []
+                    if (!team.pairing) return (
+                      <div className={styles.pairBox}>
+                        <span className={styles.pairLabel}>Group</span>
+                        <span className={styles.pairNone}>Not assigned yet</span>
+                      </div>
+                    )
+                    return (
+                      <div className={styles.pairBox}>
+                        <span className={styles.pairLabel}>Group {team.pairing}</span>
+                        {partners.length === 0 ? (
+                          <span className={styles.pairNone}>Playing as a twosome</span>
+                        ) : (
+                          <span className={styles.pairWith}>
+                            with {partners.map(pt =>
+                              `${pt.name} (${pt.golfers.map(g => g.name).join(', ')})`
+                            ).join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    // What they could still buy, with prices, without opening
+                    // the add menu. This is the upsell list at the tent.
+                    const purchasedIds = new Set(team.purchases.map(p => p.catalogItemId))
+                    const notYet = catalog.filter(c =>
+                      c.tag !== 'ctp' && c.tag !== 'ld' && c.tag !== 'base' &&
+                      c.tag !== 'hole_sponsor' && c.tag !== 'hole_sponsor_discount' &&
+                      !purchasedIds.has(c.id)
+                    )
+                    const hasChallenge = team.purchases.some(isChallenge)
+                    if (notYet.length === 0 && hasChallenge) return null
+                    return (
+                      <div className={styles.addons}>
+                        <div className={styles.addonsLabel}>Not purchased yet</div>
+                        {!hasChallenge && (
+                          <div className={styles.notYetRow}>
+                            <span>LD &amp; CTP Challenge</span>
+                            <span className={styles.notYetPrice}>
+                              ${SINGLE_CONTEST_PRICE} one · $
+                              {(catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)} both
+                            </span>
+                          </div>
+                        )}
+                        {notYet.map(c => (
+                          <div key={c.id} className={styles.notYetRow}>
+                            <span>{c.name}</span>
+                            <span className={styles.notYetPrice}>${c.price}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
 
                   {otherPurchases.length > 0 && (
                     <div className={styles.addons}>
                       <div className={styles.addonsLabel}>Add-ons &amp; purchases</div>
                       {otherPurchases.map(p => (
                         <div key={p.id} className={styles.addonRow}>
-                          <span>{p.label}{p.quantity > 1 ? ` × ${p.quantity}` : ''}</span>
+                          <span>
+                            {p.label}{p.quantity > 1 ? ` × ${p.quantity}` : ''}
+                            {p.playerName && <span className={styles.forWho}> for {p.playerName}</span>}
+                          </span>
                           <span className={styles.addonPrice}>${lineTotal(p).toFixed(0)}</span>
                           <button
                             className={`${styles.paidToggle} ${p.paid ? styles.paidToggleOn : ''}`}
@@ -469,6 +584,17 @@ export default function CheckinPage() {
                         <div className={styles.addItemRow}>
                           <select
                             className={styles.addItemSelect}
+                            value={addForPlayer}
+                            onChange={e => setAddForPlayer(e.target.value)}
+                            title="Charge this to one golfer, or the whole team"
+                          >
+                            <option value="">Whole team</option>
+                            {team.golfers.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                          <select
+                            className={styles.addItemSelect}
                             value={selectedItem}
                             onChange={e => setSelectedItem(e.target.value)}
                             autoFocus
@@ -487,7 +613,7 @@ export default function CheckinPage() {
                       })()}
                     </div>
                   ) : (
-                    <button className={styles.addItemTrigger} onClick={() => { setAddingTo(team.id); setSelectedItem(''); }}>
+                    <button className={styles.addItemTrigger} onClick={() => { setAddingTo(team.id); setSelectedItem(''); setAddForPlayer(''); }}>
                       + Add item to tab
                     </button>
                   )}
