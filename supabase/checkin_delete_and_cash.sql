@@ -30,7 +30,7 @@ BEGIN
   UPDATE purchase
      SET paid_status = (CASE WHEN p_paid THEN 'paid' ELSE 'unpaid' END)::payment_status,
          payment_method = CASE
-           WHEN p_paid THEN COALESCE(p_method, 'cash')
+           WHEN p_paid THEN COALESCE(p_method, 'cash')::payment_method
            ELSE NULL
          END
    WHERE id = p_purchase_id;
@@ -62,11 +62,11 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   + (SELECT COALESCE(SUM(amount * COALESCE(quantity,1)),0)
        FROM purchase
       WHERE paid_status = 'paid'
-        AND COALESCE(payment_method,'card') NOT IN ('cash','venmo','check','other')),
+        AND (payment_method IS NULL OR payment_method NOT IN ('cash','venmo','other'))),
     (SELECT COUNT(*)::int FROM registration WHERE payment_status = 'paid'),
     (SELECT COUNT(*)::int FROM purchase
       WHERE paid_status = 'paid'
-        AND COALESCE(payment_method,'card') NOT IN ('cash','venmo','check','other'));
+        AND (payment_method IS NULL OR payment_method NOT IN ('cash','venmo','other')));
 $$;
 
 GRANT EXECUTE ON FUNCTION card_volume() TO anon, authenticated;
