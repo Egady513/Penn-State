@@ -213,7 +213,7 @@ function wrapHtml(subject: string, bodyHtml: string): string {
 <body style="margin:0;padding:0;background:${BG_SOFT};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${NAVY};">
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:${BG_SOFT};padding:24px 12px;">
     <tr><td align="center">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width:100%;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BORDER};">
         <tr><td style="background:${NAVY};padding:24px 28px;color:#ffffff;">
           <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${PUGH};">Drive Out Hunger 2026</div>
           <div style="font-size:20px;font-weight:800;margin-top:4px;">${escapeHtml(subject)}</div>

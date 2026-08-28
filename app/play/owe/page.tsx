@@ -98,7 +98,7 @@ export default async function OwePage() {
   return (
     <PlayerShell
       title="What you owe"
-      subtitle={unpaidTotal > 0 ? 'Settle at the tent' : 'All settled'}
+      subtitle={unpaidTotal > 0 ? 'Settle up at the end' : 'All settled'}
       syncStatus="synced"
     >
       {/* Total due */}
@@ -111,7 +111,7 @@ export default async function OwePage() {
           ${unpaidTotal}
         </div>
         <div className={styles.totalSub}>
-          ${paidTotal} already paid · {items.length} line items
+          ${paidTotal} already paid · {items.length} line item{items.length === 1 ? '' : 's'}
         </div>
         {unpaidTotal > 0 && (
           <>

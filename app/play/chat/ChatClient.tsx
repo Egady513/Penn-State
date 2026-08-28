@@ -228,7 +228,7 @@ export default function ChatClient({
             <div className={styles.emptyIcon}>💬</div>
             <div className={styles.emptyTitle}>Chat&apos;s open</div>
             <div className={styles.emptySub}>
-              Be the first to say something — all {totalTeams} teams will see it.
+              Be the first to say something. All {totalTeams} teams will see it.
             </div>
           </div>
         ) : (
