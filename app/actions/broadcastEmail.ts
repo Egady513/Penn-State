@@ -331,20 +331,29 @@ export async function sendTestEmail(subject: string, body: string): Promise<Broa
   const to = process.env.GMAIL_USER
   if (!to) return { ok: false, sent: 0, failed: [], error: 'GMAIL_USER is not configured.' }
 
-  // If the body carries the group token, fill it with a REAL team so the
-  // test shows what a golfer will actually receive. Prefer a team that
-  // already has a group, otherwise the block would only show the fallback.
+  // Fill the merge tokens with the TESTER'S OWN team when the address that
+  // receives the test is itself registered. Anything else is a worse test:
+  // you want to see your group and your PIN, not a stranger's.
   let rendered = body
   let note: string | undefined
   if (isPersonalized(body)) {
     const result = await loadRecipients()
     if ('error' in result) return { ok: false, sent: 0, failed: [], error: result.error }
-    const sample = result.teams.find(t => t.pairing?.trim()) ?? result.teams[0]
-    if (!sample) return { ok: false, sent: 0, failed: [], error: 'No paid teams to sample a group from.' }
-    rendered = personalize(body, [sample], result.teams)
-    note = sample.pairing?.trim()
-      ? `Group block filled in with ${sample.name} (group ${sample.pairing.trim()}).`
-      : `No team has a group yet, so the block shows the fallback wording using ${sample.name}.`
+
+    const mine = result.teamsByEmail.get(to.trim().toLowerCase()) ?? []
+    if (mine.length > 0) {
+      rendered = personalize(body, mine, result.teams)
+      note = `Filled in with your own team: ${mine.map(t => t.name).join(' and ')}.`
+    } else {
+      // This address isn't on a team, so borrow one that has a group set,
+      // otherwise the block would only ever show the fallback wording.
+      const sample = result.teams.find(t => t.pairing?.trim()) ?? result.teams[0]
+      if (!sample) return { ok: false, sent: 0, failed: [], error: 'No paid teams to sample a group from.' }
+      rendered = personalize(body, [sample], result.teams)
+      note = sample.pairing?.trim()
+        ? `${to} isn't registered on a team, so the block borrows ${sample.name} (group ${sample.pairing.trim()}).`
+        : `No team has a group yet, so the block shows the fallback wording using ${sample.name}.`
+    }
   }
 
   try {
