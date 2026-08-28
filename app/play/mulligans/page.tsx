@@ -71,7 +71,7 @@ export default function MulligansPage() {
 
   if (!loaded) {
     return (
-      <PlayerShell title="Mulligans" subtitle="Max 2 per hole · $2 each" syncStatus="synced" liftBar>
+      <PlayerShell title="Mulligans" subtitle="Max 2 per hole · $2 each" syncStatus="synced">
         <div style={{ padding: 32, textAlign: 'center', color: 'var(--fg-subtle)' }}>Loading…</div>
       </PlayerShell>
     )
@@ -82,7 +82,6 @@ export default function MulligansPage() {
       title="Mulligans"
       subtitle="Max 2 per hole · $2 each"
       syncStatus="synced"
-      liftBar
     >
       {/* Summary card */}
       <div className={styles.summaryCard}>

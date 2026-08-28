@@ -1,5 +1,8 @@
 .summaryCard {
-  margin: -32px 16px 0;
+  /* No negative margin: .content is overflow-y:auto, so anything pulled
+     above its origin is clipped and unreachable, which cut the top off
+     this card's labels. */
+  margin: 16px 16px 0;
   position: relative;
   z-index: 2;
   background: var(--psu-white);
