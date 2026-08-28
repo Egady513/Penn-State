@@ -21,7 +21,9 @@ type HoleContest = { number: number; contest_type: string; contest_label: string
 
 // "Holes 3 & 12" from a list of hole numbers.
 const fmtHoles = (nums: number[]) =>
-  nums.length ? `Holes ${nums.slice().sort((a, b) => a - b).join(' & ')}` : null
+  nums.length
+    ? `${nums.length === 1 ? 'Hole' : 'Holes'} ${nums.slice().sort((a, b) => a - b).join(' & ')}`
+    : null
 
 export function GameCards({ teamId }: { teamId: string }) {
   const [purchases, setPurchases] = useState<PurchaseRow[] | null>(null)
