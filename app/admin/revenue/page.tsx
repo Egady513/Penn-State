@@ -17,12 +17,13 @@ const INCOME: [string, string][] = [
   ['raffles', 'Raffle tickets'],
   ['mulligans', 'Mulligans'],
   ['other_addons', 'Other add-ons'],
+  ['hole_sponsorships', 'Hole sponsorships (bought at registration)'],
 ]
 
 // Money that never went through the app. Sponsor dollars are typed in by
 // hand on the Sponsors tab, so they belong here, not in the Stripe section.
 const OUTSIDE_APP: [string, string][] = [
-  ['sponsorships', 'Sponsorships (recorded by hand)'],
+  ['sponsorships', 'Sponsorships recorded by hand'],
   ['outside', 'Checks, cash & Venmo'],
 ]
 
@@ -123,11 +124,11 @@ export default function RevenuePage() {
             Internal only, never shown publicly. Expenses subtract for net to Last Mile.
           </p>
           <p className={sheet.sub} style={{ marginTop: 4 }}>
-            <strong>Collected through the app</strong> is what should line up with Stripe, before Stripe
-            takes its fees and before any payout. It will drift once you start marking things paid at
-            check-in for cash, since those land in the same categories.{' '}
-            <strong>Stripe fees are not subtracted automatically</strong> &mdash; add them as an expense
-            from your Stripe dashboard.
+            <strong>Collected through the app</strong> should equal Stripe&apos;s gross volume exactly,
+            before Stripe takes its fees and before any payout. Anything settled at check-in for cash
+            is tagged as cash and stays out of it.{' '}
+            <strong>Stripe fees are not subtracted automatically.</strong> Add them as an expense from
+            your Stripe dashboard: gross volume minus net volume.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }} className={sheet.noPrint}>
