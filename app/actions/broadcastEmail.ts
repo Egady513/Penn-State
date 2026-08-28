@@ -164,7 +164,12 @@ function escapeHtml(s: string): string {
 function inlineHtml(s: string): string {
   let out = escapeHtml(s)
   out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  out = out.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}" style="color:${NAVY};font-weight:700;">${url}</a>`)
+  // Matches a full URL OR a bare host with a path (penn-state-topaz.vercel.app/play),
+  // in ONE pass so the second form can't match inside the first one's href.
+  out = out.replace(/(https?:\/\/[^\s<]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<]*)/gi, (m) => {
+    const href = /^https?:\/\//i.test(m) ? m : `https://${m}`
+    return `<a href="${href}" style="color:${NAVY};font-weight:700;">${m}</a>`
+  })
   return out
 }
 

@@ -97,9 +97,34 @@ Every registered golfer also gets a free drink ticket to redeem on the course.
 
 {{pin}}
 
-You'll need it to open the day-of app at penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy add-ons or raffle tickets right from your phone. Anything you buy on the course goes on your team tab, and you can settle up by card in the app or with me at the end.
+You'll need it to open the day-of app at https://penn-state-topaz.vercel.app/play for your scorecard, leaderboard, mulligans, and to buy add-ons or raffle tickets right from your phone. Anything you buy on the course goes on your team tab, and you can settle up by card in the app or with me at the end.
 
-Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 13, Zeek's Power Clean Wipes on Hole 5, and 513Sips on Hole 10.
+Get there early for complimentary stretching from It's Working Out. On the course, look for Beat the Pro on Hole 13, Zeek's Power Clean Wipes on Hole 5 and 513Sips on Hole 10.
+
+## How we're playing
+**Two-person scramble.** Everyone tees off, you pick the best shot, and all players hit their next shot from there. Repeat until the hole is done. Traditional rules apply and drops count as a stroke. Max score per hole is double par. Please keep both teams' scores on your scorecard.
+
+- **Tees** · men play white. Women have the option of red. Men over 60 have the option of yellow.
+- **Lies** · you can improve your lie and move the ball within one club length of the original spot, no closer to the hole. It has to stay in the same cut of grass as the shot you selected.
+- **Lost balls** · we use the PGA Tour rule. On tour a spotter would be there to find it for you. If your ball was in play and you can't find it, drop one with no penalty. If it's in the woods, the water or someone's backyard, take the stroke.
+
+## Mulligans
+- **Breakfast ball** · every player gets one free mulligan off the first tee. That's the only place it can be used, and you don't need to track it.
+- **Extra mulligans** · $2 each, anytime, anywhere on the course. One per player per hole to keep pace of play, but no cap on your total.
+- Track them in the app or on your scorecard. We collect after play.
+
+## Add-ons
+- **3-foot "gimmie rope"** · $10, one per team. Use up to 36 inches to take a gimmie without the extra stroke. After each use, cut the distance between ball and hole off the rope. Miss a birdie putt by 3 inches, cut 3 inches, take the birdie, and you've got 33 inches left.
+- **Opponent's drive** · $10. If your opponent has the better tee shot, share it and play your second shot from there. Once per round per card, and you can buy as many cards as you want. These have to be bought before play starts.
+- **Hit from the front tees** · $10. Play it at the tee box on whichever hole you choose and take your tee shot from the front tees. One per round per team.
+- **Ball toss** · $20. Five chances to pick the ball up and throw it from anywhere on the course: tee box, sand, fringe, wherever. They don't all have to happen on the same hole. And no, you can't throw your opponent's ball.
+
+## Prize holes & challenges
+- **Closest to the Pin · Hole 10** · $12 on its own, or $20 for this and Longest Drive together. Traditional rules: a marker sits on the green and gets moved when someone hits it closer. Buy as many attempts as you want, we take your best. 1st: free round for 4 at Legendary Run. 2nd: $100 to Go Play Golf.
+- **Longest Drive · Hole 18** · $12 on its own, or $20 for both. 1st: $120 gift card to Another 9. 2nd: $25 Dick's gift card.
+- **Beat the Pro · Hole 13** · presented by BackSwing Golf Events. Go head to head with a touring lady pro in a spin on closest-to-the-pin, with a Bad Birdie gift card on the line. If your whole team donates, you get a chance to improve your score.
+- **Zeek's Power Clean Wipes · Hole 5** · $5 for a 5-pack, and what you buy decides how you play the hole. Buy one pack and your team gets one regular golf shot plus one swing with a shovel. Buy two and you both hit regular shots. Buy none and you're both swinging shovels.
+- **Bucket Golf Challenge · Hole 1** · $5 a shot, no cap, and you can buy right from the app. Three buckets: the closest takes 1 stroke off that hole, the middle takes 2, the farthest takes 3.
 
 **Heads up:** Bucket Golf has moved to **Hole 1**, so you can play it while you're waiting to tee off. (An earlier email said Hole 6.) It's $5 a shot with no cap, and you can buy shots right from the app.
 
@@ -133,7 +158,7 @@ const TEMPLATE_3_BODY = `First, a huge thank you to all of you for partnering wi
 - **6:15–7:00 AM** · Morning sponsors arrive (BackSwing Golf, Zeek's Power Wipes & It's Working Out)
 - **6:45 AM** · Registration begins
 - **7:45 AM** · Announcements & prayer
-- **8:00 AM** · Tee-off (currently a wave tee time going off holes 1 & 10; may become a reverse shotgun)
+- **8:00 AM** · Shotgun start
 - **12:00 PM** · Afternoon sponsors arrive (Courtesy Automotive)
 - **~1:00 PM** · Golfers start to finish
 - **~1:45 PM** · Lunch & award ceremony
