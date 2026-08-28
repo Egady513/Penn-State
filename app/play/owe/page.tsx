@@ -20,10 +20,10 @@ export default async function OwePage() {
   const supabase = await createClient()
 
   type RegRow      = { fee_amount: number; donation_amount: number | null; payment_status: string; payment_method: string | null }
-  type PurchaseRow = { id: string; amount: number; paid_status: string; payment_method: string | null; catalog_item: { name: string } | null; quantity: number }
+  type PurchaseRow = { id: string; amount: number; paid_status: string; payment_method: string | null; catalog_item: { name: string } | null; quantity: number; player_id: string | null }
   type MullRow     = { count: number; paid: boolean }
 
-  const [regRes, purchRes, mullRes] = await Promise.all([
+  const [regRes, purchRes, mullRes, playerRes] = await Promise.all([
     supabase
       .from('registration')
       .select('fee_amount, donation_amount, payment_status, payment_method')
@@ -31,11 +31,17 @@ export default async function OwePage() {
       .maybeSingle(),
     supabase
       .from('purchase')
-      .select('id, amount, paid_status, payment_method, catalog_item:catalog_item_id(name), quantity')
+      .select('id, amount, paid_status, payment_method, catalog_item:catalog_item_id(name), quantity, player_id')
       .eq('team_id', teamId),
     supabase
       .from('mulligan')
       .select('count, paid')
+      .eq('team_id', teamId),
+    // Names for per-golfer lines, so a team can see who ran up what and
+    // square up between themselves at the end of the round.
+    supabase
+      .from('player')
+      .select('id, name')
       .eq('team_id', teamId),
   ])
 
@@ -45,6 +51,10 @@ export default async function OwePage() {
   const mulligans    = (mullRes.error ? [] : (mullRes.data ?? [])).map(
     (m: { count: number; paid?: boolean }) => ({ count: m.count, paid: m.paid ?? false }),
   ) as MullRow[]
+
+  const playerName = new Map(
+    ((playerRes.data ?? []) as { id: string; name: string }[]).map(p => [p.id, p.name]),
+  )
 
   const items: OweItem[] = []
 
@@ -83,9 +93,11 @@ export default async function OwePage() {
   // Purchase lines
   purchases?.forEach(p => {
     const itemName = (p.catalog_item as { name: string } | null)?.name ?? 'Add-on'
+    const who = p.player_id ? playerName.get(p.player_id) : null
+    const base = p.quantity > 1 ? `${itemName} · ${p.quantity}` : itemName
     items.push({
       id: p.id,
-      label: p.quantity > 1 ? `${itemName} · ${p.quantity}` : itemName,
+      label: who ? `${base} · ${who}` : base,
       total: p.amount * (p.quantity || 1),
       paid: p.paid_status === 'paid',
       via: p.payment_method ?? undefined,

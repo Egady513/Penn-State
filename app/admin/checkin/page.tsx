@@ -13,7 +13,7 @@ type Golfer   = { id: string; name: string; arrived: boolean; dietary: string | 
 // dropping it silently undercharged multi-quantity items at the check-in tent.
 type Purchase = { id: string; label: string; amount: number; quantity: number; paid: boolean; catalogItemId: string; tag: string | null; playerId: string | null; playerName: string | null }
 type Team = { id: string; name: string; pin: string; paid: boolean; startHole: number | null; pairing: string | null; golfers: Golfer[]; purchases: Purchase[]; mulligans: { unpaid: number; paid: number }; challengeNames: string[]; raffleItems: { name: string; qty: number; tickets: number | null }[] }
-type CatalogItem = { id: string; name: string; price: number; tag: string | null; allow_multiple: boolean }
+type CatalogItem = { id: string; name: string; price: number; tag: string | null; allow_multiple: boolean; per_person: boolean }
 
 export default function CheckinPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -36,7 +36,7 @@ export default function CheckinPage() {
       supabase.from('team').select('id, name, pin, payment_status, start_hole, pairing').eq('event_id', EVENT_ID).order('name'),
       supabase.from('player').select('id, team_id, name, arrived_at, dietary_notes'),
       supabase.from('purchase').select('id, team_id, amount, paid_status, catalog_item_id, player_id, quantity'),
-      supabase.from('catalog_item').select('id, name, price, tag, allow_multiple').eq('event_id', EVENT_ID).eq('active', true).order('name'),
+      supabase.from('catalog_item').select('id, name, price, tag, allow_multiple, per_person').eq('event_id', EVENT_ID).eq('active', true).order('name'),
       supabase.from('mulligan').select('team_id, count, paid'),
     ])
 
@@ -582,21 +582,27 @@ export default function CheckinPage() {
                         )
                         return (
                         <div className={styles.addItemRow}>
-                          <select
-                            className={styles.addItemSelect}
-                            value={addForPlayer}
-                            onChange={e => setAddForPlayer(e.target.value)}
-                            title="Charge this to one golfer, or the whole team"
-                          >
-                            <option value="">Whole team</option>
-                            {team.golfers.map(g => (
-                              <option key={g.id} value={g.id}>{g.name}</option>
-                            ))}
-                          </select>
+                          {catalog.find(c => c.id === selectedItem)?.per_person ? (
+                            <select
+                              className={styles.addItemSelect}
+                              value={addForPlayer}
+                              onChange={e => setAddForPlayer(e.target.value)}
+                              title="Per-golfer item: charge it to one of them, or the whole team"
+                            >
+                              <option value="">Whole team</option>
+                              {team.golfers.map(g => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                              ))}
+                            </select>
+                          ) : null}
                           <select
                             className={styles.addItemSelect}
                             value={selectedItem}
-                            onChange={e => setSelectedItem(e.target.value)}
+                            onChange={e => {
+                              setSelectedItem(e.target.value)
+                              const it = catalog.find(c => c.id === e.target.value)
+                              if (!it?.per_person) setAddForPlayer('')
+                            }}
                             autoFocus
                           >
                             <option value="">
