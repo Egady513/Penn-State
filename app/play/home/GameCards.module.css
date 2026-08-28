@@ -99,3 +99,55 @@
   background: rgba(31, 138, 91, 0.14);
   color: var(--success, #1F8A5B);
 }
+
+/* ── Per-golfer CTP / LD status ──────────────────────────────── */
+.challengeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border, rgba(0,30,68,0.08));
+  flex-wrap: wrap;
+}
+.challengeRow:first-child { border-top: none; }
+
+.pills { display: flex; gap: 6px; flex: none; }
+
+.pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pillPaid { color: #065F46; background: #D1FAE5; }
+.pillOwed { color: #92400E; background: #FEF3C7; }
+.pillOut  { color: var(--fg-muted); background: rgba(0,30,68,0.06); }
+
+/* ── Multi-use cards (Ball Toss) ─────────────────────────────── */
+.useCount {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.stepper { display: flex; gap: 6px; flex: none; }
+
+.stepBtn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border, rgba(0,30,68,0.14));
+  border-radius: 11px;
+  background: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--psu-navy, #001E44);
+  cursor: pointer;
+}
+.stepBtn:disabled { opacity: 0.3; cursor: default; }

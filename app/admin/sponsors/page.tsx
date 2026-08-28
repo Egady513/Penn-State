@@ -151,7 +151,11 @@ export default function SponsorsPage() {
           p_name: s.name.trim(),
           p_tier: s.tier,
           p_sponsorship_type: s.sponsorship_type.trim(),
-          p_hole_number: isHole(s.sponsorship_type) ? s.hole_number : null,
+          // Save the hole for ANY sponsor, not just the $100 hole tier. An
+          // activation sponsor (Power Wipes, BackSwing) needs a hole so their
+          // logo shows on that scorecard, without being listed publicly as a
+          // hole sponsor, which keys off sponsorship_type instead.
+          p_hole_number: s.hole_number,
           p_amount: s.amount,
           p_active: s.active,
           p_logo_url: s.logo_url,

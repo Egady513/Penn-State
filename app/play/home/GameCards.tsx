@@ -10,8 +10,10 @@ type PurchaseRow = {
   id: string
   paid_status: 'paid' | 'unpaid' | 'partial'
   used: boolean
+  used_count: number | null
+  quantity: number | null
   player_id: string | null
-  catalog_item: { name: string; tag: string | null } | null
+  catalog_item: { name: string; tag: string | null; uses_per_unit: number | null } | null
 }
 
 type Player = { id: string; name: string }
@@ -31,7 +33,7 @@ export function GameCards({ teamId }: { teamId: string }) {
     Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.from('purchase') as any)
-        .select('id, paid_status, used, player_id, catalog_item:catalog_item_id(name, tag)')
+        .select('id, paid_status, used, used_count, quantity, player_id, catalog_item:catalog_item_id(name, tag, uses_per_unit)')
         .eq('team_id', teamId),
       supabase.from('player').select('id, name').eq('team_id', teamId),
       // Real contest-hole assignments from the admin Course page — replaces
@@ -44,11 +46,21 @@ export function GameCards({ teamId }: { teamId: string }) {
     })
   }, [teamId])
 
-  async function markUsed(id: string, used: boolean) {
-    setPurchases(prev => prev?.map(p => (p.id === id ? { ...p, used } : p)) ?? null)
+  /** Total uses a purchase is worth: 5 throws per Ball Toss card, 1 for the rest. */
+  const totalUses = (p: PurchaseRow) =>
+    Math.max(1, p.catalog_item?.uses_per_unit ?? 1) * Math.max(1, p.quantity ?? 1)
+
+  const usedOf = (p: PurchaseRow) => p.used_count ?? (p.used ? totalUses(p) : 0)
+
+  /** Tap a use up or down. The RPC clamps to what was actually bought. */
+  async function changeUses(p: PurchaseRow, delta: 1 | -1) {
+    const next = Math.min(totalUses(p), Math.max(0, usedOf(p) + delta))
+    if (next === usedOf(p)) return
+    setPurchases(prev => prev?.map(x =>
+      x.id === p.id ? { ...x, used_count: next, used: next >= totalUses(p) } : x) ?? null)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.rpc as any)('set_purchase_used', { p_id: id, p_used: used })
+    await (supabase.rpc as any)('set_purchase_uses', { p_id: p.id, p_delta: delta })
   }
 
   if (!purchases) return null
@@ -79,15 +91,18 @@ export function GameCards({ teamId }: { teamId: string }) {
     ? holeMapParts.join(' · ')
     : 'Ask at the tent for today’s challenge holes.'
 
-  // One row per golfer that has any contest entry
-  const challengeGolfers = Array.from(new Set(contest.map(c => c.player_id))).map(pid => {
-    const rows = contest.filter(c => c.player_id === pid)
-    return {
-      pid,
-      name: nameOf(pid),
-      paid: rows.every(r => r.paid_status === 'paid'),
-    }
-  })
+  // A row per GOLFER on the team, with closest-to-pin and long-drive shown
+  // separately. They used to be collapsed into one "Paid & in" line, which
+  // stopped making sense once each could be bought on its own for $12.
+  const entryFor = (pid: string | null, tag: 'ctp' | 'ld') =>
+    contest.find(c => c.catalog_item?.tag === tag && (c.player_id === pid || c.player_id === null))
+
+  const challengeGolfers = players.map(pl => ({
+    pid: pl.id,
+    name: pl.name,
+    ctp: entryFor(pl.id, 'ctp'),
+    ld: entryFor(pl.id, 'ld'),
+  }))
 
   return (
     <div className={styles.wrap}>
@@ -101,17 +116,23 @@ export function GameCards({ teamId }: { teamId: string }) {
         ) : (
           <div className={styles.rows}>
             {challengeGolfers.map(g => (
-              <div key={g.pid ?? 'team'} className={styles.row}>
+              <div key={g.pid} className={styles.challengeRow}>
                 <span className={styles.rowName}>{g.name}</span>
-                {g.paid ? (
-                  <span className={`${styles.status} ${styles.statusPaid}`}>
-                    <Icon name="check" size={13} /> Paid &amp; in
-                  </span>
-                ) : (
-                  <span className={`${styles.status} ${styles.statusUnpaid}`}>
-                    In · settle at tent
-                  </span>
-                )}
+                <span className={styles.pills}>
+                  {([['CTP', g.ctp], ['LD', g.ld]] as const).map(([label, entry]) => (
+                    <span
+                      key={label}
+                      className={`${styles.pill} ${
+                        !entry ? styles.pillOut
+                          : entry.paid_status === 'paid' ? styles.pillPaid
+                          : styles.pillOwed
+                      }`}
+                    >
+                      {label}{' '}
+                      {!entry ? 'not in' : entry.paid_status === 'paid' ? 'paid' : 'on tab'}
+                    </span>
+                  ))}
+                </span>
               </div>
             ))}
           </div>
@@ -126,28 +147,62 @@ export function GameCards({ teamId }: { teamId: string }) {
           <div className={styles.empty}>No advantage cards purchased.</div>
         ) : (
           <div className={styles.rows}>
-            {advantages.map(a => (
-              <div key={a.id} className={styles.row}>
-                <span className={styles.rowName}>{a.catalog_item?.name}</span>
-                {a.used ? (
-                  <button
-                    type="button"
-                    className={`${styles.cardBtn} ${styles.cardBtnUsed}`}
-                    onClick={() => markUsed(a.id, false)}
-                  >
-                    <Icon name="check" size={13} /> Used · undo
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.cardBtn}
-                    onClick={() => markUsed(a.id, true)}
-                  >
-                    Mark used
-                  </button>
-                )}
-              </div>
-            ))}
+            {advantages.map(a => {
+              const total = totalUses(a)
+              const used = usedOf(a)
+              if (total > 1) {
+                return (
+                  <div key={a.id} className={styles.row}>
+                    <span className={styles.rowName}>
+                      {a.catalog_item?.name}
+                      <span className={styles.useCount}>{used} of {total} used</span>
+                    </span>
+                    <span className={styles.stepper}>
+                      <button
+                        type="button"
+                        className={styles.stepBtn}
+                        disabled={used === 0}
+                        onClick={() => changeUses(a, -1)}
+                        aria-label={`Undo one ${a.catalog_item?.name ?? 'use'}`}
+                      >
+                        &minus;
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.stepBtn}
+                        disabled={used >= total}
+                        onClick={() => changeUses(a, 1)}
+                        aria-label={`Use one ${a.catalog_item?.name ?? 'use'}`}
+                      >
+                        +
+                      </button>
+                    </span>
+                  </div>
+                )
+              }
+              return (
+                <div key={a.id} className={styles.row}>
+                  <span className={styles.rowName}>{a.catalog_item?.name}</span>
+                  {used > 0 ? (
+                    <button
+                      type="button"
+                      className={`${styles.cardBtn} ${styles.cardBtnUsed}`}
+                      onClick={() => changeUses(a, -1)}
+                    >
+                      <Icon name="check" size={13} /> Used · undo
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.cardBtn}
+                      onClick={() => changeUses(a, 1)}
+                    >
+                      Mark used
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
