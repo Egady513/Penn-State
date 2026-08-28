@@ -56,3 +56,10 @@
   .page { padding: 0; max-width: none; }
   .title { font-size: 22px; }
 }
+
+/* Subtotal above the outside-money line, lighter than the grand total */
+.subtotalRow td {
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--fg-muted);
+}

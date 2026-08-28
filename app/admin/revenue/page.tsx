@@ -12,12 +12,12 @@ type Outside = { id: string; description: string; amount: number; method: string
 const INCOME: [string, string][] = [
   ['registration', 'Registration fees'],
   ['donations', 'Donations'],
+  ['fee_coverage', 'Processing fee covered by registrants'],
   ['challenge', 'LD & CTP Challenge'],
   ['raffles', 'Raffle tickets'],
   ['mulligans', 'Mulligans'],
   ['other_addons', 'Other add-ons'],
   ['sponsorships', 'Sponsorships'],
-  ['outside', 'Collected outside Stripe'],
 ]
 
 export default function RevenuePage() {
@@ -57,7 +57,12 @@ export default function RevenuePage() {
 
   useEffect(() => { load() }, [load])
 
-  const gross = INCOME.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
+  // INCOME no longer contains 'outside', so this subtotal is everything the
+  // app itself recorded. Outside money is added separately below it.
+  const inAppTotal = INCOME.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
+  const outsideTotal = cats['outside']?.dollars ?? 0
+  const outsideCount = cats['outside']?.count ?? 0
+  const gross = inAppTotal + outsideTotal
   const expensesTotal = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
   const net = gross - expensesTotal
 
@@ -109,7 +114,14 @@ export default function RevenuePage() {
       <div className={sheet.head}>
         <div>
           <h1 className={sheet.title}>Revenue</h1>
-          <p className={sheet.sub}>Internal only — never shown publicly. Sponsor dollars are gross; expenses subtract for net to Last Mile.</p>
+          <p className={sheet.sub}>
+            Internal only, never shown publicly. Expenses subtract for net to Last Mile.
+          </p>
+          <p className={sheet.sub} style={{ marginTop: 4 }}>
+            <strong>Reconciling against Stripe?</strong> &ldquo;Recorded in the app&rdquo; is not your Stripe
+            balance. Sponsorship dollars are typed in by hand, and anything marked paid at check-in
+            for cash or Venmo counts there too.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }} className={sheet.noPrint}>
           <button onClick={load} style={{ height: 38, padding: '0 14px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', color: 'var(--fg)', fontSize: 14, cursor: 'pointer' }}>↻ Refresh</button>
@@ -129,6 +141,16 @@ export default function RevenuePage() {
                   <td className={sheet.right}>${(cats[k]?.dollars ?? 0).toLocaleString()}</td>
                 </tr>
               ))}
+              <tr className={sheet.subtotalRow}>
+                <td>Recorded in the app</td>
+                <td></td>
+                <td className={sheet.right}>${inAppTotal.toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td>Collected outside Stripe (checks, cash, Venmo)</td>
+                <td className={sheet.right}>{outsideCount}</td>
+                <td className={sheet.right}>${outsideTotal.toLocaleString()}</td>
+              </tr>
               <tr className={sheet.totalRow}>
                 <td>Gross raised</td>
                 <td></td>
