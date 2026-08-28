@@ -7,6 +7,7 @@ import sheet from '@/components/admin/sheet.module.css'
 type Cat = { count: number; dollars: number }
 type Expense = { id: string; description: string; amount: number; category: string; created_at: string }
 type Outside = { id: string; description: string; amount: number; method: string; created_at: string }
+type Balance = { team_name: string; reg_unpaid: number; purchases_unpaid: number; mulligans_unpaid: number }
 
 // Income categories (everything except expenses), in display order.
 const INCOME: [string, string][] = [
@@ -31,6 +32,7 @@ export default function RevenuePage() {
   const [cats, setCats] = useState<Record<string, Cat>>({})
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [outside, setOutside] = useState<Outside[]>([])
+  const [balances, setBalances] = useState<Balance[]>([])
   const [oDesc, setODesc] = useState('')
   const [oAmount, setOAmount] = useState('')
   const [oMethod, setOMethod] = useState('cash')
@@ -44,13 +46,15 @@ export default function RevenuePage() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [brRes, exRes, oiRes] = await Promise.all([
+    const [brRes, exRes, oiRes, tbRes] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('revenue_breakdown'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('list_expenses'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('list_outside_income'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('team_balances'),
     ])
     const br = (brRes.data ?? []) as { category: string; item_count: number; dollars: number }[]
     const map: Record<string, Cat> = {}
@@ -59,6 +63,7 @@ export default function RevenuePage() {
     setExpenses((exRes.data ?? []) as Expense[])
     // Migration may not have run yet — treat a missing table as empty.
     setOutside((oiRes?.error ? [] : (oiRes?.data ?? [])) as Outside[])
+    setBalances((tbRes?.error ? [] : (tbRes?.data ?? [])) as Balance[])
     setLoading(false)
   }, [])
 
@@ -71,6 +76,17 @@ export default function RevenuePage() {
   const expensesTotal = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
   const gross = inAppTotal + outsideTotal
   const net   = gross - expensesTotal
+
+  // Committed but not in hand: on-course tabs, unsettled mulligans, any
+  // registration still unpaid. Deliberately NOT part of the total above.
+  const owedRows = balances
+    .map(b => ({
+      name: b.team_name,
+      owed: Number(b.reg_unpaid || 0) + Number(b.purchases_unpaid || 0) + Number(b.mulligans_unpaid || 0),
+    }))
+    .filter(b => b.owed > 0)
+    .sort((a, b) => b.owed - a.owed)
+  const owedTotal = owedRows.reduce((s2, b) => s2 + b.owed, 0)
 
   async function addExpense() {
     const amt = Number(amount)
@@ -176,6 +192,41 @@ export default function RevenuePage() {
                 <td></td>
                 <td className={sheet.right}>${net.toLocaleString()}</td>
               </tr>
+
+              {/* Committed but not in hand. Sits BELOW the total on purpose:
+                  it is not money until it is collected. */}
+              <tr>
+                <td colSpan={3} style={{ height: 14, border: 'none' }} />
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--fg-muted)' }}>
+                  Still to collect
+                  <span style={{ fontSize: 12 }}>
+                    {' '}· open tabs, not counted above
+                  </span>
+                </td>
+                <td className={sheet.right} style={{ color: 'var(--fg-muted)' }}>
+                  {owedRows.length} {owedRows.length === 1 ? 'team' : 'teams'}
+                </td>
+                <td className={sheet.right} style={{ color: owedTotal > 0 ? '#92400E' : 'var(--fg-muted)', fontWeight: 700 }}>
+                  ${owedTotal.toLocaleString()}
+                </td>
+              </tr>
+              {owedRows.slice(0, 8).map(b => (
+                <tr key={b.name} className={sheet.noPrint}>
+                  <td style={{ paddingLeft: 22, color: 'var(--fg-muted)', fontSize: 13 }}>{b.name}</td>
+                  <td />
+                  <td className={sheet.right} style={{ color: 'var(--fg-muted)', fontSize: 13 }}>${b.owed.toLocaleString()}</td>
+                </tr>
+              ))}
+              {owedRows.length > 8 && (
+                <tr className={sheet.noPrint}>
+                  <td style={{ paddingLeft: 22, color: 'var(--fg-muted)', fontSize: 12 }}>
+                    and {owedRows.length - 8} more — see Check-in, &ldquo;Who owes&rdquo;
+                  </td>
+                  <td /><td />
+                </tr>
+              )}
             </tbody>
           </table>
 
