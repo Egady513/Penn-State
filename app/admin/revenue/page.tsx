@@ -17,7 +17,13 @@ const INCOME: [string, string][] = [
   ['raffles', 'Raffle tickets'],
   ['mulligans', 'Mulligans'],
   ['other_addons', 'Other add-ons'],
-  ['sponsorships', 'Sponsorships'],
+]
+
+// Money that never went through the app. Sponsor dollars are typed in by
+// hand on the Sponsors tab, so they belong here, not in the Stripe section.
+const OUTSIDE_APP: [string, string][] = [
+  ['sponsorships', 'Sponsorships (recorded by hand)'],
+  ['outside', 'Checks, cash & Venmo'],
 ]
 
 export default function RevenuePage() {
@@ -57,14 +63,13 @@ export default function RevenuePage() {
 
   useEffect(() => { load() }, [load])
 
-  // INCOME no longer contains 'outside', so this subtotal is everything the
-  // app itself recorded. Outside money is added separately below it.
-  const inAppTotal = INCOME.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
-  const outsideTotal = cats['outside']?.dollars ?? 0
-  const outsideCount = cats['outside']?.count ?? 0
-  const gross = inAppTotal + outsideTotal
+  // Everything charged through the app. This is what should line up with
+  // Stripe, minus its fees and anything already paid out.
+  const inAppTotal   = INCOME.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
+  const outsideTotal = OUTSIDE_APP.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
   const expensesTotal = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
-  const net = gross - expensesTotal
+  const gross = inAppTotal + outsideTotal
+  const net   = gross - expensesTotal
 
   async function addExpense() {
     const amt = Number(amount)
@@ -118,9 +123,11 @@ export default function RevenuePage() {
             Internal only, never shown publicly. Expenses subtract for net to Last Mile.
           </p>
           <p className={sheet.sub} style={{ marginTop: 4 }}>
-            <strong>Reconciling against Stripe?</strong> &ldquo;Recorded in the app&rdquo; is not your Stripe
-            balance. Sponsorship dollars are typed in by hand, and anything marked paid at check-in
-            for cash or Venmo counts there too.
+            <strong>Collected through the app</strong> is what should line up with Stripe, before Stripe
+            takes its fees and before any payout. It will drift once you start marking things paid at
+            check-in for cash, since those land in the same categories.{' '}
+            <strong>Stripe fees are not subtracted automatically</strong> &mdash; add them as an expense
+            from your Stripe dashboard.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }} className={sheet.noPrint}>
@@ -141,20 +148,32 @@ export default function RevenuePage() {
                   <td className={sheet.right}>${(cats[k]?.dollars ?? 0).toLocaleString()}</td>
                 </tr>
               ))}
-              <tr className={sheet.subtotalRow}>
-                <td>Recorded in the app</td>
+              <tr className={sheet.totalRow}>
+                <td>Collected through the app</td>
                 <td></td>
                 <td className={sheet.right}>${inAppTotal.toLocaleString()}</td>
               </tr>
-              <tr>
-                <td>Collected outside Stripe (checks, cash, Venmo)</td>
-                <td className={sheet.right}>{outsideCount}</td>
-                <td className={sheet.right}>${outsideTotal.toLocaleString()}</td>
-              </tr>
-              <tr className={sheet.totalRow}>
-                <td>Gross raised</td>
+
+              <tr><td colSpan={3} style={{ height: 14, border: 'none' }} /></tr>
+
+              <tr className={sheet.subtotalRow}>
+                <td>Less expenses</td>
                 <td></td>
-                <td className={sheet.right}>${gross.toLocaleString()}</td>
+                <td className={sheet.right}>&minus;${expensesTotal.toLocaleString()}</td>
+              </tr>
+
+              {OUTSIDE_APP.map(([k, label]) => (
+                <tr key={k}>
+                  <td>Plus {label.charAt(0).toLowerCase() + label.slice(1)}</td>
+                  <td className={sheet.right}>{cats[k]?.count ?? 0}</td>
+                  <td className={sheet.right}>${(cats[k]?.dollars ?? 0).toLocaleString()}</td>
+                </tr>
+              ))}
+
+              <tr className={sheet.totalRow}>
+                <td>Total to Last Mile Food Rescue</td>
+                <td></td>
+                <td className={sheet.right}>${net.toLocaleString()}</td>
               </tr>
             </tbody>
           </table>
