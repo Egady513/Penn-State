@@ -17,7 +17,7 @@ const INCOME: [string, string][] = [
   ['mulligans', 'Mulligans'],
   ['other_addons', 'Other add-ons'],
   ['sponsorships', 'Sponsorships'],
-  ['outside', 'Cash / Venmo collected'],
+  ['outside', 'Collected outside Stripe'],
 ]
 
 export default function RevenuePage() {
@@ -174,9 +174,10 @@ export default function RevenuePage() {
           </div>
 
           <div style={{ marginTop: 28 }}>
-            <h2 className={sheet.h2}>Cash &amp; Venmo collected</h2>
+            <h2 className={sheet.h2}>Collected outside Stripe</h2>
             <p className={sheet.sub}>
-              Money taken on the day outside Stripe. Counts toward gross and net, same as everything else.
+              Checks, cash and Venmo. Counts toward gross and net, same as everything else.
+              Zero the matching sponsor amount so the money is not counted twice.
             </p>
             <table className={sheet.table}>
               <tbody>
