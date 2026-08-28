@@ -53,23 +53,19 @@ export default function MulligansPage() {
 
   const setMull = async (hole: number, count: number) => {
     const clamped = Math.max(0, Math.min(2, count))
+    const prev = mulligans[hole] ?? 0
     setMulligans(m => ({ ...m, [hole]: clamped }))
 
-    // Persist to Supabase
-    if (clamped > 0) {
-      // Reset paid=false on any change so mulligans added after a card
-      // settlement get re-billed (the webhook only marks existing unpaid ones).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('mulligan') as any).upsert(
-        { team_id: teamId, hole_number: hole, count: clamped, paid: false },
-        { onConflict: 'team_id,hole_number' }
-      )
-    } else {
-      await supabase
-        .from('mulligan')
-        .delete()
-        .eq('team_id', teamId)
-        .eq('hole_number', hole)
+    // One RPC for both directions. A plain client DELETE reported success
+    // while RLS filtered every row, so backing down to 0 left the count in
+    // the database and kept billing $2 for a mulligan that was removed.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('set_mulligan', {
+      p_team_id: teamId, p_hole_number: hole, p_count: clamped,
+    })
+    if (error) {
+      setMulligans(m => ({ ...m, [hole]: prev }))
+      alert("Couldn't save that mulligan. Check your signal and try again.")
     }
   }
 

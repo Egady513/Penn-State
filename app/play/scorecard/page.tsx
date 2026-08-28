@@ -210,22 +210,20 @@ export default function ScorecardPage() {
 
   const setMulligan = async (count: number) => {
     const clamped = Math.max(0, Math.min(2, count))
-    setMulligans(m => ({ ...m, [activeHole]: clamped }))
-    if (clamped > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('mulligan') as any).upsert(
-        { team_id: teamId, hole_number: activeHole, count: clamped },
-        { onConflict: 'team_id,hole_number' }
-      )
-    } else {
-      // Backing a mulligan down to 0 has to DELETE the row. Previously this
-      // only skipped the write, so the old count stayed in the database and
-      // the player kept getting charged $2 for a mulligan they undid.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('mulligan') as any)
-        .delete()
-        .eq('team_id', teamId)
-        .eq('hole_number', activeHole)
+    const hole = activeHole
+    const prev = mulligans[hole] ?? 0
+    setMulligans(m => ({ ...m, [hole]: clamped }))
+
+    // Same RPC the Mulligans tab uses. The old client DELETE returned 204
+    // while RLS filtered every row, so a mulligan backed down to 0 stayed
+    // in the database and kept being billed.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('set_mulligan', {
+      p_team_id: teamId, p_hole_number: hole, p_count: clamped,
+    })
+    if (error) {
+      setMulligans(m => ({ ...m, [hole]: prev }))
+      alert("Couldn't save that mulligan. Check your signal and try again.")
     }
   }
 

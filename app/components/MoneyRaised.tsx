@@ -9,21 +9,39 @@ interface MoneyRaisedProps {
   /** 'chip' = compact pill (hero); 'banner' = card with goal progress (player app) */
   variant?: 'chip' | 'banner'
   goal?: number
+  /**
+   * 'gross' = every dollar collected.
+   * 'net'   = what actually reaches Last Mile, after greens fees, drink
+   *           tickets and the rest of the event's costs.
+   */
+  metric?: 'gross' | 'net'
 }
 
-export function MoneyRaised({ variant = 'chip', goal = 10000 }: MoneyRaisedProps) {
+type BreakdownRow = { category: string; dollars: number | string }
+
+export function MoneyRaised({ variant = 'chip', goal = 10000, metric = 'gross' }: MoneyRaisedProps) {
   const [total, setTotal] = useState<number | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
-    // total_raised() is a security-definer RPC returning the aggregate only.
+    // revenue_breakdown() is the single source of truth: total_raised()
+    // delegates to it. Reading it directly is what lets us net out expenses
+    // instead of showing a gross figure that overstates the charity's cut.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(supabase.rpc as any)('total_raised').then(
-      ({ data }: { data: number | null }) => {
-        if (data != null && !Number.isNaN(Number(data))) setTotal(Number(data))
+    ;(supabase.rpc as any)('revenue_breakdown').then(
+      ({ data }: { data: BreakdownRow[] | null }) => {
+        if (!data) return
+        let income = 0, expenses = 0
+        for (const r of data) {
+          const d = Number(r.dollars)
+          if (Number.isNaN(d)) continue
+          if (r.category === 'expenses') expenses += d
+          else income += d
+        }
+        setTotal(metric === 'net' ? income - expenses : income)
       }
     )
-  }, [])
+  }, [metric])
 
   const amount = total == null ? null : `$${Math.round(total).toLocaleString()}`
   const pct = total == null ? 0 : Math.min(Math.round((total / goal) * 100), 100)
@@ -41,7 +59,9 @@ export function MoneyRaised({ variant = 'chip', goal = 10000 }: MoneyRaisedProps
   return (
     <div className={styles.banner}>
       <div className={styles.bannerTop}>
-        <span className={styles.bannerLabel}>Raised so far</span>
+        <span className={styles.bannerLabel}>
+          {metric === 'net' ? 'To Last Mile Food Rescue' : 'Raised so far'}
+        </span>
         <span className={styles.bannerGoal}>Goal ${goal.toLocaleString()}</span>
       </div>
       <div className={styles.bannerAmount}>{amount ?? '—'}</div>
@@ -49,7 +69,9 @@ export function MoneyRaised({ variant = 'chip', goal = 10000 }: MoneyRaisedProps
         <div className={styles.fill} style={{ width: `${pct}%` }} />
       </div>
       <div className={styles.bannerSub}>
-        Every dollar helps Last Mile Food Rescue put food on Cincinnati tables.
+        {metric === 'net'
+          ? 'What the outing clears after costs. Every dollar puts food on Cincinnati tables.'
+          : 'Every dollar helps Last Mile Food Rescue put food on Cincinnati tables.'}
       </div>
     </div>
   )

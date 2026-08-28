@@ -113,7 +113,7 @@ export default async function HomePage() {
       )}
 
       {/* Live money raised — motivation */}
-      <MoneyRaised variant="banner" goal={10000} />
+      <MoneyRaised variant="banner" goal={5000} metric="net" />
 
       {/* Stat tiles */}
       <div className={styles.statRow}>

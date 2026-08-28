@@ -40,7 +40,7 @@ First, a huge thank you to our sponsors and donors. Your support is what makes t
 - Courtesy Automotive
 - It's Working Out
 - Oakley Pub & Grill
-- Power Wipes
+- Zeek's Power Clean Wipes
 
 ## Thank you to our hole sponsors
 - 513Sips · Hole 10
@@ -155,7 +155,7 @@ const TEMPLATE_3_BODY = `First, a huge thank you to all of you for partnering wi
 ## Agenda
 - **5:15 AM** · Eddie arrives to start setup
 - **5:30 AM** · 513Sips bartender arrives to set up
-- **6:15–7:00 AM** · Morning sponsors arrive (BackSwing Golf, Zeek's Power Wipes & It's Working Out)
+- **6:15–7:00 AM** · Morning sponsors arrive (BackSwing Golf, Zeek's Power Clean Wipes & It's Working Out)
 - **6:45 AM** · Registration begins
 - **7:45 AM** · Announcements & prayer
 - **8:00 AM** · Shotgun start
@@ -164,7 +164,7 @@ const TEMPLATE_3_BODY = `First, a huge thank you to all of you for partnering wi
 - **~1:45 PM** · Lunch & award ceremony
 
 ## Holes & challenges
-- **Zeek's Power Wipes** · Hole 5
+- **Zeek's Power Clean Wipes** · Hole 5
 - **Beat the Pro** · Hole 13
 - **Bucket Golf Challenge** (Last Mile volunteers) · Hole 1
 - **513Sips refreshments** · Hole 10
@@ -181,7 +181,7 @@ President, Greater Cincinnati Penn State Alumni Association`;
 
 // One group per line: "Group name: email, email". Each group gets its own
 // email; groups never see each other.
-const DEFAULT_GROUPS = `Power Wipes: Whitney.Mueller@powercleanwipes.com, michael@powercleanwipes.com, zeek.kreke@powercleanwipes.com
+const DEFAULT_GROUPS = `Zeek's Power Clean Wipes: Whitney.Mueller@powercleanwipes.com, michael@powercleanwipes.com, zeek.kreke@powercleanwipes.com
 Courtesy Automotive: sgibson@gocourtesy.com
 It's Working Out: joey@itsworkingout.com
 513Sips: egady303@gmail.com

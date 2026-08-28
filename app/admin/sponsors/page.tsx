@@ -152,7 +152,7 @@ export default function SponsorsPage() {
           p_tier: s.tier,
           p_sponsorship_type: s.sponsorship_type.trim(),
           // Save the hole for ANY sponsor, not just the $100 hole tier. An
-          // activation sponsor (Power Wipes, BackSwing) needs a hole so their
+          // activation sponsor (Zeek's Power Clean Wipes, BackSwing) needs a hole
           // logo shows on that scorecard, without being listed publicly as a
           // hole sponsor, which keys off sponsorship_type instead.
           p_hole_number: s.hole_number,
