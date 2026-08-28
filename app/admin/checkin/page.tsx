@@ -28,6 +28,8 @@ export default function CheckinPage() {
   const [busyChallenge, setBusyChallenge] = useState<string | null>(null)
   const [addForPlayer, setAddForPlayer] = useState('')
   const [busySettle, setBusySettle] = useState<string | null>(null)
+  const [busyDelete, setBusyDelete] = useState<string | null>(null)
+  const [owesOnly, setOwesOnly] = useState(false)
   const [actionError, setActionError] = useState('')
 
   async function load() {
@@ -130,7 +132,9 @@ export default function CheckinPage() {
     ))
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid })
+    // Marking paid at the tent means cash or Venmo. Stripe never saw it, so
+    // recording the method keeps the Stripe figure on Revenue honest.
+    const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: purchaseId, p_paid: !paid, p_method: !paid ? 'cash' : null })
     setBusyPurchase(null)
     if (error) { setActionError(`Couldn't update payment: ${error.message}`); load() }
   }
@@ -160,7 +164,7 @@ export default function CheckinPage() {
     const supabase = createClient()
     for (const p of team.purchases.filter(x => !x.paid)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: p.id, p_paid: true })
+      const { error } = await (supabase.rpc as any)('set_purchase_paid_status', { p_purchase_id: p.id, p_paid: true, p_method: 'cash' })
       if (error) { setActionError(`Couldn't settle: ${error.message}`); setBusySettle(null); load(); return }
     }
     if (team.mulligans.unpaid > 0) {
@@ -172,16 +176,54 @@ export default function CheckinPage() {
     load()
   }
 
+  /** Remove an add-on put on by mistake. A client DELETE is silently
+   *  filtered by RLS, so this goes through a SECURITY DEFINER RPC. */
+  async function removePurchase(purchaseId: string, label: string) {
+    if (!confirm(`Remove "${label}" from this team's tab?`)) return
+    setActionError('')
+    setBusyDelete(purchaseId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('delete_purchase', { p_purchase_id: purchaseId })
+    setBusyDelete(null)
+    if (error) { setActionError(`Couldn't remove: ${error.message}`); return }
+    load()
+  }
+
+  /**
+   * One path for every add, contests included. The two contests are normal
+   * catalog rows, so they belong in the same list with the same golfer
+   * picker: the old shortcut buttons could not attribute to a golfer.
+   *
+   * Pricing is the only special case. One contest on its own costs more
+   * than half the pair, so the bundle stays the better deal.
+   */
   async function addItem(teamId: string) {
     if (!selectedItem) return
     setActionError('')
     const supabase = createClient()
+    const ctp = catalog.find(c => c.tag === 'ctp')
+    const ld  = catalog.find(c => c.tag === 'ld')
+    const player = addForPlayer || null
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.rpc as any)('add_checkin_purchase', {
-      p_team_id: teamId,
-      p_catalog_item_id: selectedItem,
-      p_player_id: addForPlayer || null,
+    const insert = async (itemId: string, amount: number) => await (supabase.from('purchase') as any).insert({
+      team_id: teamId, catalog_item_id: itemId, player_id: player,
+      quantity: 1, amount, paid_status: 'unpaid', channel: 'check_in',
     })
+
+    let error = null
+    if (selectedItem === 'BUNDLE' && ctp && ld) {
+      ;({ error } = await insert(ctp.id, ctp.price))
+      if (!error) ({ error } = await insert(ld.id, ld.price))
+    } else if (selectedItem === ctp?.id || selectedItem === ld?.id) {
+      ;({ error } = await insert(selectedItem, SINGLE_CONTEST_PRICE))
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;({ error } = await (supabase.rpc as any)('add_checkin_purchase', {
+        p_team_id: teamId, p_catalog_item_id: selectedItem, p_player_id: player,
+      }))
+    }
     if (error) { setActionError(`Couldn't add item: ${error.message}`); return }
     setAddingTo(null)
     setSelectedItem('')
@@ -237,7 +279,10 @@ export default function CheckinPage() {
   }
 
   const q = query.toLowerCase()
-  const filtered = teams.filter(t =>
+  const owedBy = (t: Team) =>
+    t.purchases.filter(p => !p.paid).reduce((s2, p) => s2 + p.amount * p.quantity, 0) + t.mulligans.unpaid * 2
+
+  const filtered = teams.filter(t => (!owesOnly || owedBy(t) > 0)).filter(t =>
     !q || t.name.toLowerCase().includes(q) || t.pin.includes(q) ||
     (t.startHole != null && String(t.startHole).includes(q)) ||
     (t.pairing != null && t.pairing.toLowerCase() === q) ||
@@ -258,6 +303,21 @@ export default function CheckinPage() {
       </div>
 
       {actionError && <div className={styles.actionError}>{actionError}</div>}
+
+      <div className={styles.filterRow}>
+        <button
+          className={`${styles.filterChip} ${!owesOnly ? styles.filterChipOn : ''}`}
+          onClick={() => setOwesOnly(false)}
+        >
+          All teams ({teams.length})
+        </button>
+        <button
+          className={`${styles.filterChip} ${owesOnly ? styles.filterChipOn : ''}`}
+          onClick={() => setOwesOnly(true)}
+        >
+          Who owes ({teams.filter(t => owedBy(t) > 0).length})
+        </button>
+      </div>
 
       <div className={styles.searchWrap}>
         <Search size={18} className={styles.searchIcon} />
@@ -343,6 +403,14 @@ export default function CheckinPage() {
                             disabled={busyPurchase === p.id}
                           >
                             {busyPurchase === p.id ? '…' : 'Mark paid'}
+                          </button>
+                          <button
+                            className={styles.removeBtn}
+                            onClick={() => removePurchase(p.id, p.label)}
+                            disabled={busyDelete === p.id}
+                            title="Remove this item"
+                          >
+                            {busyDelete === p.id ? '…' : '✕'}
                           </button>
                         </div>
                       ))}
@@ -457,6 +525,14 @@ export default function CheckinPage() {
                           >
                             {p.paid ? 'Paid ✓' : 'Mark paid'}
                           </button>
+                          <button
+                            className={styles.removeBtn}
+                            onClick={() => removePurchase(p.id, p.label)}
+                            disabled={busyDelete === p.id}
+                            title="Remove this item"
+                          >
+                            {busyDelete === p.id ? '…' : '✕'}
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -527,62 +603,29 @@ export default function CheckinPage() {
 
                   {isAdding ? (
                     <div>
-                      {/* Challenge shortcut — adds both CTP + LD at once */}
-                      {catalog.some(c => c.tag === 'ctp') && (
-                        <div className={styles.addItemRow} style={{ marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>LD &amp; CTP:</span>
-                          <button
-                            className={styles.addBtn}
-                            onClick={() => addChallenge(team.id, 'individual')}
-                            disabled={busyChallenge === team.id}
-                            style={{ flex: 1 }}
-                          >
-                            {busyChallenge === team.id ? '…' : `Individual · $${(catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)}`}
-                          </button>
-                          {team.golfers.length > 1 && (
-                            <button
-                              className={styles.addBtn}
-                              onClick={() => addChallenge(team.id, 'team')}
-                              disabled={busyChallenge === team.id}
-                              style={{ flex: 1 }}
-                            >
-                              {busyChallenge === team.id ? '…' : `Both golfers · $${((catalog.find(c => c.tag === 'ctp')?.price ?? 0) + (catalog.find(c => c.tag === 'ld')?.price ?? 0)) * 2}`}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {/* Single contest — costs more than half the bundle */}
-                      {catalog.some(c => c.tag === 'ctp') && (
-                        <div className={styles.addItemRow} style={{ marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>One only:</span>
-                          <button
-                            className={styles.addBtn}
-                            onClick={() => addSingleContest(team.id, 'ctp')}
-                            disabled={busyChallenge === team.id}
-                            style={{ flex: 1 }}
-                          >
-                            {busyChallenge === team.id ? '…' : `Closest to pin · $${SINGLE_CONTEST_PRICE}`}
-                          </button>
-                          <button
-                            className={styles.addBtn}
-                            onClick={() => addSingleContest(team.id, 'ld')}
-                            disabled={busyChallenge === team.id}
-                            style={{ flex: 1 }}
-                          >
-                            {busyChallenge === team.id ? '…' : `Long drive · $${SINGLE_CONTEST_PRICE}`}
-                          </button>
-                        </div>
-                      )}
                       {/* Regular items — CTP/LD excluded; already-bought single-buy items hidden */}
                       {(() => {
                         const purchasedIds = new Set(team.purchases.map(p => p.catalogItemId))
+                        const ctp = catalog.find(c => c.tag === 'ctp')
+                        const ld  = catalog.find(c => c.tag === 'ld')
+                        const bundlePrice = (ctp?.price ?? 0) + (ld?.price ?? 0)
+                        // The contests are ordinary rows now, listed first because
+                        // they are the most common tent sale.
+                        const contestOpts: { value: string; label: string }[] = []
+                        if (ctp && ld) {
+                          if (!purchasedIds.has(ctp.id) && !purchasedIds.has(ld.id)) {
+                            contestOpts.push({ value: 'BUNDLE', label: `Closest to Pin + Long Drive · $${bundlePrice}` })
+                          }
+                          if (!purchasedIds.has(ctp.id)) contestOpts.push({ value: ctp.id, label: `Closest to Pin only · $${SINGLE_CONTEST_PRICE}` })
+                          if (!purchasedIds.has(ld.id))  contestOpts.push({ value: ld.id,  label: `Long Drive only · $${SINGLE_CONTEST_PRICE}` })
+                        }
                         const available = catalog.filter(c =>
                           c.tag !== 'ctp' && c.tag !== 'ld' &&
                           (c.allow_multiple || !purchasedIds.has(c.id))
                         )
                         return (
                         <div className={styles.addItemRow}>
-                          {catalog.find(c => c.id === selectedItem)?.per_person ? (
+                          {(selectedItem === 'BUNDLE' || catalog.find(c => c.id === selectedItem)?.per_person) ? (
                             <select
                               className={styles.addItemSelect}
                               value={addForPlayer}
@@ -601,13 +644,16 @@ export default function CheckinPage() {
                             onChange={e => {
                               setSelectedItem(e.target.value)
                               const it = catalog.find(c => c.id === e.target.value)
-                              if (!it?.per_person) setAddForPlayer('')
+                              if (e.target.value !== 'BUNDLE' && !it?.per_person) setAddForPlayer('')
                             }}
                             autoFocus
                           >
                             <option value="">
-                              {available.length === 0 ? '— Nothing left to add —' : '— Add item —'}
+                              {available.length === 0 && contestOpts.length === 0 ? '— Nothing left to add —' : '— Add item —'}
                             </option>
+                            {contestOpts.map(o => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
                             {available.map(c => (
                               <option key={c.id} value={c.id}>{c.name} · ${c.price}</option>
                             ))}

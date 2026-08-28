@@ -336,3 +336,41 @@
   padding: 1px 6px;
   border-radius: 5px;
 }
+
+/* ── All teams / Who owes ────────────────────────────────────── */
+.filterRow { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+
+.filterChip {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.filterChipOn {
+  background: var(--psu-navy, #001E44);
+  border-color: var(--psu-navy, #001E44);
+  color: #fff;
+}
+
+/* ── Remove an add-on put on by mistake ──────────────────────── */
+.removeBtn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-left: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--fg-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.removeBtn:hover:not(:disabled) { background: #FDECEC; border-color: #F5C2C2; color: #C0392B; }
+.removeBtn:disabled { opacity: 0.4; cursor: default; }
