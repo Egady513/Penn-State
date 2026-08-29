@@ -63,3 +63,17 @@
   font-weight: 700;
   color: var(--fg-muted);
 }
+
+/* Section heading inside the revenue summary table */
+.sectionRow td {
+  padding-top: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--border);
+}
+.sectionRow:first-child td { padding-top: 4px; }
+
+.indent { padding-left: 16px; }

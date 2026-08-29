@@ -35,7 +35,8 @@ export function MoneyRaised({ variant = 'chip', goal = 10000, metric = 'gross' }
         for (const r of data) {
           const d = Number(r.dollars)
           if (Number.isNaN(d)) continue
-          if (r.category === 'expenses') expenses += d
+          // card_fees is Stripe's cut: money out, same as any other expense.
+          if (r.category === 'expenses' || r.category === 'card_fees') expenses += d
           else income += d
         }
         setTotal(metric === 'net' ? income - expenses : income)

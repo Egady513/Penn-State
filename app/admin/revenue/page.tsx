@@ -92,9 +92,13 @@ export default function RevenuePage() {
   // never be forgotten. If a fee expense IS logged by hand, that one wins
   // and this is suppressed, otherwise the same cost lands twice.
   const feeLogged = expenses.some(e => /stripe|processing fee|card fee|cc fee/i.test(e.description))
-  const estimatedFee = cardVol && !feeLogged
-    ? Number(cardVol.volume) * STRIPE_PCT + Number(cardVol.registrations) * STRIPE_PER_CHARGE
-    : 0
+  // Prefer the value from revenue_breakdown so the play app and this page
+  // can never disagree. Falls back to the local sum until that migration runs.
+  const estimatedFee = feeLogged
+    ? 0
+    : (cats['card_fees']?.dollars ?? (cardVol
+        ? Number(cardVol.volume) * STRIPE_PCT + Number(cardVol.registrations) * STRIPE_PER_CHARGE
+        : 0))
   const loggedExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
   const expensesTotal = loggedExpenses + estimatedFee
   const gross = inAppTotal + outsideTotal
@@ -182,80 +186,89 @@ export default function RevenuePage() {
           <table className={sheet.table}>
             <thead><tr><th>Source</th><th className={sheet.right}>Count</th><th className={sheet.right}>Amount</th></tr></thead>
             <tbody>
+              {/* 1 ── Collected through the app (ties to Stripe) */}
+              <tr className={sheet.sectionRow}><td colSpan={3}>Collected through the app</td></tr>
               {INCOME.map(([k, label]) => (
                 <tr key={k}>
-                  <td>{label}</td>
+                  <td className={sheet.indent}>{label}</td>
                   <td className={sheet.right}>{cats[k]?.count ?? 0}</td>
                   <td className={sheet.right}>${money(cats[k]?.dollars ?? 0)}</td>
                 </tr>
               ))}
-              <tr className={sheet.totalRow}>
-                <td>Collected through the app</td>
-                <td></td>
+              <tr className={sheet.subtotalRow}>
+                <td>Subtotal</td><td />
                 <td className={sheet.right}>${money(inAppTotal)}</td>
               </tr>
 
-              <tr><td colSpan={3} style={{ height: 14, border: 'none' }} /></tr>
-
-              <tr className={sheet.subtotalRow}>
-                <td>Less expenses</td>
-                <td></td>
-                <td className={sheet.right}>&minus;${money(expensesTotal)}</td>
-              </tr>
-
+              {/* 2 ── Collected outside Stripe */}
+              <tr className={sheet.sectionRow}><td colSpan={3}>Collected outside Stripe</td></tr>
               {OUTSIDE_APP.map(([k, label]) => (
                 <tr key={k}>
-                  <td>Plus {label.charAt(0).toLowerCase() + label.slice(1)}</td>
+                  <td className={sheet.indent}>{label}</td>
                   <td className={sheet.right}>{cats[k]?.count ?? 0}</td>
                   <td className={sheet.right}>${money(cats[k]?.dollars ?? 0)}</td>
                 </tr>
               ))}
-
-              <tr className={sheet.totalRow}>
-                <td>Total to Last Mile Food Rescue</td>
-                <td></td>
-                <td className={sheet.right}>${money(net)}</td>
+              <tr className={sheet.subtotalRow}>
+                <td>Subtotal</td><td />
+                <td className={sheet.right}>${money(outsideTotal)}</td>
               </tr>
 
-              {/* Committed but not in hand. Sits BELOW the total on purpose:
-                  it is not money until it is collected. */}
-              <tr>
-                <td colSpan={3} style={{ height: 14, border: 'none' }} />
-              </tr>
-              <tr>
-                <td style={{ color: 'var(--fg-muted)' }}>
-                  Still to collect
-                  <span style={{ fontSize: 12 }}>
-                    {' '}· open tabs, not counted above
-                  </span>
-                </td>
-                <td className={sheet.right} style={{ color: 'var(--fg-muted)' }}>
-                  {owedRows.length} {owedRows.length === 1 ? 'team' : 'teams'}
-                </td>
-                <td className={sheet.right} style={{ color: owedTotal > 0 ? '#92400E' : 'var(--fg-muted)', fontWeight: 700 }}>
-                  ${money(owedTotal)}
-                </td>
-              </tr>
-              {owedRows.slice(0, 8).map(b => (
-                <tr key={b.name} className={sheet.noPrint}>
-                  <td style={{ paddingLeft: 22, color: 'var(--fg-muted)', fontSize: 13 }}>{b.name}</td>
-                  <td />
-                  <td className={sheet.right} style={{ color: 'var(--fg-muted)', fontSize: 13 }}>${money(b.owed)}</td>
+              {/* 3 ── Still to collect. Shown here, deliberately NOT in the total. */}
+              <tr className={sheet.sectionRow}><td colSpan={3}>Still to collect</td></tr>
+              {owedRows.length === 0 ? (
+                <tr><td className={sheet.indent} colSpan={3} style={{ color: 'var(--fg-muted)' }}>Nothing outstanding.</td></tr>
+              ) : owedRows.slice(0, 8).map(b => (
+                <tr key={b.name}>
+                  <td className={sheet.indent}>{b.name}</td><td />
+                  <td className={sheet.right}>${money(b.owed)}</td>
                 </tr>
               ))}
               {owedRows.length > 8 && (
-                <tr className={sheet.noPrint}>
-                  <td style={{ paddingLeft: 22, color: 'var(--fg-muted)', fontSize: 12 }}>
-                    and {owedRows.length - 8} more — see Check-in, &ldquo;Who owes&rdquo;
-                  </td>
-                  <td /><td />
+                <tr>
+                  <td className={sheet.indent} style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
+                    and {owedRows.length - 8} more &middot; see Check-in, &ldquo;Who owes&rdquo;
+                  </td><td /><td />
                 </tr>
               )}
+              <tr className={sheet.subtotalRow}>
+                <td>Subtotal <span style={{ fontWeight: 400, fontSize: 12 }}>&middot; not in the total below</span></td>
+                <td className={sheet.right}>{owedRows.length}</td>
+                <td className={sheet.right} style={{ color: owedTotal > 0 ? '#92400E' : undefined }}>${money(owedTotal)}</td>
+              </tr>
+
+              {/* 4 ── Expenses */}
+              <tr className={sheet.sectionRow}><td colSpan={3}>Expenses</td></tr>
+              {expenses.map(e => (
+                <tr key={e.id}>
+                  <td className={sheet.indent}>{e.description}</td><td />
+                  <td className={sheet.right}>&minus;${money(Number(e.amount) || 0)}</td>
+                </tr>
+              ))}
+              {estimatedFee > 0 && (
+                <tr>
+                  <td className={sheet.indent}>
+                    Card processing fees
+                    <span style={{ color: 'var(--fg-muted)', fontSize: 12 }}> &middot; estimated</span>
+                  </td><td />
+                  <td className={sheet.right}>&minus;${money(estimatedFee)}</td>
+                </tr>
+              )}
+              <tr className={sheet.subtotalRow}>
+                <td>Subtotal</td><td />
+                <td className={sheet.right}>&minus;${money(expensesTotal)}</td>
+              </tr>
+
+              {/* 5 ── The only number that matters */}
+              <tr className={sheet.totalRow}>
+                <td>Total to Last Mile Food Rescue</td><td />
+                <td className={sheet.right}>${money(net)}</td>
+              </tr>
             </tbody>
           </table>
 
-          <div className={sheet.group} style={{ marginTop: 28 }}>
-            <div className={sheet.groupHead}>Expenses</div>
+        <div className={sheet.group} style={{ marginTop: 28 }}>
+            <div className={sheet.groupHead}>Add or remove an expense</div>
             <table className={sheet.table}>
               <tbody>
                 {expenses.length === 0 && estimatedFee === 0 && <tr><td className={sheet.empty} colSpan={3}>No expenses logged yet.</td></tr>}
@@ -280,13 +293,6 @@ export default function RevenuePage() {
                     </td>
                   </tr>
                 ))}
-                {expenses.length > 0 && (
-                  <tr className={sheet.totalRow}>
-                    <td>Total expenses</td>
-                    <td className={sheet.right}>−${money(expensesTotal)}</td>
-                    <td></td>
-                  </tr>
-                )}
               </tbody>
             </table>
 
@@ -303,7 +309,7 @@ export default function RevenuePage() {
           </div>
 
           <div style={{ marginTop: 28 }}>
-            <h2 className={sheet.h2}>Collected outside Stripe</h2>
+            <h2 className={sheet.h2}>Add or remove outside money</h2>
             <p className={sheet.sub}>
               Checks, cash and Venmo. Counts toward gross and net, same as everything else.
               Zero the matching sponsor amount so the money is not counted twice.
@@ -328,11 +334,6 @@ export default function RevenuePage() {
                     </td>
                   </tr>
                 ))}
-                <tr className={sheet.totalRow}>
-                  <td>Total cash &amp; Venmo</td>
-                  <td className={sheet.right}>${money(outside.reduce((s, o) => s + Number(o.amount || 0), 0))}</td>
-                  <td className={sheet.noPrint} />
-                </tr>
               </tbody>
             </table>
 
@@ -349,14 +350,6 @@ export default function RevenuePage() {
             </div>
           </div>
 
-          <table className={sheet.table} style={{ marginTop: 16 }}>
-            <tbody>
-              <tr className={sheet.totalRow}>
-                <td style={{ fontSize: 18 }}>Net to Last Mile Food Rescue</td>
-                <td className={sheet.right} style={{ fontSize: 18, color: net >= 0 ? 'var(--success, #137a4b)' : '#C0392B' }}>${money(net)}</td>
-              </tr>
-            </tbody>
-          </table>
         </>
       )}
     </div>
