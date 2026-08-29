@@ -8,6 +8,12 @@ type Cat = { count: number; dollars: number }
 type Expense = { id: string; description: string; amount: number; category: string; created_at: string }
 type Outside = { id: string; description: string; amount: number; method: string; created_at: string }
 type Balance = { team_name: string; reg_unpaid: number; purchases_unpaid: number; mulligans_unpaid: number }
+type CardVol = { volume: number; registrations: number; purchases: number }
+
+// Stripe's standard rate. Verified against the real dashboard on 2026-08-28:
+// 2.9% x $7,813 + $0.30 x 35 charges = $237.08 against an actual $237.07.
+const STRIPE_PCT = 0.029
+const STRIPE_PER_CHARGE = 0.30
 
 // Income categories (everything except expenses), in display order.
 const INCOME: [string, string][] = [
@@ -33,6 +39,7 @@ export default function RevenuePage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [outside, setOutside] = useState<Outside[]>([])
   const [balances, setBalances] = useState<Balance[]>([])
+  const [cardVol, setCardVol] = useState<CardVol | null>(null)
   const [oDesc, setODesc] = useState('')
   const [oAmount, setOAmount] = useState('')
   const [oMethod, setOMethod] = useState('cash')
@@ -46,7 +53,7 @@ export default function RevenuePage() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [brRes, exRes, oiRes, tbRes] = await Promise.all([
+    const [brRes, exRes, oiRes, tbRes, cvRes] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('revenue_breakdown'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +62,8 @@ export default function RevenuePage() {
       (supabase.rpc as any)('list_outside_income'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.rpc as any)('team_balances'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.rpc as any)('card_volume'),
     ])
     const br = (brRes.data ?? []) as { category: string; item_count: number; dollars: number }[]
     const map: Record<string, Cat> = {}
@@ -64,6 +73,8 @@ export default function RevenuePage() {
     // Migration may not have run yet — treat a missing table as empty.
     setOutside((oiRes?.error ? [] : (oiRes?.data ?? [])) as Outside[])
     setBalances((tbRes?.error ? [] : (tbRes?.data ?? [])) as Balance[])
+    const cv = (cvRes?.error ? null : (cvRes?.data ?? null)) as CardVol[] | CardVol | null
+    setCardVol(Array.isArray(cv) ? (cv[0] ?? null) : cv)
     setLoading(false)
   }, [])
 
@@ -73,7 +84,15 @@ export default function RevenuePage() {
   // Stripe, minus its fees and anything already paid out.
   const inAppTotal   = INCOME.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
   const outsideTotal = OUTSIDE_APP.reduce((s, [k]) => s + (cats[k]?.dollars ?? 0), 0)
-  const expensesTotal = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+  // Card fees are real money out. Estimated rather than logged, so it can
+  // never be forgotten. If a fee expense IS logged by hand, that one wins
+  // and this is suppressed, otherwise the same cost lands twice.
+  const feeLogged = expenses.some(e => /stripe|processing fee|card fee|cc fee/i.test(e.description))
+  const estimatedFee = cardVol && !feeLogged
+    ? Number(cardVol.volume) * STRIPE_PCT + Number(cardVol.registrations) * STRIPE_PER_CHARGE
+    : 0
+  const loggedExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+  const expensesTotal = loggedExpenses + estimatedFee
   const gross = inAppTotal + outsideTotal
   const net   = gross - expensesTotal
 
@@ -143,8 +162,9 @@ export default function RevenuePage() {
             <strong>Collected through the app</strong> should equal Stripe&apos;s gross volume exactly,
             before Stripe takes its fees and before any payout. Anything settled at check-in for cash
             is tagged as cash and stays out of it.{' '}
-            <strong>Stripe fees are not subtracted automatically.</strong> Add them as an expense from
-            your Stripe dashboard: gross volume minus net volume.
+            <strong>Card fees are estimated</strong> at Stripe&apos;s 2.9% + $0.30, which matched the real
+            dashboard to a penny. For the exact figure, log an expense named &ldquo;Stripe fees&rdquo;
+            (gross volume minus net volume) and the estimate steps aside.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }} className={sheet.noPrint}>
@@ -234,7 +254,19 @@ export default function RevenuePage() {
             <div className={sheet.groupHead}>Expenses</div>
             <table className={sheet.table}>
               <tbody>
-                {expenses.length === 0 && <tr><td className={sheet.empty} colSpan={3}>No expenses logged yet.</td></tr>}
+                {expenses.length === 0 && estimatedFee === 0 && <tr><td className={sheet.empty} colSpan={3}>No expenses logged yet.</td></tr>}
+                {estimatedFee > 0 && (
+                  <tr>
+                    <td>
+                      Card processing fees
+                      <span style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
+                        {' '}· estimated · 2.9% of ${Number(cardVol?.volume ?? 0).toLocaleString()} plus $0.30 × {cardVol?.registrations ?? 0} charges
+                      </span>
+                    </td>
+                    <td className={sheet.right}>−${estimatedFee.toFixed(2)}</td>
+                    <td className={sheet.right} style={{ width: 36 }} />
+                  </tr>
+                )}
                 {expenses.map(e => (
                   <tr key={e.id}>
                     <td>{e.description}<span style={{ color: 'var(--fg-muted)', fontSize: 12 }}> · {e.category === 'greens_fees' ? 'Greens fees' : 'Other'}</span></td>
