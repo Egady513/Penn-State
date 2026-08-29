@@ -15,6 +15,10 @@ type CardVol = { volume: number; registrations: number; purchases: number }
 const STRIPE_PCT = 0.029
 const STRIPE_PER_CHARGE = 0.30
 
+/** Every dollar figure on this page, always two decimals. */
+const money = (n: number) =>
+  Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
 // Income categories (everything except expenses), in display order.
 const INCOME: [string, string][] = [
   ['registration', 'Registration fees'],
@@ -182,13 +186,13 @@ export default function RevenuePage() {
                 <tr key={k}>
                   <td>{label}</td>
                   <td className={sheet.right}>{cats[k]?.count ?? 0}</td>
-                  <td className={sheet.right}>${(cats[k]?.dollars ?? 0).toLocaleString()}</td>
+                  <td className={sheet.right}>${money(cats[k]?.dollars ?? 0)}</td>
                 </tr>
               ))}
               <tr className={sheet.totalRow}>
                 <td>Collected through the app</td>
                 <td></td>
-                <td className={sheet.right}>${inAppTotal.toLocaleString()}</td>
+                <td className={sheet.right}>${money(inAppTotal)}</td>
               </tr>
 
               <tr><td colSpan={3} style={{ height: 14, border: 'none' }} /></tr>
@@ -196,21 +200,21 @@ export default function RevenuePage() {
               <tr className={sheet.subtotalRow}>
                 <td>Less expenses</td>
                 <td></td>
-                <td className={sheet.right}>&minus;${expensesTotal.toLocaleString()}</td>
+                <td className={sheet.right}>&minus;${money(expensesTotal)}</td>
               </tr>
 
               {OUTSIDE_APP.map(([k, label]) => (
                 <tr key={k}>
                   <td>Plus {label.charAt(0).toLowerCase() + label.slice(1)}</td>
                   <td className={sheet.right}>{cats[k]?.count ?? 0}</td>
-                  <td className={sheet.right}>${(cats[k]?.dollars ?? 0).toLocaleString()}</td>
+                  <td className={sheet.right}>${money(cats[k]?.dollars ?? 0)}</td>
                 </tr>
               ))}
 
               <tr className={sheet.totalRow}>
                 <td>Total to Last Mile Food Rescue</td>
                 <td></td>
-                <td className={sheet.right}>${net.toLocaleString()}</td>
+                <td className={sheet.right}>${money(net)}</td>
               </tr>
 
               {/* Committed but not in hand. Sits BELOW the total on purpose:
@@ -229,14 +233,14 @@ export default function RevenuePage() {
                   {owedRows.length} {owedRows.length === 1 ? 'team' : 'teams'}
                 </td>
                 <td className={sheet.right} style={{ color: owedTotal > 0 ? '#92400E' : 'var(--fg-muted)', fontWeight: 700 }}>
-                  ${owedTotal.toLocaleString()}
+                  ${money(owedTotal)}
                 </td>
               </tr>
               {owedRows.slice(0, 8).map(b => (
                 <tr key={b.name} className={sheet.noPrint}>
                   <td style={{ paddingLeft: 22, color: 'var(--fg-muted)', fontSize: 13 }}>{b.name}</td>
                   <td />
-                  <td className={sheet.right} style={{ color: 'var(--fg-muted)', fontSize: 13 }}>${b.owed.toLocaleString()}</td>
+                  <td className={sheet.right} style={{ color: 'var(--fg-muted)', fontSize: 13 }}>${money(b.owed)}</td>
                 </tr>
               ))}
               {owedRows.length > 8 && (
@@ -260,17 +264,17 @@ export default function RevenuePage() {
                     <td>
                       Card processing fees
                       <span style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
-                        {' '}· estimated · 2.9% of ${Number(cardVol?.volume ?? 0).toLocaleString()} plus $0.30 × {cardVol?.registrations ?? 0} charges
+                        {' '}· estimated · 2.9% of ${money(cardVol?.volume ?? 0)} plus $0.30 × {cardVol?.registrations ?? 0} charges
                       </span>
                     </td>
-                    <td className={sheet.right}>−${estimatedFee.toFixed(2)}</td>
+                    <td className={sheet.right}>−${money(estimatedFee)}</td>
                     <td className={sheet.right} style={{ width: 36 }} />
                   </tr>
                 )}
                 {expenses.map(e => (
                   <tr key={e.id}>
                     <td>{e.description}<span style={{ color: 'var(--fg-muted)', fontSize: 12 }}> · {e.category === 'greens_fees' ? 'Greens fees' : 'Other'}</span></td>
-                    <td className={sheet.right}>−${(Number(e.amount) || 0).toLocaleString()}</td>
+                    <td className={sheet.right}>−${money(Number(e.amount) || 0)}</td>
                     <td className={sheet.right} style={{ width: 36 }}>
                       <button className={sheet.noPrint} onClick={() => removeExpense(e.id)} style={delBtn} title="Delete">✕</button>
                     </td>
@@ -279,7 +283,7 @@ export default function RevenuePage() {
                 {expenses.length > 0 && (
                   <tr className={sheet.totalRow}>
                     <td>Total expenses</td>
-                    <td className={sheet.right}>−${expensesTotal.toLocaleString()}</td>
+                    <td className={sheet.right}>−${money(expensesTotal)}</td>
                     <td></td>
                   </tr>
                 )}
@@ -314,7 +318,7 @@ export default function RevenuePage() {
                       {o.description}
                       <span style={{ color: 'var(--fg-muted)', fontSize: 12 }}> · {o.method}</span>
                     </td>
-                    <td className={sheet.right}>${Number(o.amount).toLocaleString()}</td>
+                    <td className={sheet.right}>${money(Number(o.amount))}</td>
                     <td className={sheet.noPrint} style={{ width: 34, textAlign: 'right' }}>
                       <button
                         onClick={() => removeOutside(o.id)}
@@ -326,7 +330,7 @@ export default function RevenuePage() {
                 ))}
                 <tr className={sheet.totalRow}>
                   <td>Total cash &amp; Venmo</td>
-                  <td className={sheet.right}>${outside.reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString()}</td>
+                  <td className={sheet.right}>${money(outside.reduce((s, o) => s + Number(o.amount || 0), 0))}</td>
                   <td className={sheet.noPrint} />
                 </tr>
               </tbody>
@@ -349,7 +353,7 @@ export default function RevenuePage() {
             <tbody>
               <tr className={sheet.totalRow}>
                 <td style={{ fontSize: 18 }}>Net to Last Mile Food Rescue</td>
-                <td className={sheet.right} style={{ fontSize: 18, color: net >= 0 ? 'var(--success, #137a4b)' : '#C0392B' }}>${net.toLocaleString()}</td>
+                <td className={sheet.right} style={{ fontSize: 18, color: net >= 0 ? 'var(--success, #137a4b)' : '#C0392B' }}>${money(net)}</td>
               </tr>
             </tbody>
           </table>
