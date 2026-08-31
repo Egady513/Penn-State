@@ -204,20 +204,34 @@ export default function CheckinPage() {
     const supabase = createClient()
     const ctp = catalog.find(c => c.tag === 'ctp')
     const ld  = catalog.find(c => c.tag === 'ld')
-    const player = addForPlayer || null
+    const player = addForPlayer && addForPlayer !== 'ALL' ? addForPlayer : null
+    const teamGolfers = teams.find(t => t.id === teamId)?.golfers ?? []
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const insert = async (itemId: string, amount: number) => await (supabase.from('purchase') as any).insert({
-      team_id: teamId, catalog_item_id: itemId, player_id: player,
+    const insert = async (itemId: string, amount: number, who: string | null) => await (supabase.from('purchase') as any).insert({
+      team_id: teamId, catalog_item_id: itemId, player_id: who,
       quantity: 1, amount, paid_status: 'unpaid', channel: 'check_in',
     })
 
+    // "Both golfers" writes one row per golfer. Contests are per person, so a
+    // single team-level row would only enter one of them.
+    const targets: (string | null)[] = addForPlayer === 'ALL'
+      ? teamGolfers.map(g => g.id)
+      : [player]
+
     let error = null
     if (selectedItem === 'BUNDLE' && ctp && ld) {
-      ;({ error } = await insert(ctp.id, ctp.price))
-      if (!error) ({ error } = await insert(ld.id, ld.price))
+      for (const who of targets) {
+        ;({ error } = await insert(ctp.id, ctp.price, who))
+        if (error) break
+        ;({ error } = await insert(ld.id, ld.price, who))
+        if (error) break
+      }
     } else if (selectedItem === ctp?.id || selectedItem === ld?.id) {
-      ;({ error } = await insert(selectedItem, SINGLE_CONTEST_PRICE))
+      for (const who of targets) {
+        ;({ error } = await insert(selectedItem, SINGLE_CONTEST_PRICE, who))
+        if (error) break
+      }
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;({ error } = await (supabase.rpc as any)('add_checkin_purchase', {
@@ -611,13 +625,16 @@ export default function CheckinPage() {
                         const bundlePrice = (ctp?.price ?? 0) + (ld?.price ?? 0)
                         // The contests are ordinary rows now, listed first because
                         // they are the most common tent sale.
+                        // NEVER hide a per-person contest because the TEAM already
+                        // bought one. Closest-to-pin and long drive are per golfer:
+                        // hiding on a team-level purchasedIds check meant that once
+                        // one golfer entered, the second could not be added at all.
+                        // That broke check-in on event day. These stay listed always.
                         const contestOpts: { value: string; label: string }[] = []
                         if (ctp && ld) {
-                          if (!purchasedIds.has(ctp.id) && !purchasedIds.has(ld.id)) {
-                            contestOpts.push({ value: 'BUNDLE', label: `Closest to Pin + Long Drive · $${bundlePrice}` })
-                          }
-                          if (!purchasedIds.has(ctp.id)) contestOpts.push({ value: ctp.id, label: `Closest to Pin only · $${SINGLE_CONTEST_PRICE}` })
-                          if (!purchasedIds.has(ld.id))  contestOpts.push({ value: ld.id,  label: `Long Drive only · $${SINGLE_CONTEST_PRICE}` })
+                          contestOpts.push({ value: 'BUNDLE', label: `Closest to Pin + Long Drive · $${bundlePrice}` })
+                          contestOpts.push({ value: ctp.id, label: `Closest to Pin only · $${SINGLE_CONTEST_PRICE}` })
+                          contestOpts.push({ value: ld.id,  label: `Long Drive only · $${SINGLE_CONTEST_PRICE}` })
                         }
                         const available = catalog.filter(c =>
                           c.tag !== 'ctp' && c.tag !== 'ld' &&
@@ -632,7 +649,8 @@ export default function CheckinPage() {
                               onChange={e => setAddForPlayer(e.target.value)}
                               title="Per-golfer item: charge it to one of them, or the whole team"
                             >
-                              <option value="">Whole team</option>
+                                <option value="">Whole team</option>
+                              {team.golfers.length > 1 && <option value="ALL">Both golfers</option>}
                               {team.golfers.map(g => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                               ))}
